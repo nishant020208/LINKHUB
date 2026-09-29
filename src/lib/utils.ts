@@ -1,0 +1,69 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatTimeAgo(dateString: string | null | undefined): string {
+  if (!dateString) return 'never';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  return `${Math.floor(diffInSeconds / 86400)}d ago`;
+}
+
+export function formatDueCountdown(dueDateStr: string | null | undefined): {
+  label: string;
+  isOverdue: boolean;
+  urgency: 'critical' | 'high' | 'medium' | 'low';
+} {
+  if (!dueDateStr) {
+    return { label: 'No due date', isOverdue: false, urgency: 'low' };
+  }
+
+  const due = new Date(dueDateStr);
+  const now = new Date();
+  const diffMs = due.getTime() - now.getTime();
+  const isOverdue = diffMs < 0;
+  const absHours = Math.abs(diffMs) / (1000 * 60 * 60);
+
+  let urgency: 'critical' | 'high' | 'medium' | 'low' = 'low';
+  if (isOverdue) urgency = 'critical';
+  else if (absHours <= 6) urgency = 'critical';
+  else if (absHours <= 24) urgency = 'high';
+  else if (absHours <= 72) urgency = 'medium';
+
+  if (isOverdue) {
+    if (absHours < 1) return { label: `${Math.round(Math.abs(diffMs) / 60000)}m overdue`, isOverdue, urgency };
+    if (absHours < 24) return { label: `${Math.floor(absHours)}h overdue`, isOverdue, urgency };
+    return { label: `${Math.floor(absHours / 24)}d overdue`, isOverdue, urgency };
+  }
+
+  if (absHours < 1) return { label: `in ${Math.max(1, Math.round(diffMs / 60000))}m`, isOverdue, urgency };
+  if (absHours < 24) return { label: `in ${Math.floor(absHours)}h ${Math.round((absHours % 1) * 60)}m`, isOverdue, urgency };
+  const days = Math.floor(absHours / 24);
+  return { label: `in ${days}d`, isOverdue, urgency };
+}
+
+export function getProviderBadgeStyle(provider: string): { bg: string; text: string; border: string } {
+  switch (provider) {
+    case 'google':
+      return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' };
+    case 'microsoft':
+      return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' };
+    case 'github':
+      return { bg: 'bg-neutral-500/10', text: 'text-neutral-300', border: 'border-neutral-500/30' };
+    case 'canvas':
+    case 'moodle':
+      return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30' };
+    case 'notion':
+      return { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/30' };
+    default:
+      return { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/30' };
+  }
+}
