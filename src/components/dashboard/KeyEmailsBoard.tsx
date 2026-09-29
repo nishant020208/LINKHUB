@@ -127,6 +127,13 @@ export const KeyEmailsBoard: React.FC = () => {
             </div>
           );
         })}
+
+        {emails.length === 0 && (
+          <div className="py-8 text-center text-xs font-mono text-muted-foreground border border-dashed border-border/50 rounded-xl p-4">
+            <p className="text-foreground font-medium mb-1">No actionable emails</p>
+            <p className="text-[11px]">Actionable notices, travel reservations, and bills will be detected here.</p>
+          </div>
+        )}
       </div>
     </div>
   );
