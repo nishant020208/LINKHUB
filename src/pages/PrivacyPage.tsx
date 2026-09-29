@@ -4,8 +4,6 @@ import {
   Lock,
   Trash2,
   AlertTriangle,
-  FileText,
-  Clock,
   Eye,
   CheckCircle,
 } from 'lucide-react';
