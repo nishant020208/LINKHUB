@@ -7,13 +7,29 @@ export const PinnedFilesBoard: React.FC = () => {
 
   const files = items.filter((item) => item.type === 'file');
 
+  const fileProviders = Array.from(
+    new Set(
+      accounts.map((a) => {
+        if (a.provider === 'google') return 'Google Drive & Classroom';
+        if (a.provider === 'dropbox') return 'Dropbox';
+        if (a.provider === 'box') return 'Box';
+        return a.label || a.provider;
+      })
+    )
+  );
+
+  const subtitleText =
+    fileProviders.length > 0
+      ? `Quick-access syllabi and starred files from ${fileProviders.join(', ')}`
+      : 'Connect Google Drive or cloud storage to access files directly';
+
   return (
     <div className="rounded-2xl glass-panel border border-border/60 p-5 shadow-xl space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div>
           <h3 className="font-heading font-bold text-lg text-foreground">Pinned & Course Files</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Quick-access syllabi, lecture notes, and active project docs
+            {subtitleText}
           </p>
         </div>
         <span className="p-1.5 rounded-lg bg-muted text-muted-foreground">
