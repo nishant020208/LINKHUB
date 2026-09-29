@@ -211,55 +211,20 @@ export const NotificationSettingsModal: React.FC = () => {
                   />
                 </div>
 
-                {/* SMS & WhatsApp */}
-                <div
-                  className={`p-3.5 rounded-xl border transition-all ${
-                    channels.sms || channels.whatsapp
-                      ? 'bg-primary/5 border-primary/30'
-                      : 'bg-card/40 border-border/40 opacity-70'
-                  }`}
-                >
+                {/* SMS & WhatsApp (Disabled: Twilio / WhatsApp keys missing) */}
+                <div className="p-3.5 rounded-xl border bg-card/20 border-border/30 opacity-60">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-foreground font-medium text-sm">
-                      <Smartphone className="w-4 h-4 text-emerald-400" />
+                      <Smartphone className="w-4 h-4 text-muted-foreground" />
                       <span>SMS / WhatsApp</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={channels.sms}
-                          onChange={() => handleChannelToggle('sms')}
-                          className="rounded border-border accent-primary cursor-pointer w-3.5 h-3.5"
-                        />
-                        SMS
-                      </label>
-                      <label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={channels.whatsapp}
-                          onChange={() => handleChannelToggle('whatsapp')}
-                          className="rounded border-border accent-primary cursor-pointer w-3.5 h-3.5"
-                        />
-                        WA
-                      </label>
-                    </div>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted/80 text-muted-foreground">
+                      Disabled (Keys Missing)
+                    </span>
                   </div>
-                  <input
-                    type="tel"
-                    value={targets.phoneNumber}
-                    onChange={(e) =>
-                      updateNotificationPreferences({
-                        targets: {
-                          ...targets,
-                          phoneNumber: e.target.value,
-                          whatsappNumber: e.target.value,
-                        },
-                      })
-                    }
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full text-xs font-mono px-2.5 py-1.5 rounded-lg bg-background/60 border border-border/50 text-foreground focus:outline-none focus:border-primary"
-                  />
+                  <p className="text-[11px] text-muted-foreground leading-normal">
+                    Requires Twilio SID / Auth Token and WhatsApp Business Cloud API keys. Kept disabled per configuration.
+                  </p>
                 </div>
               </div>
             </div>
