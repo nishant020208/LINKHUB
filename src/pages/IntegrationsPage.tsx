@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   RefreshCw,
   AlertTriangle,
@@ -6,118 +6,206 @@ import {
   Trash2,
   Plus,
   Lock,
+  Layers,
+  Check,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatTimeAgo } from '@/lib/utils';
-import { AccountProvider } from '@/types';
+import { ItemType } from '@/types';
+import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
 
-interface ProviderCardInfo {
-  key: AccountProvider;
-  name: string;
-  category: string;
-  scopes: string[];
-  description: string;
-  badge?: string;
-  isPopular?: boolean;
-}
-
-const ALL_PROVIDERS: ProviderCardInfo[] = [
+const ALL_PROVIDERS: ProviderConnectConfig[] = [
   // 1. Google
   {
     key: 'google',
     name: 'Google Workspace & Classroom',
     category: 'Google',
+    authType: 'oauth',
+    color: '#4285F4',
     scopes: ['gmail.readonly', 'calendar.readonly', 'classroom.readonly', 'drive.metadata.readonly', 'tasks.readonly'],
     description: 'Sync personal & university Gmail, Google Calendar, Classroom assignments, and Drive docs.',
-    isPopular: true,
   },
   // 2. Microsoft
   {
     key: 'microsoft',
     name: 'Microsoft 365 & Outlook',
     category: 'Microsoft',
+    authType: 'oauth',
+    color: '#00A4EF',
     scopes: ['Mail.Read', 'Calendars.Read', 'Tasks.Read', 'Files.Read', 'User.Read'],
     description: 'University & corporate Outlook mail, Microsoft Teams schedules, To Do tasks, and OneDrive files.',
-    isPopular: true,
   },
-  // 3. iCal URL
+  // 3. iCal
   {
     key: 'ical',
     name: 'iCal Timetable Subscription',
     category: 'Calendars',
-    scopes: ['Read-only subscription via webcal:// or https://'],
-    description: 'Direct live calendar feed from university course portals, Apple Calendar, or Athletics.',
-    badge: 'Universal Feed',
+    authType: 'url',
+    color: '#10B981',
+    scopes: ['webcal:// or https:// read-only stream'],
+    description: 'Direct live calendar feed from university course timetables, Apple Calendar, or Athletics.',
   },
   // 4. Developer & Knowledge
   {
     key: 'github',
     name: 'GitHub',
     category: 'Developer',
-    scopes: ['read:user', 'repo (assigned issues/PRs)'],
-    description: 'Pull assigned pull requests, reviewing requests, and repository issues into your action queue.',
+    authType: 'oauth',
+    color: '#24292F',
+    scopes: ['read:user', 'repo:status', 'read:org'],
+    description: 'Pull assigned pull requests, review requests, and repository issues into your unified queue.',
   },
   {
     key: 'notion',
     name: 'Notion',
-    category: 'Knowledge',
+    category: 'Productivity',
+    authType: 'oauth',
+    color: '#18181B',
     scopes: ['read_content'],
-    description: 'Track database tasks, deadlines, and project pages from your shared workspaces.',
+    description: 'Track database tasks, deadlines, and project pages from your shared Notion workspaces.',
   },
   {
     key: 'todoist',
     name: 'Todoist',
     category: 'Productivity',
+    authType: 'oauth',
+    color: '#E44332',
     scopes: ['data:read'],
-    description: 'Two-way synchronized tasks, priorities, and recurring reminders.',
+    description: 'Two-way synchronized tasks, priorities, and recurring project checklists.',
   },
-  // 5. Work Collaboration
+  // 5. Work & Collaboration
   {
     key: 'slack',
     name: 'Slack',
     category: 'Collaboration',
-    scopes: ['channels:read', 'reminders:read'],
+    authType: 'oauth',
+    color: '#4A154B',
+    scopes: ['channels:read', 'reminders:read', 'stars:read'],
     description: 'Capture "saved for later" messages, scheduled reminders, and channel action items.',
   },
   {
     key: 'linear',
     name: 'Linear',
-    category: 'Issue Tracking',
+    category: 'Developer',
+    authType: 'oauth',
+    color: '#5E6AD2',
     scopes: ['read'],
-    description: 'Cycle milestones, high-priority issues, and sprint deadlines.',
+    description: 'Cycle milestones, urgent tickets, and assigned sprint issues across software projects.',
   },
   {
     key: 'jira',
     name: 'Jira Software',
-    category: 'Enterprise Tracking',
-    scopes: ['read:jira-work'],
-    description: 'Sprint backlog items and active tickets assigned to you.',
+    category: 'Enterprise',
+    authType: 'oauth',
+    color: '#0052CC',
+    scopes: ['read:jira-work', 'read:jira-user'],
+    description: 'Enterprise sprint tickets, bug backlogs, and agile board assignments.',
   },
+  {
+    key: 'trello',
+    name: 'Trello',
+    category: 'Productivity',
+    authType: 'oauth',
+    color: '#0079BF',
+    scopes: ['read:board', 'read:card'],
+    description: 'Kanban cards, due date checklists, and board activity streams.',
+  },
+  {
+    key: 'asana',
+    name: 'Asana',
+    category: 'Productivity',
+    authType: 'oauth',
+    color: '#F06A6A',
+    scopes: ['default:read'],
+    description: 'Project portfolios, assigned milestones, and team tasks.',
+  },
+  {
+    key: 'clickup',
+    name: 'ClickUp',
+    category: 'Productivity',
+    authType: 'oauth',
+    color: '#7B68EE',
+    scopes: ['task:read', 'space:read'],
+    description: 'Space tasks, sprint estimations, and custom statuses.',
+  },
+  // 6. Cloud Storage & Meetings
+  {
+    key: 'dropbox',
+    name: 'Dropbox',
+    category: 'Storage',
+    authType: 'oauth',
+    color: '#0061FF',
+    scopes: ['files.metadata.read'],
+    description: 'Recent syncs, shared project folders, and pinned research documents.',
+  },
+  {
+    key: 'box',
+    name: 'Box',
+    category: 'Storage',
+    authType: 'oauth',
+    color: '#0061D5',
+    scopes: ['root_readwrite:read'],
+    description: 'Enterprise cloud documents, institutional folders, and collaborative notes.',
+  },
+  {
+    key: 'zoom',
+    name: 'Zoom Meetings',
+    category: 'Meetings',
+    authType: 'oauth',
+    color: '#2D8CFF',
+    scopes: ['meeting:read:meeting:admin'],
+    description: 'Upcoming scheduled lectures, client video conferences, and join links.',
+  },
+  {
+    key: 'gitlab',
+    name: 'GitLab',
+    category: 'Developer',
+    authType: 'oauth',
+    color: '#FC6D26',
+    scopes: ['read_user', 'read_api'],
+    description: 'Merge requests, assigned issues, and CI/CD pipeline deadline milestones.',
+  },
+  {
+    key: 'bitbucket',
+    name: 'Bitbucket',
+    category: 'Developer',
+    authType: 'oauth',
+    color: '#0052CC',
+    scopes: ['account:read', 'repository:read'],
+    description: 'Pull requests, Jira integrated issues, and code reviews.',
+  },
+  // 7. Academic LMS
   {
     key: 'canvas',
     name: 'Canvas LMS',
     category: 'Academic',
+    authType: 'token',
+    color: '#E62429',
     scopes: ['courses:read', 'assignments:read', 'announcements:read'],
     description: 'Coursework submission deadlines, grade releases, and lecture announcements.',
-    isPopular: true,
   },
   {
     key: 'moodle',
     name: 'Moodle LMS',
     category: 'Academic',
+    authType: 'token',
+    color: '#F98012',
     scopes: ['core_enrol_get_users_courses', 'mod_assign_get_assignments'],
     description: 'Academic modules, quiz deadlines, and university portal items.',
   },
-  // 8. Custom IMAP (with warning)
+  // 8. Custom IMAP
   {
     key: 'imap',
     name: 'Custom IMAP / School Mail',
     category: 'Email',
-    scopes: ['RFC3501 IMAP read-only'],
+    authType: 'credentials',
+    color: '#64748B',
+    scopes: ['RFC3501 IMAP read-only TLS'],
     description: 'Connect legacy university webmail servers directly via encrypted TLS.',
-    badge: 'Advanced / TLS',
   },
 ];
+
+const CATEGORIES = ['All', 'Academic', 'Productivity', 'Developer', 'Collaboration', 'Storage', 'Email'];
 
 export const IntegrationsPage: React.FC = () => {
   const {
@@ -127,7 +215,30 @@ export const IntegrationsPage: React.FC = () => {
     disconnectAccount,
     reconnectAccount,
     wipeAccountData,
+    toggleAccountSyncType,
   } = useAppStore();
+
+  const [activeTab, setActiveTab] = useState('All');
+  const [selectedProvider, setSelectedProvider] = useState<ProviderConnectConfig | null>(null);
+
+  const filteredProviders = ALL_PROVIDERS.filter((provider) => {
+    if (activeTab === 'All') return true;
+    if (activeTab === 'Academic') return provider.category === 'Academic' || provider.key === 'ical';
+    if (activeTab === 'Productivity') return provider.category === 'Productivity' || provider.category === 'Google' || provider.category === 'Microsoft';
+    if (activeTab === 'Developer') return provider.category === 'Developer';
+    if (activeTab === 'Collaboration') return provider.category === 'Collaboration' || provider.category === 'Meetings' || provider.category === 'Enterprise';
+    if (activeTab === 'Storage') return provider.category === 'Storage';
+    if (activeTab === 'Email') return provider.category === 'Email' || provider.key === 'google' || provider.key === 'microsoft';
+    return true;
+  });
+
+  const DATA_TYPES: { type: ItemType; label: string }[] = [
+    { type: 'email', label: 'Mail' },
+    { type: 'event', label: 'Calendar' },
+    { type: 'deadline', label: 'Deadlines' },
+    { type: 'task', label: 'Tasks' },
+    { type: 'file', label: 'Files' },
+  ];
 
   return (
     <div className="space-y-8">
@@ -136,7 +247,7 @@ export const IntegrationsPage: React.FC = () => {
         <div>
           <h2 className="font-heading font-bold text-2xl text-foreground">Integrations & Accounts</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Connect all your accounts once. Read-only permissions by default, client-side encryption.
+            Connect all 18 academic, enterprise, and developer services with zero write permissions.
           </p>
         </div>
 
@@ -163,6 +274,7 @@ export const IntegrationsPage: React.FC = () => {
           {accounts.map((acc) => {
             const hasError = acc.status === 'needs_reconnect' || acc.status === 'error';
             const isPaused = acc.status === 'paused';
+            const enabledTypes = acc.sync_enabled_types || ['email', 'event', 'deadline', 'task', 'file'];
 
             return (
               <div
@@ -216,6 +328,33 @@ export const IntegrationsPage: React.FC = () => {
                   </p>
                 )}
 
+                {/* Per-account Data Type Sync Toggles */}
+                <div className="space-y-1.5 pt-1 border-t border-border/30">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                    <Layers className="w-3 h-3" />
+                    Synchronized Data Types:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DATA_TYPES.map(({ type, label }) => {
+                      const isEnabled = enabledTypes.includes(type);
+                      return (
+                        <button
+                          key={type}
+                          onClick={() => toggleAccountSyncType(acc.id, type)}
+                          className={`px-2 py-0.5 rounded-md text-[11px] font-mono flex items-center gap-1 transition-all cursor-pointer border ${
+                            isEnabled
+                              ? 'bg-primary/10 text-primary border-primary/30 font-medium'
+                              : 'bg-card/40 text-muted-foreground border-border/40 opacity-60 hover:opacity-100'
+                          }`}
+                        >
+                          {isEnabled && <Check className="w-2.5 h-2.5" />}
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="flex items-center justify-between text-xs font-mono text-muted-foreground pt-2 border-t border-border/30">
                   <span>Last synced: {formatTimeAgo(acc.last_synced_at)}</span>
 
@@ -230,10 +369,10 @@ export const IntegrationsPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => disconnectAccount(acc.id)}
-                        className="text-muted-foreground hover:text-foreground text-xs cursor-pointer"
+                        className="text-muted-foreground hover:text-foreground text-xs cursor-pointer px-1 py-0.5"
                         title="Pause sync"
                       >
-                        Pause
+                        {isPaused ? 'Resume' : 'Pause'}
                       </button>
                     )}
 
@@ -254,15 +393,34 @@ export const IntegrationsPage: React.FC = () => {
 
       {/* Available Adapters Catalog */}
       <div className="space-y-4 pt-4">
-        <div>
-          <h3 className="font-heading font-bold text-lg text-foreground">Available Integrations</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Connect educational platforms, enterprise mail, cloud storage, and task managers.
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-heading font-bold text-lg text-foreground">Available Integrations</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Select any adapter to connect via OAuth 2.0, Webcal, token, or encrypted IMAP.
+            </p>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border border-border/40 overflow-x-auto no-scrollbar">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveTab(cat)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === cat
+                    ? 'bg-card text-foreground shadow-sm font-semibold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {ALL_PROVIDERS.map((provider) => {
+          {filteredProviders.map((provider) => {
             const isConnected = accounts.some((a) => a.provider === provider.key);
 
             return (
@@ -275,15 +433,17 @@ export const IntegrationsPage: React.FC = () => {
                     <span className="text-[10px] font-mono uppercase tracking-wider text-primary font-semibold">
                       {provider.category}
                     </span>
-                    {provider.badge && (
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-                        {provider.badge}
-                      </span>
-                    )}
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
+                      {provider.authType}
+                    </span>
                   </div>
 
-                  <h4 className="font-heading font-semibold text-base text-foreground">
-                    {provider.name}
+                  <h4 className="font-heading font-semibold text-base text-foreground flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: provider.color }}
+                    />
+                    <span>{provider.name}</span>
                   </h4>
 
                   <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
@@ -314,15 +474,15 @@ export const IntegrationsPage: React.FC = () => {
                   </span>
 
                   <button
-                    disabled={isConnected}
+                    onClick={() => setSelectedProvider(provider)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
                       isConnected
-                        ? 'bg-muted text-muted-foreground opacity-60 cursor-not-allowed'
+                        ? 'bg-card border border-border/60 text-foreground hover:bg-card/80'
                         : 'bg-primary text-primary-foreground hover:bg-primary/90'
                     }`}
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>{isConnected ? 'Linked' : 'Connect'}</span>
+                    <span>{isConnected ? 'Add Another' : 'Connect'}</span>
                   </button>
                 </div>
               </div>
@@ -330,6 +490,13 @@ export const IntegrationsPage: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Interactive Connect Modal */}
+      <ConnectModal
+        provider={selectedProvider}
+        isOpen={Boolean(selectedProvider)}
+        onClose={() => setSelectedProvider(null)}
+      />
     </div>
   );
 };
