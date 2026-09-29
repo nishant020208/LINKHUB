@@ -5,17 +5,13 @@ import {
   Layers,
   ArrowRight,
   Check,
-  CheckCircle2,
   Lock,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { useAppStore } from '@/store/useAppStore';
 
 export const OnboardingWizard: React.FC = () => {
   const { isOnboardingOpen, setOnboardingOpen, completeOnboarding } = useAuthStore();
-  const { accounts } = useAppStore();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedRole, setSelectedRole] = useState<'student' | 'pro' | 'hybrid'>('student');
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>(['google', 'microsoft']);
