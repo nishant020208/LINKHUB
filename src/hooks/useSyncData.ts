@@ -105,10 +105,12 @@ export function useSyncData() {
       }
 
       const results = [];
-      for (const acc of accountsToSync) {
-        console.log(`[Sync] Invoking sync-provider Edge Function for ${acc.id}...`);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+
         const { data, error } = await supabase.functions.invoke('sync-provider', {
           body: { accountId: acc.id },
+          headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         });
 
         if (error) {
