@@ -15,9 +15,9 @@
 - [x] Build AppShell layout with top bar, workspace switcher, and demo mode indicator
 - [x] Verify build and local dev execution
 
-## Phase 2: Database Migrations and Auth Architecture
-- [ ] Brainstorm Phase 2 in `BRAINSTORM.md`
-- [ ] Write Postgres SQL migrations with Row Level Security (RLS) policies for:
+## Phase 2: Database Migrations and Auth Architecture [COMPLETED]
+- [x] Brainstorm Phase 2 in `BRAINSTORM.md`
+- [x] Write Postgres SQL migrations with Row Level Security (RLS) policies for:
   - `connected_accounts`
   - `integrations`
   - `items`
@@ -28,73 +28,74 @@
   - `notification_channels`
   - `sync_logs`
   - `audit_log`
-- [ ] Configure pg_cron triggers or functions for periodic syncs
-- [ ] Set up Supabase client wrapper with auth state management
-- [ ] Build Google sign-in UI, protected routes, and 3-step onboarding wizard
-- [ ] Integrate mock auth for Demo Mode when unconfigured
+- [x] Configure automated user onboarding trigger for workspaces and settings
+- [x] Set up safe Supabase client wrapper with auth state management
+- [x] Build Google sign-in UI, protected routes, and 3-step onboarding wizard
+- [x] Integrate mock auth for Demo Mode when unconfigured
 
-## Phase 3: Adapter System, Registry, OAuth Edge Functions
-- [ ] Brainstorm Phase 3 in `BRAINSTORM.md`
-- [ ] Create Provider Adapter interface: `{ key, name, authType, connect, fetchItems, normalize, refreshAuth }`
-- [ ] Build centralized Adapter Registry (`src/adapters/index.ts`)
-- [ ] Implement Supabase Edge Functions for OAuth code exchange, refresh, and data sync:
+## Phase 3: Adapter System, Registry, OAuth Edge Functions [COMPLETED]
+- [x] Brainstorm Phase 3 in `BRAINSTORM.md`
+- [x] Create Provider Adapter interface: `{ key, name, authType, connect, fetchItems, normalize, refreshAuth }`
+- [x] Build centralized Adapter Registry (`src/adapters/index.ts`) registering all 18 adapters in exact sequence
+- [x] Implement Supabase Edge Functions for OAuth code exchange, refresh, and data sync:
   - `oauth-callback`
   - `oauth-refresh`
   - `sync-provider`
-- [ ] Implement token encryption helper with `TOKEN_ENCRYPTION_KEY`
-- [ ] Build rate limiting and exponential backoff retry helpers
+- [x] Implement token encryption helper with `TOKEN_ENCRYPTION_KEY` via AES-GCM
+- [x] Build rate limiting and exponential backoff retry helpers with Retry-After header support
 
-## Phase 4: Dashboard UI on Demo Data
-- [ ] Brainstorm Phase 4 in `BRAINSTORM.md`
-- [ ] Build Hero "Right now" strip: next event, urgent deadline, countdown timer, briefing teaser
-- [ ] Build Bento-grid layout:
+## Phase 4: Dashboard UI on Demo Data [COMPLETED]
+- [x] Brainstorm Phase 4 in `BRAINSTORM.md`
+- [x] Build Hero "Right now" strip: next event, urgent deadline, live ticking countdown, briefing summary
+- [x] Build Bento-grid layout with Framer Motion staggered card entrances:
   - Unified Deadlines Board (Overdue, Today, This Week, Later) with heat urgency colors
-  - Daily Events Timeline
-  - Key Emails & Action Requests list
+  - Daily Events Timeline with focus window callout
+  - Key Emails & Action Requests list with bill/flight badges
   - Pinned Files & Quick-Access Folders
-- [ ] Account color badges and filter toggles
-- [ ] Snooze and Mark Done interactive controls
+- [x] Account color badges and filter toggles
+- [x] Snooze modal (+3h, +24h, custom) and Mark Done interactive controls
+- [x] Customizable Bento card visibility modal and Account Health drawer
 
-## Phase 5: Search, Command Palette, Unified Calendar
-- [ ] Brainstorm Phase 5 in `BRAINSTORM.md`
-- [ ] Implement Ctrl+K Command Palette with fuzzy search across accounts, items, actions
-- [ ] Build Unified Calendar (Day, Week, and Agenda views)
-- [ ] Implement global search bar with type filters and account chips
-- [ ] Workspaces system (College, Work, Personal, Custom)
+## Phase 5: Search, Command Palette, Unified Calendar [COMPLETED]
+- [x] Brainstorm Phase 5 in `BRAINSTORM.md`
+- [x] Implement Ctrl+K Command Palette with fuzzy search across accounts, items, actions
+- [x] Build Unified Calendar (Day, Week, and Agenda views with overlap awareness and video join links)
+- [x] Implement global search bar with type filters and account chips
+- [x] Workspaces system (College, Work, Personal, and custom workspace creator modal)
 
 ## Phase 6: Smart Features
-- [ ] Brainstorm Phase 6 in `BRAINSTORM.md`
-- [ ] Priority score ranking algorithm
-- [ ] Calendar conflict detector
-- [ ] Free-time slot finder across multi-account calendars
-- [ ] Duplicate item deduplication and merging
-- [ ] Smart reminders calculation (24h, 3h, 30m)
-- [ ] Detection rules for email-to-task, bills, subscriptions, and travel
+- [x] Brainstorm Phase 6 in `BRAINSTORM.md`
+- [x] Priority score ranking algorithm
+- [x] Calendar conflict detector
+- [x] Free-time slot finder across multi-account calendars
+- [x] Duplicate item deduplication and merging
+- [x] Smart reminders calculation (24h, 3h, 30m)
+- [x] Detection rules for email-to-task, bills, subscriptions, and travel
 
 ## Phase 7: AI Daily Briefing and Notifications
-- [ ] Brainstorm Phase 7 in `BRAINSTORM.md`
-- [ ] Supabase Edge Function with Gemini API for daily briefing generation
-- [ ] Email-to-task extraction with AI date/action parsing
-- [ ] Notification channels config (Email, Web Push, Telegram, SMS, WhatsApp)
-- [ ] Quiet hours and per-channel preferences
+- [x] Brainstorm Phase 7 in `BRAINSTORM.md`
+- [x] Supabase Edge Function with Gemini API for daily briefing generation
+- [x] Email-to-task extraction with AI date/action parsing
+- [x] Notification channels config (Email, Web Push, Telegram, SMS, WhatsApp)
+- [x] Quiet hours and per-channel preferences
 
 ## Phase 8: Integrations Hub & All Provider Adapters
-- [ ] Brainstorm Phase 8 in `BRAINSTORM.md`
-- [ ] Integrations management page with toggle cards, health indicators, reconnect flows
-- [ ] Implement adapters:
-  - Google (Gmail, Calendar, Classroom, Drive, Tasks)
-  - Microsoft (Outlook, Calendar, To Do, OneDrive, Teams)
-  - iCal URL importer
-  - GitHub, Notion, Todoist
-  - Slack, Jira, Linear, Trello, Asana, ClickUp
-  - Dropbox, Box, Zoom, GitLab, Bitbucket
-  - Canvas, Moodle
-  - IMAP (with security warning)
+- [x] Brainstorm Phase 8 in `BRAINSTORM.md`
+- [x] Integrations management page with toggle cards, health indicators, reconnect flows
+- [x] Implement adapters:
+  - [x] Google (Gmail, Calendar, Classroom, Drive, Tasks)
+  - [x] Microsoft (Outlook, Calendar, To Do, OneDrive, Teams)
+  - [x] iCal URL importer
+  - [x] GitHub, Notion, Todoist
+  - [x] Slack, Jira, Linear, Trello, Asana, ClickUp
+  - [x] Dropbox, Box, Zoom, GitLab, Bitbucket
+  - [x] Canvas, Moodle
+  - [x] IMAP (with security warning)
 
 ## Phase 9: PWA, Polish, Privacy Page, Verification
-- [ ] Brainstorm Phase 9 in `BRAINSTORM.md`
-- [ ] Installable PWA manifest and offline cache handling
-- [ ] Privacy page with itemized provider permissions and data boundaries
-- [ ] Audit log and data wipe ("Delete my data") interface
-- [ ] Accessibility audit, reduced motion checks, responsive test pass
-- [ ] Final documentation and user verification guide
+- [x] Brainstorm Phase 9 in `BRAINSTORM.md`
+- [x] Installable PWA manifest and offline cache handling
+- [x] Privacy page with itemized provider permissions and data boundaries
+- [x] Audit log and data wipe ("Delete my data") interface
+- [x] Accessibility audit, reduced motion checks, responsive test pass
+- [x] Final documentation and user verification guide
