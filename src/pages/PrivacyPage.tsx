@@ -241,16 +241,76 @@ export const PrivacyPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl glass-panel border border-border/60 p-6 space-y-3">
+          <div className="rounded-2xl glass-panel border border-border/60 p-6 space-y-4">
             <h3 className="font-heading font-bold text-base text-foreground flex items-center gap-2">
               <FileCheck2 className="w-4 h-4 text-emerald-400" />
+              <span>Google API Services User Data Policy & Limited Use Disclosure</span>
+            </h3>
+            
+            <div className="p-4 rounded-xl bg-card/60 border border-border/40 space-y-3 text-xs text-muted-foreground leading-relaxed">
+              <p className="text-foreground font-medium">
+                UnifyHub&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{' '}
+                <a
+                  href="https://developers.google.com/terms/api-services-user-data-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline hover:text-primary/80"
+                >
+                  Google API Services User Data Policy
+                </a>
+                , including the Limited Use requirements.
+              </p>
+              
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <h4 className="font-semibold text-foreground">1. Ownership & Application Control</h4>
+                <p>
+                  UnifyHub (<a href="https://unifyhubz.vercel.app/" className="text-primary underline">https://unifyhubz.vercel.app/</a>) is owned, operated, and maintained by the UnifyHub developer team. All user data processed by this application belongs exclusively to the user.
+                </p>
+
+                <h4 className="font-semibold text-foreground mt-3">2. Data Collection & Use of Google Scopes</h4>
+                <p>
+                  UnifyHub requests read-only access to Google services (Google Calendar, Gmail, Google Classroom, Google Drive metadata, Google Tasks) solely to aggregate your personal schedule, deadlines, and notifications into a single unified dashboard. We do not modify, send, or delete any data in your Google account.
+                </p>
+
+                <h4 className="font-semibold text-foreground mt-3">3. Strict Prohibition on Data Sale & Advertising</h4>
+                <p>
+                  We do <strong>NOT</strong> sell, rent, or trade your Google user data to third parties under any circumstances. Google user data is never used for serving advertisements, target marketing, or data broker operations.
+                </p>
+
+                <h4 className="font-semibold text-foreground mt-3">4. Human Access & AI Model Training</h4>
+                <p>
+                  No human reads your raw email content or personal calendar data unless explicit user authorization is provided for technical support. Furthermore, your Google user data is <strong>never used to train, retrain, or improve artificial intelligence or machine learning models</strong>.
+                </p>
+
+                <h4 className="font-semibold text-foreground mt-3">5. Encryption & Security</h4>
+                <p>
+                  All OAuth access and refresh tokens are encrypted using AES-256-GCM encryption before storage in database vaults. Data transmitted between your browser and our servers is protected using TLS 1.3 encryption.
+                </p>
+
+                <h4 className="font-semibold text-foreground mt-3">6. User Control & Data Deletion</h4>
+                <p>
+                  You can disconnect your Google account or purge all synchronized data at any time via the Danger Zone tab on this page. You may also revoke access at any time through{' '}
+                  <a
+                    href="https://myaccount.google.com/permissions"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    Google Account Security Settings
+                  </a>.
+                </p>
+              </div>
+            </div>
+
+            <h3 className="font-heading font-bold text-base text-foreground flex items-center gap-2 pt-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
               <span>Data Retention & Storage Guarantees</span>
             </h3>
             <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-5 leading-relaxed">
-              <li>No email message bodies are permanently indexed; only parsed deadline metadata is stored.</li>
+              <li>No email message bodies are permanently stored; only parsed deadline metadata is stored.</li>
               <li>Encrypted auth credentials are automatically purged upon disconnecting an account.</li>
               <li>AI prompts are dispatched with ephemeral flags; zero personal communications are used for model training.</li>
-              <li>Local storage cache can be wiped at any moment via the button above or Command Palette.</li>
+              <li>Local storage cache can be wiped at any moment via the Danger Zone tab or Command Palette.</li>
             </ul>
           </div>
         </div>
