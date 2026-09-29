@@ -1,6 +1,29 @@
 import { create } from 'zustand';
-import { Item, ConnectedAccount, Workspace, DailyBriefing, ItemType } from '@/types';
+import { Item, ConnectedAccount, Workspace, DailyBriefing, ItemType, NotificationPreferences } from '@/types';
 import { DEMO_ACCOUNTS, DEMO_ITEMS, DEMO_WORKSPACES, DEMO_BRIEFING } from '@/lib/demo-data';
+
+const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
+  channels: {
+    email: true,
+    web_push: true,
+    telegram: false,
+    sms: false,
+    whatsapp: false,
+  },
+  targets: {
+    emailAddress: 'alex.chen@mit.edu',
+    telegramChatId: '@alex_chen_dev',
+    phoneNumber: '+1 (555) 234-5678',
+    whatsappNumber: '+1 (555) 234-5678',
+  },
+  quietHours: {
+    enabled: true,
+    start: '22:00',
+    end: '08:00',
+    allowCritical: true,
+  },
+  frequency: 'immediate',
+};
 
 interface AppState {
   activeWorkspaceId: string;
@@ -11,6 +34,7 @@ interface AppState {
   theme: 'dark' | 'light';
   isCommandPaletteOpen: boolean;
   isQuickAddOpen: boolean;
+  isNotificationModalOpen: boolean;
 
   // Domain data
   accounts: ConnectedAccount[];
@@ -19,6 +43,7 @@ interface AppState {
   briefing: DailyBriefing | null;
   isSyncing: boolean;
   lastSyncedAt: string;
+  notificationPreferences: NotificationPreferences;
 
   // Actions
   setActiveWorkspace: (id: string) => void;
@@ -29,6 +54,8 @@ interface AppState {
   toggleTheme: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setQuickAddOpen: (open: boolean) => void;
+  setNotificationModalOpen: (open: boolean) => void;
+  updateNotificationPreferences: (prefs: Partial<NotificationPreferences>) => void;
   markItemDone: (itemId: string, done: boolean) => void;
   snoozeItem: (itemId: string, hours: number) => void;
   addItem: (item: Partial<Item>) => void;
@@ -49,6 +76,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   theme: 'dark',
   isCommandPaletteOpen: false,
   isQuickAddOpen: false,
+  isNotificationModalOpen: false,
 
   accounts: DEMO_ACCOUNTS,
   items: DEMO_ITEMS,
@@ -56,6 +84,19 @@ export const useAppStore = create<AppState>((set, get) => ({
   briefing: DEMO_BRIEFING,
   isSyncing: false,
   lastSyncedAt: new Date().toISOString(),
+  notificationPreferences: DEFAULT_NOTIFICATION_PREFS,
+
+  setNotificationModalOpen: (open) => set({ isNotificationModalOpen: open }),
+  updateNotificationPreferences: (prefs) =>
+    set((state) => ({
+      notificationPreferences: {
+        ...state.notificationPreferences,
+        ...prefs,
+        channels: { ...state.notificationPreferences.channels, ...prefs.channels },
+        targets: { ...state.notificationPreferences.targets, ...prefs.targets },
+        quietHours: { ...state.notificationPreferences.quietHours, ...prefs.quietHours },
+      },
+    })),
 
   setActiveWorkspace: (id) => {
     const ws = get().workspaces.find((w) => w.id === id);
