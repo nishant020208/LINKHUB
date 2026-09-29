@@ -9,13 +9,28 @@ export const EventsTimeline: React.FC = () => {
     .filter((item) => item.type === 'event' && item.start_at)
     .sort((a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime());
 
+  const calendarProviders = Array.from(
+    new Set(
+      accounts.map((a) => {
+        if (a.provider === 'google') return `Google Calendar (${a.email})`;
+        if (a.provider === 'microsoft') return `Outlook Calendar (${a.email})`;
+        return a.label || a.provider;
+      })
+    )
+  );
+
+  const subtitleText =
+    calendarProviders.length > 0
+      ? `Combined ${calendarProviders.join(', ')} schedule`
+      : 'Connect Google Calendar or Outlook to view your schedule';
+
   return (
     <div className="rounded-2xl glass-panel border border-border/60 p-5 shadow-xl space-y-5">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div>
           <h3 className="font-heading font-bold text-lg text-foreground">Today&apos;s Schedule</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Combined college, personal, and work calendars
+            {subtitleText}
           </p>
         </div>
         <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-sky-500/10 text-sky-400 border border-sky-500/20">
