@@ -97,6 +97,13 @@ export const EventsTimeline: React.FC = () => {
             </div>
           );
         })}
+
+        {events.length === 0 && (
+          <div className="py-8 text-center text-xs font-mono text-muted-foreground border border-dashed border-border/50 rounded-xl p-4">
+            <p className="text-foreground font-medium mb-1">No scheduled events</p>
+            <p className="text-[11px]">Connect your Google or Outlook calendar to view your schedule.</p>
+          </div>
+        )}
       </div>
     </div>
   );
