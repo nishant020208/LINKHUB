@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Clock, Calendar, AlertCircle, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Clock, Calendar, AlertCircle, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatDueCountdown } from '@/lib/utils';
+import { detectCalendarConflicts } from '@/lib/smart/conflicts';
 
 export const RightNowHero: React.FC = () => {
   const { briefing, items, accounts } = useAppStore();
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+  const conflicts = detectCalendarConflicts(items);
 
   // Find next upcoming calendar event
   const nowTime = new Date().getTime();
@@ -76,6 +78,21 @@ export const RightNowHero: React.FC = () => {
               &ldquo;{briefing.summary}&rdquo;
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Calendar Conflict Alert if detected */}
+      {conflicts.length > 0 && (
+        <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-amber-300">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>
+              <strong>Schedule Overlap Detected:</strong> {conflicts[0].eventA.title} and {conflicts[0].eventB.title} overlap across connected accounts.
+            </span>
+          </div>
+          <span className="shrink-0 font-mono text-[11px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-500/40">
+            {conflicts.length} conflict{conflicts.length > 1 ? 's' : ''}
+          </span>
         </div>
       )}
 
