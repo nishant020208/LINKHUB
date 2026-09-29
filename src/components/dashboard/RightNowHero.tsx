@@ -1,0 +1,194 @@
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Clock, Calendar, AlertCircle, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
+import { formatDueCountdown } from '@/lib/utils';
+
+export const RightNowHero: React.FC = () => {
+  const { briefing, items, accounts } = useAppStore();
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  // Find next upcoming calendar event
+  const nowTime = new Date().getTime();
+  const nextEvent = items
+    .filter((item) => item.type === 'event' && item.start_at && new Date(item.start_at).getTime() >= nowTime - 15 * 60000)
+    .sort((a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime())[0];
+
+  // Find closest urgent deadline
+  const urgentDeadline = items
+    .filter((item) => (item.type === 'deadline' || item.type === 'task') && !item.is_done && item.due_at)
+    .sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime())[0];
+
+  const deadlineAccount = urgentDeadline
+    ? accounts.find((a) => a.id === urgentDeadline.account_id)
+    : null;
+  const eventAccount = nextEvent
+    ? accounts.find((a) => a.id === nextEvent.account_id)
+    : null;
+
+  // Live timer tick
+  useEffect(() => {
+    const updateCountdown = () => {
+      if (!urgentDeadline?.due_at) {
+        setTimeRemaining('');
+        return;
+      }
+      const due = new Date(urgentDeadline.due_at).getTime();
+      const current = Date.now();
+      const diff = due - current;
+
+      if (diff < 0) {
+        const absDiff = Math.abs(diff);
+        const mins = Math.floor((absDiff / (1000 * 60)) % 60);
+        const hours = Math.floor(absDiff / (1000 * 60 * 60));
+        setTimeRemaining(`-${hours}h ${mins}m`);
+      } else {
+        const mins = Math.floor((diff / (1000 * 60)) % 60);
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        setTimeRemaining(`${hours}h ${mins}m`);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 10000);
+    return () => clearInterval(interval);
+  }, [urgentDeadline?.due_at]);
+
+  const countdownInfo = formatDueCountdown(urgentDeadline?.due_at);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl glass-panel border border-border/60 p-5 md:p-6 mb-8 shadow-xl">
+      {/* Subtle background glow */}
+      <div className="absolute top-0 right-0 w-96 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* AI Daily Briefing Sentence */}
+      {briefing && (
+        <div className="flex items-start gap-3 pb-5 mb-5 border-b border-border/40">
+          <div className="p-2 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20 shrink-0">
+            <Sparkles className="w-4 h-4 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[11px] font-mono uppercase tracking-wider text-sky-400 font-semibold">
+                Daily Focus &middot; {briefing.date}
+              </span>
+            </div>
+            <p className="text-sm md:text-base text-foreground font-medium leading-relaxed">
+              &ldquo;{briefing.summary}&rdquo;
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Hero "Right Now" Dual Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Next Calendar Event */}
+        <div className="p-4 rounded-xl bg-card/40 border border-border/40 flex flex-col justify-between hover:border-sky-500/30 transition-all group">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              <Calendar className="w-3.5 h-3.5 text-sky-400" />
+              Next Scheduled
+            </span>
+            {eventAccount && (
+              <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted border border-border/60">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: eventAccount.color }} />
+                {eventAccount.label}
+              </span>
+            )}
+          </div>
+
+          {nextEvent ? (
+            <div>
+              <h4 className="font-heading font-semibold text-base text-foreground group-hover:text-primary transition-colors flex items-center justify-between gap-2">
+                <span>{nextEvent.title}</span>
+                {nextEvent.url && (
+                  <a
+                    href={nextEvent.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 text-muted-foreground hover:text-foreground shrink-0"
+                    title="Open event link"
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                )}
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                {nextEvent.metadata?.location || nextEvent.description || 'No location provided'}
+              </p>
+              <div className="mt-3 flex items-center gap-2 font-mono text-xs text-sky-400">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  {new Date(nextEvent.start_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {' - '}
+                  {new Date(nextEvent.end_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 text-xs text-muted-foreground">No upcoming meetings scheduled for today.</div>
+          )}
+        </div>
+
+        {/* Most Urgent Deadline / Task */}
+        <div className="p-4 rounded-xl bg-card/40 border border-border/40 flex flex-col justify-between hover:border-rose-500/30 transition-all group">
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <span className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+              Most Urgent Deadline
+            </span>
+            {deadlineAccount && (
+              <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-muted border border-border/60">
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: deadlineAccount.color }} />
+                {deadlineAccount.label}
+              </span>
+            )}
+          </div>
+
+          {urgentDeadline ? (
+            <div>
+              <h4 className="font-heading font-semibold text-base text-foreground group-hover:text-rose-400 transition-colors flex items-center justify-between gap-2">
+                <span className="line-clamp-1">{urgentDeadline.title}</span>
+                {urgentDeadline.url && (
+                  <a
+                    href={urgentDeadline.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1 text-muted-foreground hover:text-foreground shrink-0"
+                    title="Open course submission portal"
+                  >
+                    <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                )}
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                {urgentDeadline.metadata?.course_name || urgentDeadline.description || 'Important coursework'}
+              </p>
+              <div className="mt-3 flex items-center justify-between gap-2">
+                <div
+                  className={`flex items-center gap-1.5 font-mono text-xs px-2.5 py-1 rounded-lg border ${
+                    countdownInfo.isOverdue
+                      ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 font-semibold'
+                      : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{countdownInfo.label}</span>
+                  {timeRemaining && <span className="opacity-75">({timeRemaining})</span>}
+                </div>
+
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  Score: <strong className="text-foreground">{urgentDeadline.priority_score}</strong>
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="py-2 text-xs text-emerald-400 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" />
+              All caught up! No urgent deadlines pending.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
