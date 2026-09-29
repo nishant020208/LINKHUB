@@ -27,13 +27,28 @@ export const KeyEmailsBoard: React.FC = () => {
     });
   };
 
+  const emailProviders = Array.from(
+    new Set(
+      accounts.map((a) => {
+        if (a.provider === 'google') return `Gmail (${a.email})`;
+        if (a.provider === 'microsoft') return `Outlook (${a.email})`;
+        return a.email || a.provider;
+      })
+    )
+  );
+
+  const subtitleText =
+    emailProviders.length > 0
+      ? `Key notices, deadlines & travel from ${emailProviders.join(', ')}`
+      : 'Connect Gmail or Outlook to triage critical incoming emails';
+
   return (
     <div className="rounded-2xl glass-panel border border-border/60 p-5 shadow-xl space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div>
           <h3 className="font-heading font-bold text-lg text-foreground">Actionable Emails</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Key notices, exam schedules, bills & travel across all inboxes
+            {subtitleText}
           </p>
         </div>
         <span className="px-2.5 py-1 rounded-full text-xs font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
