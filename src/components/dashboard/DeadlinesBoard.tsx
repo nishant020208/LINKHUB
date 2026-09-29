@@ -1,13 +1,9 @@
 import React from 'react';
 import {
-  CheckCircle2,
   Clock,
   ExternalLink,
-  MoreVertical,
   Flame,
   Check,
-  RotateCcw,
-  Sparkles,
 } from 'lucide-react';
 import { Item } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
