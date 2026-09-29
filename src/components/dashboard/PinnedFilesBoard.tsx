@@ -70,6 +70,13 @@ export const PinnedFilesBoard: React.FC = () => {
           );
         })}
       </div>
+
+      {files.length === 0 && (
+        <div className="py-8 text-center text-xs font-mono text-muted-foreground border border-dashed border-border/50 rounded-xl p-4">
+          <p className="text-foreground font-medium mb-1">No pinned documents</p>
+          <p className="text-[11px]">Pin essential course syllabi and shared drive folders for quick reference.</p>
+        </div>
+      )}
     </div>
   );
 };
