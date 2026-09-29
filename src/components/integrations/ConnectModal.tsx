@@ -12,8 +12,10 @@ import {
   Mail,
   Loader2,
 } from 'lucide-react';
-import { useAppStore } from '@/store/useAppStore';
-import { AccountProvider, ConnectedAccount } from '@/types';
+import { useAuthStore } from '@/store/useAuthStore';
+import { supabase } from '@/lib/supabase';
+import { queryClient } from '@/lib/queryClient';
+import { AccountProvider } from '@/types';
 
 export interface ProviderConnectConfig {
   key: AccountProvider;
@@ -32,7 +34,7 @@ interface ConnectModalProps {
 }
 
 export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, onClose }) => {
-  const { addAccount } = useAppStore();
+  const { user } = useAuthStore();
 
   const [emailOrLabel, setEmailOrLabel] = useState('');
   const [icalUrl, setIcalUrl] = useState('');
@@ -54,12 +56,65 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
     setError(null);
 
     try {
-      // Validate inputs according to authType
+      if (provider.authType === 'oauth') {
+        // Start OAuth flow via Edge Function
+        const { data, error: fnError } = await supabase.functions.invoke('oauth-start', {
+          body: { provider: provider.key },
+        });
+
+        if (fnError || !data?.url) {
+          if (data?.error === 'not_configured') {
+            throw new Error(`Keys for ${provider.name} are not configured in Edge Function secrets.`);
+          }
+          throw new Error(fnError?.message || data?.error || 'Failed to initialize OAuth connection');
+        }
+
+        // Direct user to provider consent screen
+        window.location.href = data.url;
+        return;
+      }
+
       if (provider.authType === 'url') {
         if (!icalUrl || (!icalUrl.startsWith('http://') && !icalUrl.startsWith('https://') && !icalUrl.startsWith('webcal://'))) {
           throw new Error('Please enter a valid iCal feed URL starting with https:// or webcal://');
         }
-      } else if (provider.authType === 'credentials') {
+
+        if (!user) throw new Error('Please sign in to connect this calendar.');
+
+        const host = icalUrl.split('/')[2] || 'calendar.ics';
+        const { data: newAccount, error: dbError } = await supabase
+          .from('connected_accounts')
+          .insert({
+            user_id: user.id,
+            provider: 'ical',
+            email: host,
+            label: emailOrLabel || `${provider.name}`,
+            encrypted_refresh_token: icalUrl,
+            status: 'connected',
+            last_synced_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+
+        if (newAccount?.id) {
+          supabase.functions.invoke('sync-provider', {
+            body: { accountId: newAccount.id },
+          }).catch(console.warn);
+        }
+
+        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+        queryClient.invalidateQueries({ queryKey: ['items'] });
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          onClose();
+        }, 1200);
+        return;
+      }
+
+      if (provider.authType === 'credentials') {
         if (!imapHost || !imapUser || !imapPassword) {
           throw new Error('Please fill in server host, username, and password.');
         }
@@ -69,33 +124,7 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
         }
       }
 
-      // Simulate connection verification handshake
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const newAccount: ConnectedAccount = {
-        id: `acc-${Date.now()}`,
-        user_id: 'demo-user-1',
-        provider: provider.key,
-        email:
-          provider.authType === 'credentials'
-            ? imapUser
-            : provider.authType === 'url'
-            ? icalUrl.split('/')[2] || 'calendar.ics'
-            : emailOrLabel || `${provider.key}.user@domain.com`,
-        label: emailOrLabel || `${provider.name} Account`,
-        color: provider.color || '#0ea5e9',
-        status: 'connected',
-        last_synced_at: new Date().toISOString(),
-        sync_enabled_types: ['email', 'event', 'deadline', 'task', 'file'],
-        created_at: new Date().toISOString(),
-      };
-
-      addAccount(newAccount);
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        onClose();
-      }, 1200);
+      throw new Error(`Connection for ${provider.name} via ${provider.authType} requires provider credentials.`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to connect integration.');
     } finally {
