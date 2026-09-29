@@ -15,8 +15,11 @@ import {
   AlertTriangle,
   Plus,
   Bell,
+  LogOut,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
+import { queryClient } from '@/lib/queryClient';
 import { formatTimeAgo } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
 import { WorkspaceModal } from '@/components/workspaces/WorkspaceModal';
@@ -44,6 +47,12 @@ export const Navbar: React.FC = () => {
     lastSyncedAt,
     setNotificationModalOpen,
   } = useAppStore();
+  const { user, signOut } = useAuthStore();
+
+  const handleSignOut = async () => {
+    queryClient.clear();
+    await signOut();
+  };
 
   const unhealthyAccountsCount = accounts.filter(
     (a) => a.status === 'needs_reconnect' || a.status === 'error'
@@ -207,6 +216,28 @@ export const Navbar: React.FC = () => {
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4" />}
           </button>
+
+          {/* User Profile & Real Sign-Out */}
+          {user && (
+            <div className="flex items-center gap-2 pl-2 border-l border-border/40">
+              <img
+                src={user.avatarUrl}
+                alt={user.fullName}
+                className="w-7 h-7 rounded-xl object-cover ring-1 ring-border/50"
+              />
+              <span className="hidden xl:inline text-xs font-medium text-foreground max-w-[120px] truncate">
+                {user.fullName}
+              </span>
+              <button
+                onClick={handleSignOut}
+                className="p-2 rounded-xl border border-border/50 bg-card/60 hover:bg-rose-500/10 hover:border-rose-500/30 text-muted-foreground hover:text-rose-400 transition-all cursor-pointer"
+                title="Sign out of UnifyHub"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
