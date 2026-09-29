@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { DemoBanner } from '@/components/common/DemoBanner';
 import { Navbar } from '@/components/layout/Navbar';
+import { CommandPalette } from '@/components/search/CommandPalette';
 import { useAppStore } from '@/store/useAppStore';
 
 export const AppShell: React.FC = () => {
@@ -55,6 +56,9 @@ export const AppShell: React.FC = () => {
           </span>
         </div>
       </footer>
+
+      {/* Global Command Palette */}
+      <CommandPalette />
     </div>
   );
 };
