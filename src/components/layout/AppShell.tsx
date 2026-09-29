@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Navbar } from '@/components/layout/Navbar';
 import { CommandPalette } from '@/components/search/CommandPalette';
 import { NotificationSettingsModal } from '@/components/settings/NotificationSettingsModal';
+import { OnboardingWizard } from '@/components/auth/OnboardingWizard';
 import { useAppStore } from '@/store/useAppStore';
 
 export const AppShell: React.FC = () => {
@@ -59,6 +60,7 @@ export const AppShell: React.FC = () => {
       {/* Global Modals */}
       <CommandPalette />
       <NotificationSettingsModal />
+      <OnboardingWizard />
     </div>
   );
 };
