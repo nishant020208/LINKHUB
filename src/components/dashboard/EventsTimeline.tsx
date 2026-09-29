@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Video, ArrowUpRight, Sparkles } from 'lucide-react';
+import { MapPin, Video, ArrowUpRight, Sparkles } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export const EventsTimeline: React.FC = () => {
