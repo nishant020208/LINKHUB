@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { queryClient } from '@/lib/queryClient';
 import {
   RefreshCw,
   AlertTriangle,
@@ -220,6 +222,33 @@ export const IntegrationsPage: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('All');
   const [selectedProvider, setSelectedProvider] = useState<ProviderConnectConfig | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [callbackBanner, setCallbackBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const status = params.get('status');
+    const provider = params.get('provider');
+    const message = params.get('message');
+
+    if (status === 'connected') {
+      setCallbackBanner({
+        type: 'success',
+        message: `Successfully connected ${provider || 'account'}! Initial synchronization has been triggered.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: ['sync-logs'] });
+      navigate('/integrations', { replace: true });
+    } else if (status === 'error') {
+      setCallbackBanner({
+        type: 'error',
+        message: message ? decodeURIComponent(message) : 'Account authorization was cancelled or failed.',
+      });
+      navigate('/integrations', { replace: true });
+    }
+  }, [location.search, navigate]);
 
   const filteredProviders = ALL_PROVIDERS.filter((provider) => {
     if (activeTab === 'All') return true;
@@ -242,6 +271,32 @@ export const IntegrationsPage: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* OAuth Callback Notice Banner */}
+      {callbackBanner && (
+        <div
+          className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
+            callbackBanner.type === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+              : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {callbackBanner.type === 'success' ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            )}
+            <span>{callbackBanner.message}</span>
+          </div>
+          <button
+            onClick={() => setCallbackBanner(null)}
+            className="text-xs opacity-70 hover:opacity-100 font-mono underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/40">
         <div>
@@ -421,20 +476,54 @@ export const IntegrationsPage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProviders.map((provider) => {
-            const isConnected = accounts.some((a) => a.provider === provider.key);
+            const linkedAccounts = accounts.filter((a) => a.provider === provider.key);
+            const isConnected = linkedAccounts.length > 0;
+            const supportedKeys = ['google', 'microsoft', 'github', 'notion', 'todoist', 'slack', 'linear', 'ical'];
+            const isConfigured = supportedKeys.includes(provider.key);
+
+            let status: 'Not connected' | 'Connected' | 'Syncing' | 'Needs reconnect' | 'Error' | 'Not configured';
+            if (!isConfigured) {
+              status = 'Not configured';
+            } else if (linkedAccounts.length === 0) {
+              status = 'Not connected';
+            } else if (isSyncing) {
+              status = 'Syncing';
+            } else if (linkedAccounts.some((a) => a.status === 'needs_reconnect')) {
+              status = 'Needs reconnect';
+            } else if (linkedAccounts.some((a) => a.status === 'error')) {
+              status = 'Error';
+            } else {
+              status = 'Connected';
+            }
 
             return (
               <div
                 key={provider.key}
-                className="p-5 rounded-2xl glass-panel border border-border/60 hover:border-border/90 flex flex-col justify-between transition-all group shadow-md"
+                className={`p-5 rounded-2xl glass-panel border flex flex-col justify-between transition-all group shadow-md ${
+                  !isConfigured ? 'border-border/30 opacity-75' : 'border-border/60 hover:border-border/90'
+                }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <span className="text-[10px] font-mono uppercase tracking-wider text-primary font-semibold">
                       {provider.category}
                     </span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
-                      {provider.authType}
+                    <span
+                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-medium ${
+                        status === 'Connected'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : status === 'Syncing'
+                          ? 'bg-sky-500/10 text-sky-400 border-sky-500/30 animate-pulse'
+                          : status === 'Needs reconnect'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          : status === 'Error'
+                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                          : status === 'Not configured'
+                          ? 'bg-muted/50 text-muted-foreground border-border/40'
+                          : 'bg-muted text-muted-foreground border-border/40'
+                      }`}
+                    >
+                      {status}
                     </span>
                   </div>
 
@@ -474,15 +563,20 @@ export const IntegrationsPage: React.FC = () => {
                   </span>
 
                   <button
-                    onClick={() => setSelectedProvider(provider)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
-                      isConnected
-                        ? 'bg-card border border-border/60 text-foreground hover:bg-card/80'
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    onClick={() => isConfigured && setSelectedProvider(provider)}
+                    disabled={!isConfigured}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
+                      !isConfigured
+                        ? 'bg-muted/40 text-muted-foreground border border-border/30 cursor-not-allowed'
+                        : isConnected
+                        ? 'bg-card border border-border/60 text-foreground hover:bg-card/80 cursor-pointer'
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer'
                     }`}
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>{isConnected ? 'Add Another' : 'Connect'}</span>
+                    <span>
+                      {!isConfigured ? 'Not Configured' : isConnected ? 'Add Another' : 'Connect'}
+                    </span>
                   </button>
                 </div>
               </div>
