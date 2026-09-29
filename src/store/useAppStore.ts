@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { Item, ConnectedAccount, Workspace, DailyBriefing, ItemType, NotificationPreferences } from '@/types';
-import { DEMO_ACCOUNTS, DEMO_ITEMS, DEMO_WORKSPACES, DEMO_BRIEFING } from '@/lib/demo-data';
 
 const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
   channels: {
@@ -69,6 +68,49 @@ interface AppState {
   wipeAllData: () => void;
 }
 
+const INITIAL_WORKSPACES: Workspace[] = [
+  {
+    id: 'ws-all',
+    user_id: 'user-default',
+    name: 'All Items',
+    slug: 'all',
+    icon: 'Layers',
+    account_ids: [],
+    included_types: ['email', 'event', 'deadline', 'task', 'file'],
+    is_default: true,
+  },
+  {
+    id: 'ws-college',
+    user_id: 'user-default',
+    name: 'College',
+    slug: 'college',
+    icon: 'GraduationCap',
+    account_ids: [],
+    included_types: ['event', 'deadline', 'task', 'file'],
+    is_default: false,
+  },
+  {
+    id: 'ws-work',
+    user_id: 'user-default',
+    name: 'Work',
+    slug: 'work',
+    icon: 'Briefcase',
+    account_ids: [],
+    included_types: ['email', 'event', 'deadline', 'task'],
+    is_default: false,
+  },
+  {
+    id: 'ws-personal',
+    user_id: 'user-default',
+    name: 'Personal',
+    slug: 'personal',
+    icon: 'User',
+    account_ids: [],
+    included_types: ['email', 'event', 'task'],
+    is_default: false,
+  },
+];
+
 export const useAppStore = create<AppState>((set, get) => ({
   activeWorkspaceId: 'ws-all',
   selectedAccountIds: [],
@@ -80,10 +122,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   isQuickAddOpen: false,
   isNotificationModalOpen: false,
 
-  accounts: DEMO_ACCOUNTS,
-  items: DEMO_ITEMS,
-  workspaces: DEMO_WORKSPACES,
-  briefing: DEMO_BRIEFING,
+  accounts: [],
+  items: [],
+  workspaces: INITIAL_WORKSPACES,
+  briefing: null,
   isSyncing: false,
   lastSyncedAt: new Date().toISOString(),
   notificationPreferences: DEFAULT_NOTIFICATION_PREFS,
