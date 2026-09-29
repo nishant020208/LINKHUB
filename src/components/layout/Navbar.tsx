@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Search,
   RefreshCw,
@@ -13,10 +13,12 @@ import {
   Calendar as CalendarIcon,
   ShieldCheck,
   AlertTriangle,
+  Plus,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatTimeAgo } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
+import { WorkspaceModal } from '@/components/workspaces/WorkspaceModal';
 
 const WORKSPACE_ICONS: Record<string, React.ReactNode> = {
   Layers: <Layers className="w-3.5 h-3.5" />,
@@ -27,6 +29,7 @@ const WORKSPACE_ICONS: Record<string, React.ReactNode> = {
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
+  const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const {
     activeWorkspaceId,
     setActiveWorkspace,
@@ -77,6 +80,14 @@ export const Navbar: React.FC = () => {
                 </button>
               );
             })}
+
+            <button
+              onClick={() => setIsWorkspaceModalOpen(true)}
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card/60 transition-colors cursor-pointer"
+              title="Create new workspace"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
           </div>
         </div>
 
@@ -207,6 +218,11 @@ export const Navbar: React.FC = () => {
           );
         })}
       </div>
+
+      <WorkspaceModal
+        isOpen={isWorkspaceModalOpen}
+        onClose={() => setIsWorkspaceModalOpen(false)}
+      />
     </header>
   );
 };
