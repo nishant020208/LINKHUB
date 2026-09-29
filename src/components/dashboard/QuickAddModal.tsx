@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Plus, Calendar, Clock, CheckSquare } from 'lucide-react';
+import { X, Plus, CheckSquare } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ItemType } from '@/types';
 
@@ -89,12 +89,39 @@ export const QuickAddModal: React.FC = () => {
             </div>
 
             <div>
+              <label className="block text-xs font-mono text-muted-foreground mb-1">Item Type</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as ItemType)}
+                className="w-full px-3 py-2 rounded-xl bg-card/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value="deadline">Course Deadline</option>
+                <option value="task">General Task</option>
+                <option value="event">Scheduled Event</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
               <label className="block text-xs font-mono text-muted-foreground mb-1">Due Date & Time</label>
               <input
                 type="datetime-local"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-card/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono text-muted-foreground mb-1">Priority (1-100)</label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={priorityScore}
+                onChange={(e) => setPriorityScore(Number(e.target.value) || 70)}
+                className="w-full px-3 py-2 rounded-xl bg-card/60 border border-border text-foreground text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
