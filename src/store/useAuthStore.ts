@@ -11,69 +11,176 @@ export interface UserProfile {
   isOnboarded: boolean;
 }
 
-const DEFAULT_DEMO_USER: UserProfile = {
-  id: 'demo-user-1',
-  email: 'alex.student@cornell.edu',
-  fullName: 'Alex Chen',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-  role: 'student',
-  isOnboarded: true,
-};
-
 interface AuthState {
   user: UserProfile | null;
   isLoading: boolean;
+  isInitialized: boolean;
   isOnboardingOpen: boolean;
   isAuthModalOpen: boolean;
+  authError: string | null;
 
   // Actions
-  signInWithGoogle: () => Promise<void>;
+  initializeAuth: () => Promise<void>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGitHub: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   setOnboardingOpen: (open: boolean) => void;
   setAuthModalOpen: (open: boolean) => void;
-  completeOnboarding: (data: { role: 'student' | 'pro' | 'hybrid'; primaryAccount: string }) => void;
+  setAuthError: (error: string | null) => void;
+  completeOnboarding: (data: { role: 'student' | 'pro' | 'hybrid'; primaryAccount: string }) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: DEFAULT_DEMO_USER,
-  isLoading: false,
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isLoading: true,
+  isInitialized: false,
   isOnboardingOpen: false,
   isAuthModalOpen: false,
+  authError: null,
+
+  initializeAuth: async () => {
+    try {
+      set({ isLoading: true });
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('Session retrieval error:', error.message);
+        set({ user: null, isLoading: false, isInitialized: true });
+        return;
+      }
+
+      if (!session?.user) {
+        set({ user: null, isLoading: false, isInitialized: true });
+        return;
+      }
+
+      const authUser = session.user;
+      
+      // Fetch or auto-provision profile from public.profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      const userProfile: UserProfile = {
+        id: authUser.id,
+        email: authUser.email || '',
+        fullName:
+          profile?.full_name ||
+          authUser.user_metadata?.full_name ||
+          authUser.user_metadata?.name ||
+          (authUser.email ? authUser.email.split('@')[0] : 'User'),
+        avatarUrl:
+          profile?.avatar_url ||
+          authUser.user_metadata?.avatar_url ||
+          authUser.user_metadata?.picture ||
+          `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authUser.email || 'U')}`,
+        role: (profile?.role as 'student' | 'pro' | 'hybrid') || 'student',
+        isOnboarded: profile?.is_onboarded ?? false,
+      };
+
+      set({
+        user: userProfile,
+        isLoading: false,
+        isInitialized: true,
+        isOnboardingOpen: !userProfile.isOnboarded,
+      });
+    } catch (err) {
+      console.error('initializeAuth exception:', err);
+      set({ user: null, isLoading: false, isInitialized: true });
+    }
+  },
 
   signInWithGoogle: async () => {
-    if (env.isConfigured.supabase) {
+    try {
+      set({ isLoading: true, authError: null });
+      const callbackUrl = `${env.appUrl}/auth/callback`;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: callbackUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'select_account',
+          },
         },
       });
-      if (error) console.error('Supabase Auth error:', error.message);
-    } else {
-      // In Demo Mode: instantiate demo user session
-      set({
-        user: DEFAULT_DEMO_USER,
-        isAuthModalOpen: false,
+
+      if (error) {
+        set({ authError: error.message, isLoading: false });
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      set({ authError: e.message, isLoading: false });
+      return { error: e };
+    }
+  },
+
+  signInWithGitHub: async () => {
+    try {
+      set({ isLoading: true, authError: null });
+      const callbackUrl = `${env.appUrl}/auth/callback`;
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: callbackUrl,
+        },
       });
+
+      if (error) {
+        set({ authError: error.message, isLoading: false });
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      const e = err instanceof Error ? err : new Error(String(err));
+      set({ authError: e.message, isLoading: false });
+      return { error: e };
     }
   },
 
   signOut: async () => {
-    if (env.isConfigured.supabase) {
+    try {
+      set({ isLoading: true });
       await supabase.auth.signOut();
+    } catch (err) {
+      console.warn('Sign out warning:', err);
+    } finally {
+      set({ user: null, isLoading: false, isOnboardingOpen: false });
     }
-    set({ user: null });
   },
 
   setOnboardingOpen: (open) => set({ isOnboardingOpen: open }),
   setAuthModalOpen: (open) => set({ isAuthModalOpen: open }),
+  setAuthError: (error) => set({ authError: error }),
 
-  completeOnboarding: (data) => {
-    set((state) => ({
-      user: state.user
-        ? { ...state.user, role: data.role, isOnboarded: true }
-        : null,
-      isOnboardingOpen: false,
-    }));
+  completeOnboarding: async (data) => {
+    const currentUser = get().user;
+    if (currentUser) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            role: data.role,
+            is_onboarded: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', currentUser.id);
+      } catch (err) {
+        console.warn('Could not persist onboarding state to profiles table:', err);
+      }
+
+      set({
+        user: { ...currentUser, role: data.role, isOnboarded: true },
+        isOnboardingOpen: false,
+      });
+    }
   },
 }));
