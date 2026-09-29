@@ -161,7 +161,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await new Promise((resolve) => setTimeout(resolve, 1100));
 
     set((state) => {
-      const updatedAccounts = state.accounts.map((acc) => {
+      const updatedAccounts: ConnectedAccount[] = state.accounts.map((acc) => {
         if (!accountId || acc.id === accountId) {
           return {
             ...acc,
