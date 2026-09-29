@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Clock, Calendar, AlertCircle, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { formatDueCountdown } from '@/lib/utils';
 import { detectCalendarConflicts } from '@/lib/smart/conflicts';
 
 export const RightNowHero: React.FC = () => {
   const { briefing, items, accounts } = useAppStore();
+  const { user } = useAuthStore();
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const conflicts = detectCalendarConflicts(items);
 
@@ -62,6 +64,30 @@ export const RightNowHero: React.FC = () => {
     <div className="relative overflow-hidden rounded-2xl glass-panel border border-border/60 p-5 md:p-6 mb-8 shadow-xl">
       {/* Subtle background glow */}
       <div className="absolute top-0 right-0 w-96 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* User Greeting & Identity Header */}
+      {user && (
+        <div className="flex items-center justify-between pb-4 mb-5 border-b border-border/40">
+          <div className="flex items-center gap-3">
+            <img
+              src={user.avatarUrl}
+              alt={user.fullName}
+              className="w-10 h-10 rounded-2xl object-cover ring-2 ring-primary/30 shadow-md"
+            />
+            <div>
+              <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Personalized Hub</div>
+              <h2 className="font-heading font-bold text-lg sm:text-xl text-foreground">
+                Welcome back, {user.fullName}
+              </h2>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full text-xs font-mono font-medium bg-muted/60 text-muted-foreground border border-border/50">
+              {accounts.length} linked account{accounts.length === 1 ? '' : 's'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Zero Accounts Active State */}
       {accounts.length === 0 && (
