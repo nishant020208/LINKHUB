@@ -258,6 +258,16 @@ export const DeadlinesBoard: React.FC = () => {
         </details>
       )}
 
+      {/* Empty State */}
+      {deadlines.length === 0 && (
+        <div className="py-10 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-xl p-4">
+          <p className="text-foreground font-medium">No deadlines or tasks yet</p>
+          <p className="text-[11px] text-muted-foreground">
+            Synchronized course deadlines, GitHub issues, and Jira tickets will appear here.
+          </p>
+        </div>
+      )}
+
       {/* Snooze Modal */}
       <SnoozeModal itemId={snoozeItemId} onClose={() => setSnoozeItemId(null)} />
     </div>
