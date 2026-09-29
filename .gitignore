@@ -1,0 +1,22 @@
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Node dependencies and build
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Editor and OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Supabase
+.supabase/
+supabase/.temp/
