@@ -123,3 +123,27 @@ export interface NotificationChannelConfig {
   quiet_hours_start?: string;
   quiet_hours_end?: string;
 }
+
+export interface NotificationPreferences {
+  channels: {
+    email: boolean;
+    web_push: boolean;
+    telegram: boolean;
+    sms: boolean;
+    whatsapp: boolean;
+  };
+  targets: {
+    emailAddress: string;
+    telegramChatId: string;
+    phoneNumber: string;
+    whatsappNumber: string;
+  };
+  quietHours: {
+    enabled: boolean;
+    start: string;
+    end: string;
+    allowCritical: boolean;
+  };
+  frequency: 'immediate' | 'daily_briefing' | 'urgent_only';
+}
+
