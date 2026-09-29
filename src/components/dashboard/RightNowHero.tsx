@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles, Clock, Calendar, AlertCircle, ArrowUpRight, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatDueCountdown } from '@/lib/utils';
@@ -61,6 +62,31 @@ export const RightNowHero: React.FC = () => {
     <div className="relative overflow-hidden rounded-2xl glass-panel border border-border/60 p-5 md:p-6 mb-8 shadow-xl">
       {/* Subtle background glow */}
       <div className="absolute top-0 right-0 w-96 h-48 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Zero Accounts Active State */}
+      {accounts.length === 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-primary/10 border border-primary/20 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/20 text-primary shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-heading font-semibold text-sm text-foreground">
+                Ready to Connect Your Accounts
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Add your Google, Microsoft, iCal, or LMS accounts in Integrations to begin live synchronization.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/integrations"
+            className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-all text-center shrink-0 cursor-pointer shadow-sm"
+          >
+            Connect Providers &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* AI Daily Briefing Sentence */}
       {briefing && (
