@@ -1,0 +1,101 @@
+import React, { useState } from 'react';
+import { X, Clock, Sun, Calendar } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
+
+interface SnoozeModalProps {
+  itemId: string | null;
+  onClose: () => void;
+}
+
+export const SnoozeModal: React.FC<SnoozeModalProps> = ({ itemId, onClose }) => {
+  const { snoozeItem, items } = useAppStore();
+  const [customHours, setCustomHours] = useState('4');
+
+  if (!itemId) return null;
+
+  const targetItem = items.find((i) => i.id === itemId);
+
+  const handleSnooze = (hours: number) => {
+    snoozeItem(itemId, hours);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#0f1626] border border-border/70 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-border/40">
+          <div className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-sky-400" />
+            <h3 className="font-heading font-bold text-base text-white">Snooze Deadline</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {targetItem && (
+          <p className="text-xs text-muted-foreground line-clamp-1 italic">
+            &ldquo;{targetItem.title}&rdquo;
+          </p>
+        )}
+
+        <div className="space-y-2">
+          <button
+            onClick={() => handleSnooze(3)}
+            className="w-full p-3 rounded-xl border border-border/50 bg-card/40 hover:bg-card flex items-center justify-between text-xs text-foreground cursor-pointer transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-primary" />
+              Later today
+            </span>
+            <span className="font-mono text-muted-foreground">+3 hours</span>
+          </button>
+
+          <button
+            onClick={() => handleSnooze(24)}
+            className="w-full p-3 rounded-xl border border-border/50 bg-card/40 hover:bg-card flex items-center justify-between text-xs text-foreground cursor-pointer transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Sun className="w-3.5 h-3.5 text-amber-400" />
+              Tomorrow morning
+            </span>
+            <span className="font-mono text-muted-foreground">+24 hours</span>
+          </button>
+
+          <button
+            onClick={() => handleSnooze(72)}
+            className="w-full p-3 rounded-xl border border-border/50 bg-card/40 hover:bg-card flex items-center justify-between text-xs text-foreground cursor-pointer transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+              This weekend
+            </span>
+            <span className="font-mono text-muted-foreground">+3 days</span>
+          </button>
+        </div>
+
+        <div className="pt-2 border-t border-border/40 flex items-center gap-2">
+          <input
+            type="number"
+            min="1"
+            max="168"
+            value={customHours}
+            onChange={(e) => setCustomHours(e.target.value)}
+            className="w-20 px-3 py-1.5 rounded-xl bg-card border border-border text-foreground text-xs font-mono focus:outline-none"
+          />
+          <span className="text-xs font-mono text-muted-foreground">hours</span>
+
+          <button
+            onClick={() => handleSnooze(Number(customHours) || 4)}
+            className="ml-auto px-4 py-1.5 rounded-xl bg-primary text-primary-foreground font-medium text-xs hover:bg-primary/90 cursor-pointer"
+          >
+            Set Custom
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
