@@ -1,19 +1,19 @@
 # UnifyHub Master Plan & Roadmap
 
-## Phase 1: Foundation, Design System, Layout, Demo Mode, Env Module [IN PROGRESS]
+## Phase 1: Foundation, Design System, Layout, Demo Mode, Env Module [COMPLETED]
 - [x] Configure `.gitignore` to prevent leaking `.env` or credentials
 - [x] Write `BRAINSTORM.md` for Phase 1
 - [x] Write `PLAN.md` master roadmap
-- [ ] Create `.env.example` with comprehensive documentation of client and server variables
-- [ ] Create `CONNECT_CHECKLIST.md` describing per-service requirements and test procedures
-- [ ] Set up Vite + React + TypeScript + Tailwind CSS project configuration
-- [ ] Create `src/lib/env.ts` for safe typed environment validation and `isConfigured` checks
-- [ ] Define core domain TypeScript interfaces in `src/types/index.ts` (Account, Item, Workspace, Adapter)
-- [ ] Implement rich mock datasets in `src/lib/demo-data.ts` (student assignments, meetings, emails, files)
-- [ ] Build global application state with Zustand in `src/store/useAppStore.ts`
-- [ ] Build theme tokens, typography, and glassmorphic UI base in `src/index.css`
-- [ ] Build AppShell layout with top bar, workspace switcher, and demo mode indicator
-- [ ] Verify build and local dev execution
+- [x] Create `.env.example` with comprehensive documentation of client and server variables
+- [x] Create `CONNECT_CHECKLIST.md` describing per-service requirements and test procedures
+- [x] Set up Vite + React + TypeScript + Tailwind CSS project configuration
+- [x] Create `src/lib/env.ts` for safe typed environment validation and `isConfigured` checks
+- [x] Define core domain TypeScript interfaces in `src/types/index.ts` (Account, Item, Workspace, Adapter)
+- [x] Implement rich mock datasets in `src/lib/demo-data.ts` (student assignments, meetings, emails, files)
+- [x] Build global application state with Zustand in `src/store/useAppStore.ts`
+- [x] Build theme tokens, typography, and glassmorphic UI base in `src/index.css`
+- [x] Build AppShell layout with top bar, workspace switcher, and demo mode indicator
+- [x] Verify build and local dev execution
 
 ## Phase 2: Database Migrations and Auth Architecture
 - [ ] Brainstorm Phase 2 in `BRAINSTORM.md`
