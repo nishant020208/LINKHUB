@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle2, ChevronRight, Key, RefreshCw, X } from 'lucide-react';
-import { env, isDemoMode } from '@/lib/env';
+import { ChevronRight, Key, RefreshCw, X } from 'lucide-react';
+import { env } from '@/lib/env';
 import { useAppStore } from '@/store/useAppStore';
 
 export const DemoBanner: React.FC = () => {
   const [isDismissed, setIsDismissed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const { accounts, isSyncing, triggerSync } = useAppStore();
-  const demoActive = isDemoMode();
+  const { isSyncing, triggerSync } = useAppStore();
 
   if (isDismissed) return null;
 
