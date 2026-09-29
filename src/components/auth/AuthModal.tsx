@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Lock, ShieldCheck } from 'lucide-react';
+import { X, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export const AuthModal: React.FC = () => {
