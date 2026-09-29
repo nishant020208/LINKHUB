@@ -130,6 +130,18 @@ export function useSyncData() {
     },
   });
 
+  // 5. Scheduled Sync every 15 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (accountsQuery.data && accountsQuery.data.length > 0 && !syncMutation.isPending) {
+        console.log('[Scheduled Sync] Triggering 15-minute recurring sync pipeline...');
+        syncMutation.mutate();
+      }
+    }, 15 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [accountsQuery.data, syncMutation]);
+
   return {
     accounts: accountsQuery.data || [],
     items: itemsQuery.data || [],
