@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Clock,
   ExternalLink,
@@ -8,9 +8,11 @@ import {
 import { Item } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { formatDueCountdown } from '@/lib/utils';
+import { SnoozeModal } from './SnoozeModal';
 
 export const DeadlinesBoard: React.FC = () => {
   const { items, accounts, markItemDone, snoozeItem } = useAppStore();
+  const [snoozeItemId, setSnoozeItemId] = useState<string | null>(null);
 
   const deadlines = items.filter(
     (item) => item.type === 'deadline' || item.type === 'task'
@@ -141,6 +143,13 @@ export const DeadlinesBoard: React.FC = () => {
                   >
                     +1d
                   </button>
+                  <button
+                    onClick={() => setSnoozeItemId(item.id)}
+                    className="text-[11px] px-2 py-0.5 rounded hover:bg-muted font-mono text-primary cursor-pointer"
+                    title="More snooze options"
+                  >
+                    More
+                  </button>
                 </>
               )}
 
@@ -248,6 +257,9 @@ export const DeadlinesBoard: React.FC = () => {
           <div className="space-y-2 mt-3">{completed.map(renderItemRow)}</div>
         </details>
       )}
+
+      {/* Snooze Modal */}
+      <SnoozeModal itemId={snoozeItemId} onClose={() => setSnoozeItemId(null)} />
     </div>
   );
 };
