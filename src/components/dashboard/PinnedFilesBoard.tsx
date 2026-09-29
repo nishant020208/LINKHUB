@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, ExternalLink, Pin, HardDrive } from 'lucide-react';
+import { ExternalLink, Pin } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export const PinnedFilesBoard: React.FC = () => {
