@@ -11,6 +11,8 @@ import { WidgetSettingsModal, WidgetVisibility } from '@/components/dashboard/Wi
 import { QuickAddModal } from '@/components/dashboard/QuickAddModal';
 import { AccountDrawer } from '@/components/dashboard/AccountDrawer';
 import { WeeklyReportModal } from '@/components/dashboard/WeeklyReportModal';
+import { SyncStatusPanel } from '@/components/dashboard/SyncStatusPanel';
+import { useSyncData } from '@/hooks/useSyncData';
 import { useAppStore } from '@/store/useAppStore';
 
 const DEFAULT_VISIBILITY: WidgetVisibility = {
@@ -22,6 +24,8 @@ const DEFAULT_VISIBILITY: WidgetVisibility = {
 };
 
 export const DashboardPage: React.FC = () => {
+  // Initialize real-time data flow from Supabase
+  useSyncData();
   const { setQuickAddOpen } = useAppStore();
   const [visibility, setVisibility] = useState<WidgetVisibility>(DEFAULT_VISIBILITY);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
@@ -75,6 +79,11 @@ export const DashboardPage: React.FC = () => {
           <RightNowHero />
         </AnimatedCard>
       )}
+
+      {/* Real Provider Sync Status Pipeline Panel */}
+      <AnimatedCard delay={0.08}>
+        <SyncStatusPanel />
+      </AnimatedCard>
 
       {/* Filter and Workspace Controls */}
       <AnimatedCard delay={0.1}>
