@@ -61,6 +61,8 @@ interface AppState {
   addItem: (item: Partial<Item>) => void;
   deleteItem: (itemId: string) => void;
   triggerSync: (accountId?: string) => Promise<void>;
+  addAccount: (account: ConnectedAccount) => void;
+  toggleAccountSyncType: (accountId: string, type: ItemType) => void;
   disconnectAccount: (accountId: string) => void;
   reconnectAccount: (accountId: string) => void;
   wipeAccountData: (accountId: string) => void;
@@ -219,6 +221,25 @@ export const useAppStore = create<AppState>((set, get) => ({
         lastSyncedAt: new Date().toISOString(),
       };
     });
+  },
+
+  addAccount: (account) => {
+    set((state) => ({
+      accounts: [account, ...state.accounts],
+    }));
+  },
+
+  toggleAccountSyncType: (accountId, type) => {
+    set((state) => ({
+      accounts: state.accounts.map((acc) => {
+        if (acc.id !== accountId) return acc;
+        const currentTypes = acc.sync_enabled_types || ['email', 'event', 'deadline', 'task', 'file'];
+        const nextTypes = currentTypes.includes(type)
+          ? currentTypes.filter((t) => t !== type)
+          : [...currentTypes, type];
+        return { ...acc, sync_enabled_types: nextTypes };
+      }),
+    }));
   },
 
   disconnectAccount: (accountId) => {
