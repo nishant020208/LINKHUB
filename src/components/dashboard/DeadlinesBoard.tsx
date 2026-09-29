@@ -39,6 +39,23 @@ export const DeadlinesBoard: React.FC = () => {
   );
   const completed = deadlines.filter((d) => d.is_done);
 
+  const deadlineProviders = Array.from(
+    new Set(
+      accounts.map((a) => {
+        if (a.provider === 'google') return 'Google Tasks & Classroom';
+        if (a.provider === 'microsoft') return 'Outlook / Microsoft To-Do';
+        if (a.provider === 'github') return 'GitHub Issues';
+        if (a.provider === 'canvas') return 'Canvas LMS';
+        return a.label || a.provider;
+      })
+    )
+  );
+
+  const subtitleText =
+    deadlineProviders.length > 0
+      ? `Aggregated across ${deadlineProviders.join(', ')}`
+      : 'Connect Google, Outlook, or Canvas to aggregate deadlines';
+
   const renderItemRow = (item: Item) => {
     const account = accounts.find((a) => a.id === item.account_id);
     const countdown = formatDueCountdown(item.due_at);
@@ -183,7 +200,7 @@ export const DeadlinesBoard: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Aggregated across Canvas, Outlook, Google Tasks, and GitHub
+            {subtitleText}
           </p>
         </div>
 
