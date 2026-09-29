@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { DemoBanner } from '@/components/common/DemoBanner';
 import { Navbar } from '@/components/layout/Navbar';
 import { CommandPalette } from '@/components/search/CommandPalette';
+import { NotificationSettingsModal } from '@/components/settings/NotificationSettingsModal';
 import { useAppStore } from '@/store/useAppStore';
 
 export const AppShell: React.FC = () => {
@@ -57,8 +58,9 @@ export const AppShell: React.FC = () => {
         </div>
       </footer>
 
-      {/* Global Command Palette */}
+      {/* Global Modals */}
       <CommandPalette />
+      <NotificationSettingsModal />
     </div>
   );
 };
