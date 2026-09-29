@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar as CalendarIcon, Clock, MapPin, Video, ArrowUpRight } from 'lucide-react';
+import { MapPin, ArrowUpRight } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 
 export const CalendarPage: React.FC = () => {
