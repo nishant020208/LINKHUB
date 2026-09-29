@@ -57,9 +57,19 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
 
     try {
       if (provider.authType === 'oauth') {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData?.session?.access_token;
+
+        if (!accessToken) {
+          throw new Error('You must be signed in to connect accounts. Please sign in first.');
+        }
+
         // Start OAuth flow via Edge Function
         const { data, error: fnError } = await supabase.functions.invoke('oauth-start', {
           body: { provider: provider.key },
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (fnError) {
