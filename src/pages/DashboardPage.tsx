@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Sliders, Plus, Users, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Sliders, Plus, Users, FileText, Sparkles, ArrowRight } from 'lucide-react';
 import { RightNowHero } from '@/components/dashboard/RightNowHero';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { DeadlinesBoard } from '@/components/dashboard/DeadlinesBoard';
@@ -26,7 +27,7 @@ const DEFAULT_VISIBILITY: WidgetVisibility = {
 export const DashboardPage: React.FC = () => {
   // Initialize real-time data flow from Supabase
   useSyncData();
-  const { setQuickAddOpen } = useAppStore();
+  const { setQuickAddOpen, accounts } = useAppStore();
   const [visibility, setVisibility] = useState<WidgetVisibility>(DEFAULT_VISIBILITY);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [isAccountsDrawerOpen, setAccountsDrawerOpen] = useState(false);
@@ -90,38 +91,86 @@ export const DashboardPage: React.FC = () => {
         <FilterBar />
       </AnimatedCard>
 
-      {/* Bento Grid Command Station */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Primary Actionable Column (Deadlines & Pinned Docs) */}
-        <div className="lg:col-span-7 space-y-6">
-          {visibility.deadlines && (
-            <AnimatedCard delay={0.15}>
-              <DeadlinesBoard />
-            </AnimatedCard>
-          )}
+      {/* Bento Grid Command Station or Connect First Account Onboarding */}
+      {accounts.length === 0 ? (
+        <AnimatedCard delay={0.15}>
+          <div className="rounded-3xl glass-panel border border-border/60 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6 shadow-2xl">
+            <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mx-auto shadow-lg shadow-primary/10">
+              <Sparkles className="w-8 h-8" />
+            </div>
 
-          {visibility.pinnedFiles && (
-            <AnimatedCard delay={0.25}>
-              <PinnedFilesBoard />
-            </AnimatedCard>
-          )}
+            <div className="space-y-2">
+              <h3 className="font-heading font-black text-2xl sm:text-3xl text-foreground tracking-tight">
+                Connect your first account
+              </h3>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-lg mx-auto">
+                UnifyHub needs at least one connected service to begin populating your unified schedule, course deadlines, and prioritized inboxes.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-lg mx-auto pt-2">
+              <div className="p-3 rounded-2xl bg-card/60 border border-border/40 text-center">
+                <div className="text-xs font-semibold text-foreground">Google</div>
+                <div className="text-[10px] text-muted-foreground">Gmail & Cal</div>
+              </div>
+              <div className="p-3 rounded-2xl bg-card/60 border border-border/40 text-center">
+                <div className="text-xs font-semibold text-foreground">Microsoft</div>
+                <div className="text-[10px] text-muted-foreground">Outlook & 365</div>
+              </div>
+              <div className="p-3 rounded-2xl bg-card/60 border border-border/40 text-center">
+                <div className="text-xs font-semibold text-foreground">GitHub</div>
+                <div className="text-[10px] text-muted-foreground">Issues & PRs</div>
+              </div>
+              <div className="p-3 rounded-2xl bg-card/60 border border-border/40 text-center">
+                <div className="text-xs font-semibold text-foreground">Tasks / iCal</div>
+                <div className="text-[10px] text-muted-foreground">Todoist & Cal</div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Link
+                to="/integrations"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm transition-all shadow-lg shadow-primary/20 cursor-pointer"
+              >
+                <span>Connect Account in Integrations</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </AnimatedCard>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Primary Actionable Column (Deadlines & Pinned Docs) */}
+          <div className="lg:col-span-7 space-y-6">
+            {visibility.deadlines && (
+              <AnimatedCard delay={0.15}>
+                <DeadlinesBoard />
+              </AnimatedCard>
+            )}
+
+            {visibility.pinnedFiles && (
+              <AnimatedCard delay={0.25}>
+                <PinnedFilesBoard />
+              </AnimatedCard>
+            )}
+          </div>
+
+          {/* Secondary Contextual Column (Timeline & Emails) */}
+          <div className="lg:col-span-5 space-y-6">
+            {visibility.timeline && (
+              <AnimatedCard delay={0.2}>
+                <EventsTimeline />
+              </AnimatedCard>
+            )}
+
+            {visibility.emails && (
+              <AnimatedCard delay={0.3}>
+                <KeyEmailsBoard />
+              </AnimatedCard>
+            )}
+          </div>
         </div>
-
-        {/* Secondary Contextual Column (Timeline & Emails) */}
-        <div className="lg:col-span-5 space-y-6">
-          {visibility.timeline && (
-            <AnimatedCard delay={0.2}>
-              <EventsTimeline />
-            </AnimatedCard>
-          )}
-
-          {visibility.emails && (
-            <AnimatedCard delay={0.3}>
-              <KeyEmailsBoard />
-            </AnimatedCard>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Modals & Drawers */}
       <WidgetSettingsModal
