@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sliders, Plus, Users } from 'lucide-react';
+import { Sliders, Plus, Users, FileText } from 'lucide-react';
 import { RightNowHero } from '@/components/dashboard/RightNowHero';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { DeadlinesBoard } from '@/components/dashboard/DeadlinesBoard';
@@ -10,6 +10,7 @@ import { AnimatedCard } from '@/components/dashboard/AnimatedCard';
 import { WidgetSettingsModal, WidgetVisibility } from '@/components/dashboard/WidgetSettingsModal';
 import { QuickAddModal } from '@/components/dashboard/QuickAddModal';
 import { AccountDrawer } from '@/components/dashboard/AccountDrawer';
+import { WeeklyReportModal } from '@/components/dashboard/WeeklyReportModal';
 import { useAppStore } from '@/store/useAppStore';
 
 const DEFAULT_VISIBILITY: WidgetVisibility = {
@@ -25,6 +26,7 @@ export const DashboardPage: React.FC = () => {
   const [visibility, setVisibility] = useState<WidgetVisibility>(DEFAULT_VISIBILITY);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [isAccountsDrawerOpen, setAccountsDrawerOpen] = useState(false);
+  const [isWeeklyReportOpen, setWeeklyReportOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -45,6 +47,15 @@ export const DashboardPage: React.FC = () => {
           >
             <Users className="w-3.5 h-3.5 text-sky-400" />
             <span>Account Health</span>
+          </button>
+
+          <button
+            onClick={() => setWeeklyReportOpen(true)}
+            className="px-3 py-1.5 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Generate Weekly Workload Report"
+          >
+            <FileText className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Weekly Report</span>
           </button>
         </div>
 
@@ -117,6 +128,11 @@ export const DashboardPage: React.FC = () => {
       <AccountDrawer
         isOpen={isAccountsDrawerOpen}
         onClose={() => setAccountsDrawerOpen(false)}
+      />
+
+      <WeeklyReportModal
+        isOpen={isWeeklyReportOpen}
+        onClose={() => setWeeklyReportOpen(false)}
       />
     </div>
   );
