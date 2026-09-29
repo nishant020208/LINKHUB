@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, RefreshCw, AlertTriangle, CheckCircle2, Pause, Play, Trash2, Sliders } from 'lucide-react';
+import { X, RefreshCw, Pause, Play, Trash2, Sliders } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatTimeAgo } from '@/lib/utils';
 import { Link } from 'react-router-dom';
