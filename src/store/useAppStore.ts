@@ -60,6 +60,9 @@ interface AppState {
   addItem: (item: Partial<Item>) => void;
   deleteItem: (itemId: string) => void;
   triggerSync: (accountId?: string) => Promise<void>;
+  setSyncState: (syncing: boolean) => void;
+  setAccounts: (accounts: ConnectedAccount[]) => void;
+  setItems: (items: Item[]) => void;
   addAccount: (account: ConnectedAccount) => void;
   toggleAccountSyncType: (accountId: string, type: ItemType) => void;
   disconnectAccount: (accountId: string) => void;
@@ -264,6 +267,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       };
     });
   },
+
+  setSyncState: (syncing) => set({ isSyncing: syncing }),
+  setAccounts: (accounts) => set({ accounts }),
+  setItems: (items) => set({ items }),
 
   addAccount: (account) => {
     set((state) => ({
