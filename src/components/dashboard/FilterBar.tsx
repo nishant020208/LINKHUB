@@ -4,10 +4,8 @@ import {
   Calendar,
   Mail,
   FileText,
-  Filter,
   EyeOff,
   Eye,
-  CheckCircle,
 } from 'lucide-react';
 import { ItemType } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
