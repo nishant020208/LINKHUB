@@ -1,12 +1,9 @@
 import React from 'react';
 import {
-  Mail,
   Receipt,
   Plane,
   Plus,
   ExternalLink,
-  Flame,
-  CheckCircle,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatTimeAgo } from '@/lib/utils';
