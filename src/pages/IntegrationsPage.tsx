@@ -1,12 +1,9 @@
 import React from 'react';
 import {
-  Shield,
   RefreshCw,
   AlertTriangle,
   CheckCircle2,
-  PowerOff,
   Trash2,
-  ExternalLink,
   Plus,
   Lock,
 } from 'lucide-react';
