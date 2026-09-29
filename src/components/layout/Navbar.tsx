@@ -12,7 +12,6 @@ import {
   SlidersHorizontal,
   Calendar as CalendarIcon,
   ShieldCheck,
-  Plus,
   AlertTriangle,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
