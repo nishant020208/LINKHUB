@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { DemoBanner } from '@/components/common/DemoBanner';
 import { Navbar } from '@/components/layout/Navbar';
 import { CommandPalette } from '@/components/search/CommandPalette';
 import { NotificationSettingsModal } from '@/components/settings/NotificationSettingsModal';
@@ -39,7 +38,6 @@ export const AppShell: React.FC = () => {
 
       {/* Top Banner and Navigation */}
       <div className="relative z-20">
-        <DemoBanner />
         <Navbar />
       </div>
 
