@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Plus,
+  Bell,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { formatTimeAgo } from '@/lib/utils';
@@ -41,6 +42,7 @@ export const Navbar: React.FC = () => {
     isSyncing,
     triggerSync,
     lastSyncedAt,
+    setNotificationModalOpen,
   } = useAppStore();
 
   const unhealthyAccountsCount = accounts.filter(
@@ -186,6 +188,16 @@ export const Navbar: React.FC = () => {
           >
             <ShieldCheck className="w-4 h-4" />
           </Link>
+
+          {/* Notifications Hub Trigger */}
+          <button
+            onClick={() => setNotificationModalOpen(true)}
+            className="p-2 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer relative"
+            title="Notification Channels & Quiet Hours"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-sky-400" />
+          </button>
 
           {/* Theme switcher */}
           <button
