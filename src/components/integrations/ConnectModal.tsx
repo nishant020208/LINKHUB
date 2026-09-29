@@ -62,11 +62,28 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
           body: { provider: provider.key },
         });
 
-        if (fnError || !data?.url) {
-          if (data?.error === 'not_configured') {
-            throw new Error(`Keys for ${provider.name} are not configured in Edge Function secrets.`);
+        if (fnError) {
+          // FunctionsHttpError means Edge Function replied; RelayError/FetchError means we never reached it
+          const isNetworkError =
+            fnError.name === 'FunctionsRelayError' ||
+            fnError.name === 'FetchError' ||
+            fnError.message?.toLowerCase().includes('failed to fetch') ||
+            fnError.message?.toLowerCase().includes('networkerror');
+          if (isNetworkError) {
+            throw new Error(
+              'Cannot reach the server. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your deployment environment variables, then redeploy.'
+            );
           }
-          throw new Error(fnError?.message || data?.error || 'Failed to initialize OAuth connection');
+          throw new Error(fnError.message || 'Failed to initialize OAuth connection');
+        }
+
+        if (!data?.url) {
+          if (data?.error === 'not_configured') {
+            throw new Error(
+              `${provider.name} OAuth keys are not yet configured. Add GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (or equivalent) to Supabase Edge Function secrets.`
+            );
+          }
+          throw new Error(data?.error || 'OAuth start function returned no redirect URL');
         }
 
         // Direct user to provider consent screen
