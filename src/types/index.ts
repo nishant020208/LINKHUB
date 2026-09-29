@@ -8,6 +8,7 @@ export type AccountProvider =
   | 'todoist'
   | 'slack'
   | 'linear'
+  | 'jira'
   | 'ical'
   | 'moodle'
   | 'canvas'
