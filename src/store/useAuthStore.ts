@@ -56,12 +56,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const authUser = session.user;
       
-      // Fetch or auto-provision profile from public.profiles
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
+      let profile = null;
+      try {
+        const { data: pData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .maybeSingle();
+        profile = pData;
+      } catch (pErr) {
+        console.warn('Profiles fetch non-fatal warning:', pErr);
+      }
 
       const userProfile: UserProfile = {
         id: authUser.id,
