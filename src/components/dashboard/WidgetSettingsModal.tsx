@@ -44,7 +44,7 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
   ];
 
   return createPortal(
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
       <div className="bg-card border border-border/70 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
