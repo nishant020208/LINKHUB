@@ -34,7 +34,7 @@ export const QuickAddModal: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#0f1626] border border-border/70 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+      <div className="bg-card border border-border/70 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-sky-400" />
@@ -42,7 +42,7 @@ export const QuickAddModal: React.FC = () => {
           </div>
           <button
             onClick={() => setQuickAddOpen(false)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
