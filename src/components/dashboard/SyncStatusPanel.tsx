@@ -264,7 +264,7 @@ export const SyncStatusPanel: React.FC = () => {
 //   "Reconnect" for auth/scope failures (full OAuth re-consent),
 //   "Retry" for transient API failures.
 // -----------------------------------------------------------------------------
-const ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/[^\s,]+/;
+const ENABLE_URL_RE = /https:\/\/(?:console\.developers\.google\.com|console\.cloud\.google\.com)\/[^\s,]+/i;
 
 /** Auth-type failures: a fresh OAuth grant is the only fix. */
 function isAuthFailure(error: string | null): boolean {
@@ -272,7 +272,7 @@ function isAuthFailure(error: string | null): boolean {
   return (
     /reconnect/i.test(error) ||
     /token expired|revoked|invalid credentials|invalid_grant/i.test(error) ||
-    /scope/i.test(error)
+    /scope|permission/i.test(error)
   );
 }
 
@@ -282,6 +282,7 @@ const StreamCard: React.FC<{
   onRetry: () => void;
 }> = ({ stream, status, onRetry }) => {
   const [expanded, setExpanded] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const account = stream.account;
   const enableUrl = status.error?.match(ENABLE_URL_RE)?.[0] ?? null;
@@ -291,6 +292,15 @@ const StreamCard: React.FC<{
     status.state === 'needs_reconnect' || (isFailed && isAuthFailure(status.error));
   const oauthCapable =
     account && !['ical', 'imap', 'canvas', 'moodle'].includes(account.provider);
+
+  const handleCopyError = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (status.error) {
+      navigator.clipboard.writeText(status.error);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleReconnect = async () => {
     if (!account || reconnecting) return;
@@ -337,19 +347,38 @@ const StreamCard: React.FC<{
 
       {status.error && (
         <div className="space-y-1.5">
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="w-full text-left cursor-pointer"
-            title={expanded ? 'Collapse' : 'Expand full error'}
-          >
-            <p
-              className={`text-[10px] font-mono text-status-error/90 bg-status-error/10 p-2 rounded border border-status-error/30 break-words leading-snug ${
-                expanded ? '' : 'line-clamp-3'
-              }`}
+          <div className="bg-status-error/10 p-2 rounded-lg border border-status-error/30 space-y-1">
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="w-full text-left cursor-pointer"
+              title={expanded ? 'Collapse' : 'Expand full error'}
             >
-              {status.error}
-            </p>
-          </button>
+              <p
+                className={`text-[10px] font-mono text-status-error/95 break-words leading-snug ${
+                  expanded ? '' : 'line-clamp-3'
+                }`}
+              >
+                {status.error}
+              </p>
+            </button>
+
+            <div className="flex items-center justify-between pt-1 border-t border-status-error/20 text-[9px] font-mono text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="text-status-error hover:underline cursor-pointer"
+              >
+                {expanded ? '▲ Collapse' : '▼ View details'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyError}
+                className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+              >
+                {copied ? '✓ Copied' : 'Copy error'}
+              </button>
+            </div>
+          </div>
 
           {isEnableError && (
             <a
