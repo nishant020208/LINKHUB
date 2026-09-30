@@ -24,7 +24,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end">
-      <div className="w-full max-w-md bg-[#0f1626] border-l border-border/70 h-full p-6 shadow-2xl flex flex-col justify-between space-y-6 overflow-y-auto">
+      <div className="w-full max-w-md bg-card border-l border-border/70 h-full p-4 sm:p-6 shadow-2xl flex flex-col justify-between space-y-6 overflow-y-auto">
         <div>
           <div className="flex items-center justify-between pb-4 border-b border-border/40">
             <div>
@@ -35,7 +35,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
