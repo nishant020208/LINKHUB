@@ -19,6 +19,10 @@ import { formatTimeAgo } from '@/lib/utils';
 import { ItemType } from '@/types';
 import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
 import { GoogleApiErrorHelp } from '@/components/integrations/GoogleApiErrorHelp';
+import { ProviderLogo } from '@/components/ui/provider-logo';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 const ALL_PROVIDERS: ProviderConnectConfig[] = [
   // 1. Google
@@ -317,17 +321,17 @@ export const IntegrationsPage: React.FC = () => {
       {/* OAuth Callback Notice Banner */}
       {callbackBanner && (
         <div
-          className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
+              className={`p-4 rounded-2xl border flex items-center justify-between gap-3 text-xs ${
             callbackBanner.type === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+              ? 'bg-status-connected/10 border-status-connected/30 text-status-connected'
+              : 'bg-status-error/10 border-status-error/30 text-status-error'
           }`}
         >
           <div className="flex items-center gap-2">
             {callbackBanner.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-status-connected shrink-0" />
             ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-status-error shrink-0" />
             )}
             <span>{callbackBanner.message}</span>
           </div>
@@ -349,14 +353,16 @@ export const IntegrationsPage: React.FC = () => {
           </p>
         </div>
 
-        <button
+        <Button
+          variant="primary"
+          size="sm"
           onClick={() => triggerSync()}
           disabled={isSyncing}
-          className="self-start sm:self-auto px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-medium flex items-center gap-2 hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-50"
+          className="self-start sm:self-auto"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
           <span>{isSyncing ? 'Syncing accounts...' : 'Sync All Accounts'}</span>
-        </button>
+        </Button>
       </div>
 
       {/* Active Connected Accounts Section */}
@@ -375,17 +381,21 @@ export const IntegrationsPage: React.FC = () => {
             const enabledTypes = acc.sync_enabled_types || ['email', 'event', 'deadline', 'task', 'file'];
 
             return (
-              <div
+              <Card
                 key={acc.id}
-                className={`p-5 rounded-2xl glass-panel border transition-all space-y-4 shadow-lg ${
-                  hasError ? 'border-rose-500/40 bg-rose-950/10' : 'border-border/60'
+                variant="bento"
+                interactive
+                className={`p-5 space-y-4 ${
+                  hasError ? 'border-status-error/40' : ''
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-3.5 h-3.5 rounded-full ring-4 ring-background shrink-0"
-                      style={{ backgroundColor: acc.color }}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <ProviderLogo
+                      provider={acc.provider}
+                      size={18}
+                      state={hasError ? 'error' : isPaused ? 'idle' : isSyncing ? 'syncing' : 'connected'}
+                      title={acc.label}
                     />
                     <div>
                       <h4 className="font-heading font-semibold text-base text-foreground">
@@ -395,29 +405,9 @@ export const IntegrationsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <span
-                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider ${
-                      hasError
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        : isPaused
-                        ? 'bg-muted text-muted-foreground'
-                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    }`}
-                  >
-                    {hasError ? (
-                      <>
-                        <AlertTriangle className="w-2.5 h-2.5" />
-                        Needs Reconnect
-                      </>
-                    ) : isPaused ? (
-                      'Paused'
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-2.5 h-2.5" />
-                        Connected
-                      </>
-                    )}
-                  </span>
+                  <Badge status={hasError ? 'error' : isPaused ? 'paused' : 'connected'}>
+                    {hasError ? 'Needs Reconnect' : isPaused ? 'Paused' : 'Connected'}
+                  </Badge>
                 </div>
 
                 {acc.error_message && <GoogleApiErrorHelp errorMessage={acc.error_message} />}
@@ -454,12 +444,13 @@ export const IntegrationsPage: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     {hasError && (
-                      <button
+                      <Button
+                        variant="primary"
+                        size="xs"
                         onClick={() => reconnectAccount(acc.id)}
-                        className="px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-medium text-xs hover:bg-sky-400 transition-colors cursor-pointer"
                       >
                         Reconnect
-                      </button>
+                      </Button>
                     )}
 
                     <button
@@ -474,7 +465,7 @@ export const IntegrationsPage: React.FC = () => {
                           queryClient.invalidateQueries({ queryKey: ['sync_logs'] });
                         }
                       }}
-                      className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 min-h-[32px] rounded-lg bg-status-error/10 hover:bg-status-error/20 text-status-error border border-status-error/20 text-xs font-mono flex items-center gap-1.5 cursor-pointer"
                       title="Disconnect account and delete all stored items"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -482,7 +473,7 @@ export const IntegrationsPage: React.FC = () => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -539,40 +530,49 @@ export const IntegrationsPage: React.FC = () => {
             }
 
             return (
-              <div
+              <Card
                 key={provider.key}
-                className={`p-5 rounded-2xl glass-panel border flex flex-col justify-between transition-all group shadow-md ${
-                  !isConfigured ? 'border-border/30 opacity-75' : 'border-border/60 hover:border-border/90'
+                variant="bento"
+                interactive={isConfigured}
+                className={`p-5 flex flex-col justify-between group ${
+                  !isConfigured ? 'opacity-75' : ''
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-primary font-semibold">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-primary font-semibold">
                       {provider.category}
                     </span>
-                    <span
-                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-medium ${
+                    <Badge
+                      status={
                         status === 'Connected'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          ? 'connected'
                           : status === 'Syncing'
-                          ? 'bg-sky-500/10 text-sky-400 border-sky-500/30 animate-pulse'
+                          ? 'syncing'
                           : status === 'Needs reconnect'
-                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          ? 'needs_reconnect'
                           : status === 'Error'
-                          ? 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                          : status === 'Not configured'
-                          ? 'bg-muted/50 text-muted-foreground border-border/40'
-                          : 'bg-muted text-muted-foreground border-border/40'
-                      }`}
+                          ? 'error'
+                          : 'idle'
+                      }
                     >
                       {status}
-                    </span>
+                    </Badge>
                   </div>
 
                   <h4 className="font-heading font-semibold text-base text-foreground flex items-center gap-2">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: provider.color }}
+                    <ProviderLogo
+                      provider={provider.key}
+                      size={16}
+                      state={
+                        status === 'Connected'
+                          ? 'connected'
+                          : status === 'Syncing'
+                          ? 'syncing'
+                          : status === 'Error' || status === 'Needs reconnect'
+                          ? 'error'
+                          : 'idle'
+                      }
                     />
                     <span>{provider.name}</span>
                   </h4>
@@ -604,24 +604,19 @@ export const IntegrationsPage: React.FC = () => {
                     Read-only
                   </span>
 
-                  <button
+                  <Button
+                    variant={!isConfigured ? 'ghost' : isConnected ? 'secondary' : 'primary'}
+                    size="xs"
                     onClick={() => isConfigured && setSelectedProvider(provider)}
                     disabled={!isConfigured}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
-                      !isConfigured
-                        ? 'bg-muted/40 text-muted-foreground border border-border/30 cursor-not-allowed'
-                        : isConnected
-                        ? 'bg-card border border-border/60 text-foreground hover:bg-card/80 cursor-pointer'
-                        : 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer'
-                    }`}
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>
                       {!isConfigured ? 'Not Configured' : isConnected ? 'Add Another' : 'Connect'}
                     </span>
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
