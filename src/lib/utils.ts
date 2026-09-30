@@ -8,6 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function formatTimeAgo(dateString: string | null | undefined): string {
   if (!dateString) return 'never';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'never';
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
@@ -27,6 +28,9 @@ export function formatDueCountdown(dueDateStr: string | null | undefined): {
   }
 
   const due = new Date(dueDateStr);
+  if (isNaN(due.getTime())) {
+    return { label: 'No due date', isOverdue: false, urgency: 'low' };
+  }
   const now = new Date();
   const diffMs = due.getTime() - now.getTime();
   const isOverdue = diffMs < 0;
