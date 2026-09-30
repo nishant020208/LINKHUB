@@ -36,7 +36,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex justify-end"
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex justify-end"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
