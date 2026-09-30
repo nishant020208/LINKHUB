@@ -18,7 +18,7 @@ const MOBILE_ITEMS = [
   { to: '/integrations', label: 'Hub', icon: Blocks },
 ];
 
-/** Mobile bottom navigation (<lg). Active pill animates between items. */
+/** Mobile bottom navigation (<lg). Touch targets >= 44px. Active pill animates between items. */
 export const MobileNav: React.FC = () => {
   const location = useLocation();
 
@@ -27,10 +27,10 @@ export const MobileNav: React.FC = () => {
 
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/50 bg-card/90 backdrop-blur-xl"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border/50 bg-card/95 backdrop-blur-2xl shadow-lg"
       aria-label="Mobile primary"
     >
-      <div className="grid grid-cols-5 px-2 pb-[env(safe-area-inset-bottom)]">
+      <div className="grid grid-cols-5 px-1 py-1 pb-[calc(env(safe-area-inset-bottom)+0.25rem)]">
         {MOBILE_ITEMS.map(({ to, label, icon: Icon }) => {
           const active = isActive(to);
           return (
@@ -38,19 +38,19 @@ export const MobileNav: React.FC = () => {
               key={to}
               to={to}
               className={cn(
-                'relative flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
-                active ? 'text-primary' : 'text-muted-foreground'
+                'relative flex flex-col items-center justify-center min-h-[48px] py-1 text-[11px] font-medium transition-colors select-none rounded-xl',
+                active ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {active && (
                 <motion.span
-                  layoutId="mobile-active-dot"
-                  className="absolute -top-px h-0.5 w-8 rounded-full bg-primary"
-                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                  layoutId="mobile-active-capsule"
+                  className="absolute inset-1 rounded-xl bg-primary/10 border border-primary/20 pointer-events-none"
+                  transition={{ type: 'spring', stiffness: 450, damping: 32 }}
                 />
               )}
-              <Icon className="w-5 h-5" />
-              <span>{label}</span>
+              <Icon className="w-5 h-5 relative z-10" />
+              <span className="text-[10px] relative z-10 leading-tight mt-0.5">{label}</span>
             </Link>
           );
         })}
