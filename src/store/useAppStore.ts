@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
-import { Item, ConnectedAccount, Workspace, DailyBriefing, ItemType, NotificationPreferences } from '@/types';
+import { Item, ConnectedAccount, Workspace, DailyBriefing, ItemType, NotificationPreferences, ThemeMode } from '@/types';
 
 const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
   channels: {
@@ -32,7 +32,7 @@ interface AppState {
   selectedTypes: ItemType[];
   searchQuery: string;
   hideDone: boolean;
-  theme: 'dark' | 'light';
+  theme: ThemeMode;
   isCommandPaletteOpen: boolean;
   isQuickAddOpen: boolean;
   isNotificationModalOpen: boolean;
@@ -52,6 +52,7 @@ interface AppState {
   toggleTypeFilter: (type: ItemType) => void;
   setSearchQuery: (query: string) => void;
   setHideDone: (hide: boolean) => void;
+  setTheme: (theme: ThemeMode) => void;
   toggleTheme: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setQuickAddOpen: (open: boolean) => void;
@@ -121,13 +122,35 @@ const INITIAL_WORKSPACES: Workspace[] = [
   },
 ];
 
+function getInitialTheme(): ThemeMode {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const saved = window.localStorage.getItem('unifyhub-theme') as ThemeMode;
+    if (saved === 'dark' || saved === 'light' || saved === 'aesthetic') {
+      return saved;
+    }
+  }
+  return 'dark';
+}
+
+function applyThemeClasses(theme: ThemeMode) {
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.remove('dark', 'light', 'aesthetic');
+    document.documentElement.classList.add(theme);
+    try {
+      localStorage.setItem('unifyhub-theme', theme);
+    } catch {
+      // ignore storage errors
+    }
+  }
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   activeWorkspaceId: 'ws-all',
   selectedAccountIds: [],
   selectedTypes: [],
   searchQuery: '',
   hideDone: false,
-  theme: 'dark',
+  theme: getInitialTheme(),
   isCommandPaletteOpen: false,
   isQuickAddOpen: false,
   isNotificationModalOpen: false,
@@ -188,14 +211,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setHideDone: (hide) => set({ hideDone: hide }),
 
+  setTheme: (theme: ThemeMode) => {
+    applyThemeClasses(theme);
+    set({ theme });
+  },
+
   toggleTheme: () => {
     set((state) => {
-      const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
-      if (typeof document !== 'undefined') {
-        // Dark is the default (no class); light theme adds .light on <html>.
-        document.documentElement.classList.toggle('light', nextTheme === 'light');
-        document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-      }
+      const cycle: Record<ThemeMode, ThemeMode> = {
+        dark: 'light',
+        light: 'aesthetic',
+        aesthetic: 'dark',
+      };
+      const nextTheme = cycle[state.theme] ?? 'dark';
+      applyThemeClasses(nextTheme);
       return { theme: nextTheme };
     });
   },
