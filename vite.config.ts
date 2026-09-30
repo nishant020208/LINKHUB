@@ -33,5 +33,33 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       host: true,
     },
+    build: {
+      rollupOptions: {
+        output: {
+          /**
+           * Vendor splitting: stable frameworks land in their own cached
+           * chunks, so app-code changes don't invalidate the framework cache
+           * and the initial download stays small. Route chunks are produced
+           * by React.lazy in src/App.tsx.
+           */
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined;
+            // Order matters: most-specific package names FIRST — e.g.
+            // 'lucide-react' also contains 'react', so it must be tested
+            // before the broad react-family match.
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('@tanstack')) return 'vendor-query';
+            if (id.includes('framer-motion')) return 'vendor-motion';
+            if (id.includes('zustand')) return 'vendor-zustand';
+            if (id.includes('react') || id.includes('scheduler')) {
+              // react, react-dom, react-router-dom
+              return 'vendor-react';
+            }
+            return 'vendor-misc';
+          },
+        },
+      },
+    },
   };
 });
