@@ -59,54 +59,54 @@ export const DemoBanner: React.FC = () => {
       {/* Setup modal */}
       {showDetails && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0f1626] border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl text-slate-200 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="bg-card border border-border/80 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl text-foreground space-y-4 max-h-[92vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
                 <Key className="w-5 h-5 text-sky-400" />
                 <h3 className="font-heading font-semibold text-lg text-white">Integration Readiness</h3>
               </div>
               <button
                 onClick={() => setShowDetails(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-sm text-slate-300 leading-relaxed">
+            <p className="text-sm text-muted-foreground leading-relaxed">
               UnifyHub is waiting for environment secrets according to the protocol in{' '}
-              <code className="px-1.5 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-xs">CONNECT_CHECKLIST.md</code>.
-              When ready, paste credentials into <code className="px-1.5 py-0.5 rounded bg-slate-800 text-sky-300 font-mono text-xs">.env.local</code> and trigger live mode.
+              <code className="px-1.5 py-0.5 rounded bg-muted/70 text-primary font-mono text-xs">CONNECT_CHECKLIST.md</code>.
+              When ready, paste credentials into <code className="px-1.5 py-0.5 rounded bg-muted/70 text-primary font-mono text-xs">.env.local</code> and trigger live mode.
             </p>
 
             <div className="space-y-2 text-xs font-mono">
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/80">
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-slate-500" />
                   Supabase Auth & Database
                 </span>
-                <span className="text-slate-400">{env.isConfigured.supabase ? 'Configured' : 'Mock Fallback'}</span>
+                <span className="text-muted-foreground">{env.isConfigured.supabase ? 'Configured' : 'Mock Fallback'}</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/80">
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-slate-500" />
                   Google Workspace OAuth
                 </span>
-                <span className="text-slate-400">Waiting for ENV READY</span>
+                <span className="text-muted-foreground">Waiting for ENV READY</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/80">
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-slate-500" />
                   Microsoft 365 OAuth
                 </span>
-                <span className="text-slate-400">Waiting for ENV READY</span>
+                <span className="text-muted-foreground">Waiting for ENV READY</span>
               </div>
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-slate-900/60 border border-slate-800">
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/80">
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-slate-500" />
                   Gemini AI Engine
                 </span>
-                <span className="text-slate-400">Waiting for ENV READY</span>
+                <span className="text-muted-foreground">Waiting for ENV READY</span>
               </div>
             </div>
 
