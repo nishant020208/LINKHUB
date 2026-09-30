@@ -63,8 +63,8 @@ export const AuthCallbackPage: React.FC = () => {
   if (errorMessage) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
-        <div className="max-w-md w-full p-6 rounded-3xl glass-panel border border-rose-500/30 text-center space-y-4 shadow-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto">
+        <div className="max-w-md w-full p-6 rounded-3xl glass-panel border border-status-error/30 text-center space-y-4 shadow-2xl">
+          <div className="w-12 h-12 rounded-2xl bg-status-error/10 text-status-error border border-status-error/20 flex items-center justify-center mx-auto">
             <AlertCircle className="w-6 h-6" />
           </div>
 
