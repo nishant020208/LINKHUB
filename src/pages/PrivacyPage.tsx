@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ShieldCheck,
@@ -574,8 +575,13 @@ export const PrivacyPage: React.FC = () => {
       </footer>
 
       {/* Wipe Confirmation Dialog */}
-      {confirmWipeOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      {confirmWipeOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfirmWipeOpen(false);
+          }}
+        >
           <div className="bg-card border border-status-error/40 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl text-foreground space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center gap-3 text-status-error">
               <AlertTriangle className="w-6 h-6 shrink-0" />
@@ -588,12 +594,14 @@ export const PrivacyPage: React.FC = () => {
 
             <div className="flex items-center justify-end gap-3 pt-3">
               <button
+                type="button"
                 onClick={() => setConfirmWipeOpen(false)}
                 className="px-4 py-2 rounded-xl border border-border text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground cursor-pointer"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleWipe}
                 className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold cursor-pointer shadow-lg"
               >
@@ -601,7 +609,8 @@ export const PrivacyPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
