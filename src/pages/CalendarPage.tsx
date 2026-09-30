@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Clock,
   MapPin,
@@ -19,6 +20,7 @@ export const CalendarPage: React.FC = () => {
   const { items, accounts, briefing } = useAppStore();
   const [viewMode, setViewMode] = useState<ViewMode>('agenda');
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const reduce = useReducedMotion();
 
   const events = items
     .filter((item) => item.type === 'event' && item.start_at)
@@ -55,13 +57,20 @@ export const CalendarPage: React.FC = () => {
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-mono uppercase tracking-wider transition-colors cursor-pointer ${
+                className={`relative px-3 py-1.5 min-h-[36px] rounded-xl text-xs font-mono uppercase tracking-wider cursor-pointer ${
                   viewMode === mode
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    ? 'text-primary-foreground font-semibold'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {mode}
+                {viewMode === mode && (
+                  <motion.span
+                    layoutId="calendar-view-pill"
+                    className="absolute inset-0 rounded-xl bg-primary shadow-sm"
+                    transition={reduce ? { duration: 0.01 } : { type: 'spring', stiffness: 420, damping: 34 }}
+                  />
+                )}
+                <span className="relative z-10">{mode}</span>
               </button>
             ))}
           </div>
@@ -134,6 +143,7 @@ export const CalendarPage: React.FC = () => {
                   key={event.id}
                   variant="bento"
                   interactive
+                  tilt
                   className="p-5 flex flex-col justify-between group"
                 >
                   <div>
