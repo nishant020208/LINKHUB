@@ -1,18 +1,26 @@
 import { hardResetApp } from './lib/cacheReset';
 
 /**
- * Register Service Worker with active update management, and bind global
+ * Register Service Worker with safe update management, and bind global
  * auto-recovery handlers for post-deployment dynamic chunk 404s.
  */
 export function registerServiceWorker() {
   if (typeof window === 'undefined') return;
 
   // 1. Detect failed dynamic import / chunk load errors (Vite post-deploy 404s)
+  // Guard with session retry flag so mobile connections don't enter reload loops
   window.addEventListener('vite:preloadError', (event) => {
-    console.warn('[SW/Vite] Detected Vite chunk preload error, triggering automatic hard reset:', event);
-    // Prevent default error popups and immediately reload fresh bundle
+    console.warn('[SW/Vite] Detected Vite chunk preload error:', event);
     event.preventDefault();
-    hardResetApp();
+    try {
+      const hasRetried = sessionStorage.getItem('unifyhub-preload-retried');
+      if (!hasRetried) {
+        sessionStorage.setItem('unifyhub-preload-retried', '1');
+        hardResetApp();
+      }
+    } catch {
+      hardResetApp();
+    }
   });
 
   window.addEventListener('error', (event) => {
@@ -23,7 +31,15 @@ export function registerServiceWorker() {
       msg.includes('error loading dynamically imported module')
     ) {
       console.warn('[SW/Window] Dynamic import failure detected:', msg);
-      hardResetApp();
+      try {
+        const hasRetried = sessionStorage.getItem('unifyhub-preload-retried');
+        if (!hasRetried) {
+          sessionStorage.setItem('unifyhub-preload-retried', '1');
+          hardResetApp();
+        }
+      } catch {
+        hardResetApp();
+      }
     }
   });
 
@@ -33,7 +49,7 @@ export function registerServiceWorker() {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          // If a new worker is waiting, activate it immediately
+          // If a new worker is waiting, activate it
           if (registration.waiting) {
             registration.waiting.postMessage({ type: 'SKIP_WAITING' });
           }
@@ -45,7 +61,7 @@ export function registerServiceWorker() {
             installingWorker.addEventListener('statechange', () => {
               if (installingWorker.state === 'installed') {
                 if (navigator.serviceWorker.controller) {
-                  console.log('[SW] New version available. Sending SKIP_WAITING...');
+                  console.log('[SW] New version ready in background.');
                   installingWorker.postMessage({ type: 'SKIP_WAITING' });
                 }
               }
@@ -53,25 +69,14 @@ export function registerServiceWorker() {
           });
         })
         .catch((err) => {
-          console.warn('[SW] Registration failed:', err);
+          console.warn('[SW] Registration non-fatal error:', err);
         });
 
-      // Reload on controller change ONLY if upgrading from a previous worker.
-      // On first visit, controller starts null and claiming it should NOT interrupt the initial load.
-      let hadController = Boolean(navigator.serviceWorker.controller);
-      let refreshing = false;
-
+      // DO NOT call window.location.reload() on controllerchange!
+      // On mobile browsers, reloading during initial load aborts the active document
+      // and causes a blank white screen. The new worker will control subsequent requests smoothly.
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!hadController) {
-          // Initial claim on first visit — already has freshest bundle from network
-          hadController = true;
-          return;
-        }
-        if (!refreshing) {
-          refreshing = true;
-          console.log('[SW] Controller changed, reloading page...');
-          window.location.reload();
-        }
+        console.log('[SW] Service worker controller updated smoothly in background.');
       });
     });
   }
