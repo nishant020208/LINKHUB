@@ -25,8 +25,8 @@ export const SnoozeModal: React.FC<SnoozeModalProps> = ({ itemId, onClose }) => 
       <div className="bg-card border border-border/70 rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-sky-400" />
-            <h3 className="font-heading font-bold text-base text-white">Snooze Deadline</h3>
+            <Clock className="w-5 h-5 text-primary" />
+            <h3 className="font-heading font-bold text-base text-foreground">Snooze Deadline</h3>
           </div>
           <button
             onClick={onClose}
@@ -70,7 +70,7 @@ export const SnoozeModal: React.FC<SnoozeModalProps> = ({ itemId, onClose }) => 
             className="w-full p-3 rounded-xl border border-border/50 bg-card/40 hover:bg-card flex items-center justify-between text-xs text-foreground cursor-pointer transition-colors"
           >
             <span className="flex items-center gap-2">
-              <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+              <Calendar className="w-3.5 h-3.5 text-primary" />
               This weekend
             </span>
             <span className="font-mono text-muted-foreground">+3 days</span>
