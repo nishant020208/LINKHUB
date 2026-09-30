@@ -30,7 +30,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-heading font-bold text-lg text-white">Weekly Performance Report</h3>
+              <h3 className="font-heading font-bold text-lg text-foreground">Weekly Performance Report</h3>
               <p className="text-[11px] font-mono text-muted-foreground">Coursework & Deadline Velocity</p>
             </div>
           </div>
@@ -45,21 +45,21 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
         {/* Big Metrics Grid */}
         <div className="grid grid-cols-3 gap-3">
           <div className="p-4 rounded-2xl bg-card/40 border border-border/50 text-center">
-            <div className="font-heading font-black text-2xl text-emerald-400">
+            <div className="font-heading font-black text-2xl text-status-connected">
               {completed.length}
             </div>
             <div className="text-[11px] font-mono text-muted-foreground mt-0.5">Completed</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-card/40 border border-border/50 text-center">
-            <div className="font-heading font-black text-2xl text-rose-400">
+            <div className="font-heading font-black text-2xl text-status-error">
               {missed.length}
             </div>
             <div className="text-[11px] font-mono text-muted-foreground mt-0.5">Overdue/Missed</div>
           </div>
 
           <div className="p-4 rounded-2xl bg-card/40 border border-border/50 text-center">
-            <div className="font-heading font-black text-2xl text-sky-400">
+            <div className="font-heading font-black text-2xl text-primary">
               {completionRate}%
             </div>
             <div className="text-[11px] font-mono text-muted-foreground mt-0.5">Completion Rate</div>
@@ -74,7 +74,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           </div>
           <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-sky-500 to-emerald-400 transition-all duration-500"
+              className="h-full bg-primary transition-all duration-500"
               style={{ width: `${completionRate}%` }}
             />
           </div>
@@ -88,7 +88,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
               onClick={() => exportToICal(items)}
               className="flex-1 py-2 px-3 rounded-xl bg-card border border-border hover:bg-card/80 text-foreground text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
-              <Calendar className="w-3.5 h-3.5 text-sky-400" />
+              <Calendar className="w-3.5 h-3.5 text-primary" />
               <span>Export to iCal (.ics)</span>
             </button>
 
@@ -96,7 +96,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
               onClick={() => exportToCSV(items)}
               className="flex-1 py-2 px-3 rounded-xl bg-card border border-border hover:bg-card/80 text-foreground text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <FileSpreadsheet className="w-3.5 h-3.5 text-status-connected" />
               <span>Export to CSV</span>
             </button>
           </div>
