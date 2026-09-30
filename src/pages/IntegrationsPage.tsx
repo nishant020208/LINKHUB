@@ -18,6 +18,7 @@ import { queryKeys } from '@/lib/queryKeys';
 import { formatTimeAgo } from '@/lib/utils';
 import { ItemType } from '@/types';
 import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
+import { GoogleApiErrorHelp } from '@/components/integrations/GoogleApiErrorHelp';
 
 const ALL_PROVIDERS: ProviderConnectConfig[] = [
   // 1. Google
@@ -419,11 +420,7 @@ export const IntegrationsPage: React.FC = () => {
                   </span>
                 </div>
 
-                {acc.error_message && (
-                  <p className="text-xs text-rose-300/90 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
-                    {acc.error_message}
-                  </p>
-                )}
+                {acc.error_message && <GoogleApiErrorHelp errorMessage={acc.error_message} />}
 
                 {/* Per-account Data Type Sync Toggles */}
                 <div className="space-y-1.5 pt-1 border-t border-border/30">
