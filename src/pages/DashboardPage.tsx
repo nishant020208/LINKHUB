@@ -67,18 +67,19 @@ export const DashboardPage: React.FC = () => {
   const rightWidgets = visibleOrdered.filter((w) => w.column === 'right');
 
   return (
-    <div className="space-y-6">
-      {/* Top Action Bar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+    <div className="space-y-5 sm:space-y-6">
+      {/* Top Action Bar — wraps on mobile instead of overflowing */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" size="sm" onClick={() => setQuickAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Deadline / Task</span>
+            <span className="hidden sm:inline">Add Deadline / Task</span>
+            <span className="sm:hidden">Add</span>
           </Button>
 
           <Button variant="secondary" size="sm" onClick={() => setAccountsDrawerOpen(true)}>
             <Users className="w-3.5 h-3.5 text-status-syncing" />
-            <span>Account Health</span>
+            <span className="hidden sm:inline">Account Health</span>
           </Button>
 
           <Button variant="secondary" size="sm" onClick={() => setWeeklyReportOpen(true)}>
@@ -143,9 +144,9 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
               {/* Primary column */}
-              <div className="lg:col-span-7 space-y-6">
+              <div className="lg:col-span-7 space-y-4 sm:space-y-6">
                 {leftWidgets.map((w) => (
                   <SortableWidget key={w.id} id={w.id} onReorder={handleReorder}>
                     <div className="group/sortable relative">
@@ -162,7 +163,7 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* Secondary column */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="lg:col-span-5 space-y-4 sm:space-y-6">
                 {rightWidgets.map((w) => (
                   <SortableWidget key={w.id} id={w.id} onReorder={handleReorder}>
                     <div className="group/sortable relative">
