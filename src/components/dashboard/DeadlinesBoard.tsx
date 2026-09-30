@@ -3,16 +3,22 @@ import {
   Clock,
   ExternalLink,
   Flame,
-  Check,
+  CheckCircle2,
 } from 'lucide-react';
 import { Item } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import { formatDueCountdown } from '@/lib/utils';
 import { SnoozeModal } from './SnoozeModal';
+import { Card, CardHeader, CardTitle, CardDescription, CardBody } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { MetricCounter } from '@/components/ui/metric-counter';
+import { useLiveAnnouncer } from '@/components/ui/live-announcer';
 
 export const DeadlinesBoard: React.FC = () => {
   const { items, accounts, markItemDone, snoozeItem } = useAppStore();
   const [snoozeItemId, setSnoozeItemId] = useState<string | null>(null);
+  const { announce } = useLiveAnnouncer();
 
   const deadlines = items.filter(
     (item) => item.type === 'deadline' || item.type === 'task'
@@ -43,7 +49,7 @@ export const DeadlinesBoard: React.FC = () => {
     new Set(
       accounts.map((a) => {
         if (a.provider === 'google') return 'Google Tasks & Classroom';
-        if (a.provider === 'microsoft') return 'Outlook / Microsoft To-Do';
+        if (a.provider === 'microsoft') return 'Outlook / To-Do';
         if (a.provider === 'github') return 'GitHub Issues';
         if (a.provider === 'canvas') return 'Canvas LMS';
         return a.label || a.provider;
@@ -56,6 +62,16 @@ export const DeadlinesBoard: React.FC = () => {
       ? `Aggregated across ${deadlineProviders.join(', ')}`
       : 'Connect Google, Outlook, or Canvas to aggregate deadlines';
 
+  const handleToggleDone = (item: Item) => {
+    const nextState = !item.is_done;
+    markItemDone(item.id, nextState);
+    announce(
+      nextState
+        ? `Task "${item.title}" marked as completed.`
+        : `Task "${item.title}" restored to active.`
+    );
+  };
+
   const renderItemRow = (item: Item) => {
     const account = accounts.find((a) => a.id === item.account_id);
     const countdown = formatDueCountdown(item.due_at);
@@ -63,28 +79,24 @@ export const DeadlinesBoard: React.FC = () => {
     return (
       <div
         key={item.id}
-        className={`group flex items-start gap-3 p-3.5 rounded-xl border transition-all ${
+        className={`group flex items-start gap-3 p-3.5 rounded-2xl border transition-all ${
           item.is_done
-            ? 'bg-muted/30 border-border/30 opacity-60'
+            ? 'bg-muted/20 border-border/30 opacity-60'
             : countdown.urgency === 'critical'
-            ? 'bg-rose-950/20 border-rose-500/30 hover:border-rose-500/50'
+            ? 'bg-status-error/10 border-status-error/30 hover:border-status-error/50'
             : countdown.urgency === 'high'
-            ? 'bg-amber-950/20 border-amber-500/30 hover:border-amber-500/50'
-            : 'bg-card/50 border-border/40 hover:border-border/80'
+            ? 'bg-status-warning/10 border-status-warning/30 hover:border-status-warning/50'
+            : 'bg-card/60 border-border/50 hover:border-border'
         }`}
       >
-        {/* Complete Toggle Checkbox */}
-        <button
-          onClick={() => markItemDone(item.id, !item.is_done)}
-          className={`mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-all cursor-pointer ${
-            item.is_done
-              ? 'bg-emerald-500 border-emerald-500 text-white'
-              : 'border-muted-foreground/40 hover:border-primary text-transparent hover:text-primary/40'
-          }`}
-          title={item.is_done ? 'Mark as pending' : 'Mark as completed'}
-        >
-          <Check className="w-3.5 h-3.5 stroke-[3]" />
-        </button>
+        {/* Accessible Checkbox with spring animation */}
+        <div className="pt-0.5">
+          <Checkbox
+            checked={item.is_done}
+            onCheckedChange={() => handleToggleDone(item)}
+            aria-label={`Mark "${item.title}" as ${item.is_done ? 'pending' : 'completed'}`}
+          />
+        </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -100,21 +112,20 @@ export const DeadlinesBoard: React.FC = () => {
             )}
 
             {item.metadata?.course_name && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              <Badge tone="neutral">
                 {item.metadata.course_name}
-              </span>
+              </Badge>
             )}
 
             {item.priority_score >= 85 && !item.is_done && (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-rose-400 font-semibold">
-                <Flame className="w-3 h-3 text-rose-500" />
+              <Badge tone="danger" icon={<Flame className="w-3 h-3 text-status-error" />}>
                 Urgent
-              </span>
+              </Badge>
             )}
           </div>
 
           <h5
-            className={`font-medium text-sm text-foreground transition-all ${
+            className={`font-semibold text-sm text-foreground transition-all leading-snug ${
               item.is_done ? 'line-through text-muted-foreground' : ''
             }`}
           >
@@ -129,12 +140,12 @@ export const DeadlinesBoard: React.FC = () => {
           <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 text-xs font-mono">
               <span
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md ${
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium ${
                   countdown.isOverdue
-                    ? 'bg-rose-500/20 text-rose-300 font-semibold'
+                    ? 'bg-status-error/20 text-status-error font-semibold'
                     : countdown.urgency === 'critical'
-                    ? 'bg-amber-500/20 text-amber-300'
-                    : 'text-muted-foreground'
+                    ? 'bg-status-warning/20 text-status-warning'
+                    : 'text-muted-foreground bg-muted/50'
                 }`}
               >
                 <Clock className="w-3 h-3" />
@@ -142,27 +153,36 @@ export const DeadlinesBoard: React.FC = () => {
               </span>
             </div>
 
-            {/* Quick Actions (Snooze & Link) — always visible on touch devices */}
+            {/* Quick Actions (Snooze & Link) */}
             <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               {!item.is_done && (
                 <>
                   <button
-                    onClick={() => snoozeItem(item.id, 3)}
-                    className="text-[11px] px-2 py-0.5 rounded hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                    type="button"
+                    onClick={() => {
+                      snoozeItem(item.id, 3);
+                      announce(`Snoozed "${item.title}" for 3 hours.`);
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded-lg hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
                     title="Snooze for 3 hours"
                   >
                     +3h
                   </button>
                   <button
-                    onClick={() => snoozeItem(item.id, 24)}
-                    className="text-[11px] px-2 py-0.5 rounded hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                    type="button"
+                    onClick={() => {
+                      snoozeItem(item.id, 24);
+                      announce(`Snoozed "${item.title}" for 1 day.`);
+                    }}
+                    className="text-[11px] px-2 py-0.5 rounded-lg hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
                     title="Snooze for 1 day"
                   >
                     +1d
                   </button>
                   <button
+                    type="button"
                     onClick={() => setSnoozeItemId(item.id)}
-                    className="text-[11px] px-2 py-0.5 rounded hover:bg-muted font-mono text-primary cursor-pointer"
+                    className="text-[11px] px-2 py-0.5 rounded-lg hover:bg-muted font-mono text-primary cursor-pointer"
                     title="More snooze options"
                   >
                     More
@@ -175,7 +195,7 @@ export const DeadlinesBoard: React.FC = () => {
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                  className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
                   title="Open in provider"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -189,104 +209,109 @@ export const DeadlinesBoard: React.FC = () => {
   };
 
   return (
-    <div className="rounded-2xl glass-panel border border-border/60 p-4 sm:p-5 shadow-xl space-y-4 sm:space-y-6">
-      {/* Board Header & Progress Ring / Bar */}
-      <div className="flex items-center justify-between gap-4 pb-4 border-b border-border/40">
+    <Card variant="bento" className="space-y-4">
+      {/* Board Header & Progress */}
+      <CardHeader>
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-heading font-bold text-lg text-foreground">Unified Deadlines</h3>
-            <span className="px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-muted text-muted-foreground">
-              {overdue.length + dueToday.length} due today
-            </span>
+            <CardTitle>Unified Deadlines</CardTitle>
+            <Badge tone="accent">
+              <MetricCounter value={overdue.length + dueToday.length} /> due today
+            </Badge>
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <CardDescription>
             {subtitleText}
-          </p>
+          </CardDescription>
         </div>
 
         {/* Progress Metric */}
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="text-xs font-mono font-semibold text-foreground">
-              {completedCount} / {totalCount} done
+              <MetricCounter value={completedCount} /> / {totalCount} done
             </div>
-            <div className="text-[10px] text-muted-foreground font-mono">{progressPercent}% complete</div>
+            <div className="text-[10px] text-muted-foreground font-mono">
+              <MetricCounter value={progressPercent} suffix="%" /> complete
+            </div>
           </div>
-          <div className="w-12 h-2 bg-muted rounded-full overflow-hidden">
+          <div className="w-12 h-2 bg-muted/60 rounded-full overflow-hidden">
             <div
-              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              className="h-full bg-primary rounded-full transition-all duration-500"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         </div>
-      </div>
+      </CardHeader>
 
-      {/* Overdue Section */}
-      {overdue.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-rose-400 font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-            Overdue ({overdue.length})
+      <CardBody className="space-y-5 pt-0">
+        {/* Overdue Section */}
+        {overdue.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-mono text-status-error font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-status-error animate-ping" />
+              Overdue ({overdue.length})
+            </div>
+            <div className="space-y-2">{overdue.map(renderItemRow)}</div>
           </div>
-          <div className="space-y-2">{overdue.map(renderItemRow)}</div>
-        </div>
-      )}
+        )}
 
-      {/* Due Today */}
-      {dueToday.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-amber-400 font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-amber-400" />
-            Due Today ({dueToday.length})
+        {/* Due Today */}
+        {dueToday.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-mono text-status-warning font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-status-warning" />
+              Due Today ({dueToday.length})
+            </div>
+            <div className="space-y-2">{dueToday.map(renderItemRow)}</div>
           </div>
-          <div className="space-y-2">{dueToday.map(renderItemRow)}</div>
-        </div>
-      )}
+        )}
 
-      {/* Due This Week */}
-      {dueThisWeek.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="flex items-center gap-1.5 text-xs font-mono text-sky-400 font-bold uppercase tracking-wider">
-            <span className="w-2 h-2 rounded-full bg-sky-400" />
-            This Week ({dueThisWeek.length})
+        {/* Due This Week */}
+        {dueThisWeek.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-mono text-primary font-bold uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-primary" />
+              This Week ({dueThisWeek.length})
+            </div>
+            <div className="space-y-2">{dueThisWeek.map(renderItemRow)}</div>
           </div>
-          <div className="space-y-2">{dueThisWeek.map(renderItemRow)}</div>
-        </div>
-      )}
+        )}
 
-      {/* Due Later */}
-      {dueLater.length > 0 && (
-        <div className="space-y-2.5">
-          <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-            Later ({dueLater.length})
+        {/* Due Later */}
+        {dueLater.length > 0 && (
+          <div className="space-y-2.5">
+            <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+              Later ({dueLater.length})
+            </div>
+            <div className="space-y-2">{dueLater.map(renderItemRow)}</div>
           </div>
-          <div className="space-y-2">{dueLater.map(renderItemRow)}</div>
-        </div>
-      )}
+        )}
 
-      {/* Completed items accordion preview */}
-      {completed.length > 0 && (
-        <details className="pt-2 border-t border-border/40 group">
-          <summary className="text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-between">
-            <span>Completed ({completed.length})</span>
-            <span className="text-[11px] underline">Toggle list</span>
-          </summary>
-          <div className="space-y-2 mt-3">{completed.map(renderItemRow)}</div>
-        </details>
-      )}
+        {/* Completed items accordion preview */}
+        {completed.length > 0 && (
+          <details className="pt-2 border-t border-border/40 group">
+            <summary className="text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-between py-1">
+              <span>Completed ({completed.length})</span>
+              <span className="text-[11px] underline">Toggle list</span>
+            </summary>
+            <div className="space-y-2 mt-3">{completed.map(renderItemRow)}</div>
+          </details>
+        )}
 
-      {/* Empty State */}
-      {deadlines.length === 0 && (
-        <div className="py-10 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-xl p-4">
-          <p className="text-foreground font-medium">No deadlines or tasks yet</p>
-          <p className="text-[11px] text-muted-foreground">
-            Synchronized course deadlines, GitHub issues, and Jira tickets will appear here.
-          </p>
-        </div>
-      )}
+        {/* Empty State */}
+        {deadlines.length === 0 && (
+          <div className="py-10 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-2xl p-6">
+            <CheckCircle2 className="w-8 h-8 text-status-connected mx-auto" />
+            <p className="text-foreground font-semibold text-sm">No deadlines or tasks pending</p>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Synchronized coursework, Google Tasks, and GitHub issues will appear here automatically.
+            </p>
+          </div>
+        )}
+      </CardBody>
 
       {/* Snooze Modal */}
       <SnoozeModal itemId={snoozeItemId} onClose={() => setSnoozeItemId(null)} />
-    </div>
+    </Card>
   );
 };
