@@ -1,17 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
-import { CommandPalette } from '@/components/search/CommandPalette';
-import { NotificationSettingsModal } from '@/components/settings/NotificationSettingsModal';
-import { OnboardingWizard } from '@/components/auth/OnboardingWizard';
 import { Toaster } from '@/components/ui/toast';
 import { useAppStore } from '@/store/useAppStore';
+import { useAuthStore } from '@/store/useAuthStore';
+
+// Heavy modals are code-split: their chunks download only on first open, not
+// on every page load. Each keeps its own store-driven open/close logic.
+const CommandPalette = lazy(() =>
+  import('@/components/search/CommandPalette').then((m) => ({ default: m.CommandPalette }))
+);
+const NotificationSettingsModal = lazy(() =>
+  import('@/components/settings/NotificationSettingsModal').then((m) => ({
+    default: m.NotificationSettingsModal,
+  }))
+);
+const OnboardingWizard = lazy(() =>
+  import('@/components/auth/OnboardingWizard').then((m) => ({ default: m.OnboardingWizard }))
+);
+
+/** Nothing renders while a closed modal's chunk loads on first open. */
+const ModalFallback: React.FC = () => null;
 
 export const AppShell: React.FC = () => {
-  const { setCommandPaletteOpen, theme } = useAppStore();
+  const { setCommandPaletteOpen, theme, isCommandPaletteOpen } = useAppStore();
+  const isNotificationModalOpen = useAppStore((s) => s.isNotificationModalOpen);
+  const isOnboardingOpen = useAuthStore((s) => s.isOnboardingOpen);
   const location = useLocation();
 
   useEffect(() => {
@@ -80,10 +97,22 @@ export const AppShell: React.FC = () => {
       {/* Mobile bottom navigation */}
       <MobileNav />
 
-      {/* Global Modals */}
-      <CommandPalette />
-      <NotificationSettingsModal />
-      <OnboardingWizard />
+      {/* Global Modals — each chunk downloads only when first opened */}
+      {isCommandPaletteOpen && (
+        <Suspense fallback={<ModalFallback />}>
+          <CommandPalette />
+        </Suspense>
+      )}
+      {isNotificationModalOpen && (
+        <Suspense fallback={<ModalFallback />}>
+          <NotificationSettingsModal />
+        </Suspense>
+      )}
+      {isOnboardingOpen && (
+        <Suspense fallback={<ModalFallback />}>
+          <OnboardingWizard />
+        </Suspense>
+      )}
 
       {/* Toast notifications */}
       <Toaster />
