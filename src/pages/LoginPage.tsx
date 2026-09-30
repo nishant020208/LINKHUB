@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Sun, Moon, ArrowRight, Lock, CheckCircle2, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
@@ -10,10 +11,10 @@ import { Badge } from '@/components/ui/badge';
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const reduce = useReducedMotion();
   const { user, isInitialized, signInWithGoogle, signInWithGitHub, isLoading, authError, setAuthError } = useAuthStore();
   const { theme, toggleTheme } = useAppStore();
 
-  // If already authenticated, redirect to dashboard
   useEffect(() => {
     if (isInitialized && user) {
       const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
@@ -21,7 +22,6 @@ export const LoginPage: React.FC = () => {
     }
   }, [user, isInitialized, navigate, location]);
 
-  // Read error from query string if redirected from oauth
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const err = params.get('error');
@@ -31,8 +31,14 @@ export const LoginPage: React.FC = () => {
   }, [location.search, setAuthError]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between selection:bg-primary/20 selection:text-primary transition-colors">
-      {/* Top Navbar */}
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between relative overflow-hidden">
+      {!reduce && (
+        <div className="hero-orbs" aria-hidden>
+          <div className="hero-orb hero-orb-a" />
+          <div className="hero-orb hero-orb-b" />
+        </div>
+      )}
+
       <header className="w-full border-b border-border/40 backdrop-blur-xl bg-background/85 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -51,29 +57,26 @@ export const LoginPage: React.FC = () => {
             onClick={toggleTheme}
             aria-label="Toggle dark/light theme"
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4 text-primary" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4 text-primary" />}
           </Button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 sm:py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        {/* Left Column: Sign In & Principles */}
+      <main className="relative z-10 flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 sm:py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
         <div className="lg:col-span-6 space-y-6">
           <Badge tone="accent">
             Unified Personal Command Station
           </Badge>
 
-          <h1 className="font-display font-black text-3xl sm:text-5xl text-foreground tracking-tight leading-[1.15]">
+          <h1 className="font-display font-extrabold text-3xl sm:text-5xl text-foreground tracking-tight leading-[1.12]">
             One calm view for everything you do.
           </h1>
 
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-lg">
             Consolidate your Google, Microsoft, and developer ecosystems into an intentionally designed bento dashboard. Zero tab hopping.
           </p>
 
-          {/* Auth Card */}
-          <Card variant="bento" className="p-6 space-y-4 max-w-md shadow-xl">
+          <Card variant="bento" className="p-6 space-y-4 max-w-md shadow-xl" tilt>
             {authError && (
               <div className="p-3.5 rounded-xl bg-status-error/10 border border-status-error/30 text-status-error text-xs">
                 {authError}
@@ -81,12 +84,13 @@ export const LoginPage: React.FC = () => {
             )}
 
             <div className="space-y-3">
-              {/* Google Button */}
-              <button
+              <motion.button
                 type="button"
+                whileTap={reduce ? undefined : { scale: 0.97 }}
+                whileHover={reduce ? undefined : { y: -1 }}
                 onClick={() => signInWithGoogle()}
                 disabled={isLoading}
-                className="w-full py-3 px-4 rounded-2xl bg-card hover:bg-muted/80 text-foreground font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 border border-border/70 hover:border-primary/50 transition-all shadow-sm cursor-pointer disabled:opacity-50 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-card hover:bg-muted/80 text-foreground font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 border border-border/70 hover:border-primary/50 cursor-pointer disabled:opacity-50 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -108,21 +112,22 @@ export const LoginPage: React.FC = () => {
                 </svg>
                 <span>Continue with Google</span>
                 <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
+              </motion.button>
 
-              {/* GitHub Button */}
-              <button
+              <motion.button
                 type="button"
+                whileTap={reduce ? undefined : { scale: 0.97 }}
+                whileHover={reduce ? undefined : { y: -1 }}
                 onClick={() => signInWithGitHub()}
                 disabled={isLoading}
-                className="w-full py-3 px-4 rounded-2xl bg-card hover:bg-muted/80 text-foreground font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 border border-border/70 hover:border-primary/50 transition-all shadow-sm cursor-pointer disabled:opacity-50 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="w-full min-h-[48px] py-3 px-4 rounded-2xl bg-card hover:bg-muted/80 text-foreground font-semibold text-xs sm:text-sm flex items-center justify-center gap-3 border border-border/70 hover:border-primary/50 cursor-pointer disabled:opacity-50 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <svg className="w-4 h-4 shrink-0 fill-current text-foreground" viewBox="0 0 24 24">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                 </svg>
                 <span>Continue with GitHub</span>
                 <ArrowRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
+              </motion.button>
             </div>
 
             <div className="pt-2 border-t border-border/40 text-[11px] text-muted-foreground space-y-1.5 leading-normal">
@@ -142,20 +147,18 @@ export const LoginPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Column: Live Bento Preview */}
         <div className="lg:col-span-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Tile 1: Next Meeting Preview */}
-            <Card variant="bento" className="p-5 space-y-3">
+            <Card variant="bento" interactive tilt className="p-5 space-y-3">
               <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                <span className="flex items-center gap-1.5 uppercase font-medium">
+                <span className="flex items-center gap-1.5 uppercase tracking-widest font-medium">
                   <Calendar className="w-3.5 h-3.5 text-primary" />
                   Next Meeting
                 </span>
                 <Badge tone="info">Calendar</Badge>
               </div>
               <div>
-                <h4 className="font-semibold text-sm text-foreground">Distributed Systems Sync</h4>
+                <h4 className="font-display font-semibold text-sm text-foreground">Distributed Systems Sync</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">Google Meet &middot; 4 attendees</p>
               </div>
               <div className="flex items-center gap-1.5 font-mono text-xs text-primary font-medium">
@@ -164,17 +167,16 @@ export const LoginPage: React.FC = () => {
               </div>
             </Card>
 
-            {/* Tile 2: Priority Deadline Preview */}
-            <Card variant="bento" className="p-5 space-y-3">
+            <Card variant="bento" interactive tilt className="p-5 space-y-3">
               <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                <span className="flex items-center gap-1.5 uppercase font-medium">
+                <span className="flex items-center gap-1.5 uppercase tracking-widest font-medium">
                   <AlertCircle className="w-3.5 h-3.5 text-status-warning" />
                   Due Today
                 </span>
                 <Badge tone="danger">Assignment</Badge>
               </div>
               <div>
-                <h4 className="font-semibold text-sm text-foreground">Problem Set 4: Raft Consensus</h4>
+                <h4 className="font-display font-semibold text-sm text-foreground">Problem Set 4: Raft Consensus</h4>
                 <p className="text-xs text-muted-foreground mt-0.5">CS 6.824 &middot; Submit PDF</p>
               </div>
               <div className="flex items-center gap-1.5 font-mono text-xs text-status-warning font-medium">
@@ -183,14 +185,13 @@ export const LoginPage: React.FC = () => {
               </div>
             </Card>
 
-            {/* Tile 3: Broad Unified Sync Tile */}
-            <Card variant="bento" className="sm:col-span-2 p-5 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-status-connected/15 text-status-connected flex items-center justify-center font-bold">
+            <Card variant="bento" interactive className="sm:col-span-2 p-5 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-status-connected/15 text-status-connected flex items-center justify-center font-bold shrink-0">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="font-semibold text-sm text-foreground">Multi-Account Real-Time Sync</h4>
+                <div className="min-w-0">
+                  <h4 className="font-display font-semibold text-sm text-foreground">Multi-Account Real-Time Sync</h4>
                   <p className="text-xs text-muted-foreground">
                     Google Workspace, Outlook 365, GitHub, and Canvas active.
                   </p>
@@ -204,10 +205,9 @@ export const LoginPage: React.FC = () => {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-border/40 py-6 px-4 sm:px-6 text-center text-xs font-mono text-muted-foreground flex flex-col sm:flex-row items-center justify-between max-w-6xl mx-auto gap-3">
+      <footer className="relative z-10 w-full border-t border-border/40 py-6 px-4 sm:px-6 text-center text-xs font-mono text-muted-foreground flex flex-col sm:flex-row items-center justify-between max-w-6xl mx-auto gap-3">
         <div>&copy; {new Date().getFullYear()} UnifyHub. All rights reserved.</div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap justify-center">
           <Link to="/privacy" className="text-primary hover:underline font-semibold">
             Privacy Policy
           </Link>
