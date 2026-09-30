@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { useSyncData } from '@/hooks/useSyncData';
 import { useNavigate } from 'react-router-dom';
 
 export const CommandPalette: React.FC = () => {
@@ -26,11 +27,11 @@ export const CommandPalette: React.FC = () => {
     items,
     workspaces,
     setActiveWorkspace,
-    triggerSync,
     toggleTheme,
     theme,
     setQuickAddOpen,
   } = useAppStore();
+  const { triggerSync } = useSyncData();
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
