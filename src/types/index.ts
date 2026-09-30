@@ -148,3 +148,6 @@ export interface NotificationPreferences {
   frequency: 'immediate' | 'daily_briefing' | 'urgent_only';
 }
 
+export type ThemeMode = 'dark' | 'light' | 'aesthetic';
+
+
