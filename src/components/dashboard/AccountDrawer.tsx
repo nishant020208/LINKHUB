@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, RefreshCw, Pause, Play, Trash2, Sliders } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { useSyncData } from '@/hooks/useSyncData';
 import { formatTimeAgo } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 
@@ -12,12 +13,12 @@ interface AccountDrawerProps {
 export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose }) => {
   const {
     accounts,
-    triggerSync,
     isSyncing,
     disconnectAccount,
     reconnectAccount,
     wipeAccountData,
   } = useAppStore();
+  const { triggerSync } = useSyncData();
 
   if (!isOpen) return null;
 
