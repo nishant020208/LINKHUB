@@ -34,7 +34,7 @@ export const LiquidButton = React.forwardRef<HTMLButtonElement, LiquidButtonProp
   ({ className, children, disabled, onMouseMove, onMouseLeave, onPointerDown, onPointerUp, ...props }, ref) => {
     const reduce = useReducedMotion();
     const frameRef = useRef<number | null>(null);
-    const surfaceRef = useRef<HTMLSpanElement | null>(null);
+    const buttonRef = useRef<HTMLButtonElement | null>(null);
 
     // Pointer-tracked shine position as motion values → templated gradient, no React re-render.
     const mx = useMotionValue(50);
@@ -68,11 +68,13 @@ export const LiquidButton = React.forwardRef<HTMLButtonElement, LiquidButtonProp
       [onMouseLeave]
     );
 
-    // Slight press-parallax: nudge shine toward pointer on press for a "dragging light" feel.
+    // Press feedback: --liquid-press lives on the button so the glass surface
+    // (scale "pinch") and shine (brighten) both inherit it. CSS transitions
+    // ease the state change; the pressed style itself is pure CSS.
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLButtonElement>) => {
         onPointerDown?.(e);
-        surfaceRef.current?.style.setProperty('--liquid-press', '1');
+        buttonRef.current?.style.setProperty('--liquid-press', '1');
       },
       [onPointerDown]
     );
@@ -80,14 +82,19 @@ export const LiquidButton = React.forwardRef<HTMLButtonElement, LiquidButtonProp
     const handlePointerUp = useCallback(
       (e: React.PointerEvent<HTMLButtonElement>) => {
         onPointerUp?.(e);
-        surfaceRef.current?.style.setProperty('--liquid-press', '0');
+        buttonRef.current?.style.setProperty('--liquid-press', '0');
       },
       [onPointerUp]
     );
 
     return (
       <motion.button
-        ref={ref}
+        ref={(node) => {
+          // Forward to both the outer consumer and our press-state writer.
+          buttonRef.current = node;
+          if (typeof ref === 'function') ref(node);
+          else if (ref) (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
+        }}
         type="button"
         disabled={disabled}
         onMouseMove={handleMouseMove}
@@ -107,7 +114,7 @@ export const LiquidButton = React.forwardRef<HTMLButtonElement, LiquidButtonProp
         {...props}
       >
         {/* Iridescent conic ring + soft glowing center (pseudo-layers live in index.css) */}
-        <span ref={surfaceRef} className="liquid-btn-surface" aria-hidden />
+        <span className="liquid-btn-surface" aria-hidden />
         {/* Pointer-following light scratch / shine */}
         {!reduce && <motion.span className="liquid-btn-shine" aria-hidden style={{ backgroundImage: shine }} />}
         {/* Floating particles — CSS keyframe drift, mount only on fine pointers with motion */}
