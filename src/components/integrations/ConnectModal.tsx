@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/lib/supabase';
 import { queryClient } from '@/lib/queryClient';
+import { queryKeys } from '@/lib/queryKeys';
 import { AccountProvider } from '@/types';
 
 export interface ProviderConnectConfig {
@@ -131,8 +132,9 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
           }).catch(console.warn);
         }
 
-        queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
-        queryClient.invalidateQueries({ queryKey: ['items'] });
+        queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
+        queryClient.invalidateQueries({ queryKey: queryKeys.items });
+        queryClient.invalidateQueries({ queryKey: queryKeys.syncLogs });
         setSuccess(true);
         setTimeout(() => {
           setSuccess(false);
