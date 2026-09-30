@@ -25,7 +25,7 @@ export const EventsTimeline: React.FC = () => {
       : 'Connect Google Calendar or Outlook to view your schedule';
 
   return (
-    <div className="rounded-2xl glass-panel border border-border/60 p-5 shadow-xl space-y-5">
+    <div className="rounded-2xl glass-panel border border-border/60 p-4 sm:p-5 shadow-xl space-y-5">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div>
           <h3 className="font-heading font-bold text-lg text-foreground">Today&apos;s Schedule</h3>
