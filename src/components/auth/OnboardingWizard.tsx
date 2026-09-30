@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   GraduationCap,
   Briefcase,
@@ -16,7 +17,7 @@ export const OnboardingWizard: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<'student' | 'pro' | 'hybrid'>('student');
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>(['google', 'microsoft']);
 
-  if (!isOnboardingOpen) return null;
+  if (!isOnboardingOpen || typeof document === 'undefined') return null;
 
   const handleNext = () => {
     if (step < 3) {
@@ -35,8 +36,8 @@ export const OnboardingWizard: React.FC = () => {
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div className="bg-card border border-border/80 rounded-3xl max-w-xl w-full p-4 sm:p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-h-[92vh] overflow-y-auto">
         {/* Subtle accent backdrop */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
@@ -265,6 +266,7 @@ export const OnboardingWizard: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
