@@ -5,6 +5,8 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Toaster } from '@/components/ui/toast';
+import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
+import { AestheticGlow } from '@/components/common/AestheticGlow';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -35,13 +37,9 @@ export const AppShell: React.FC = () => {
   }, [isCommandPaletteOpen]);
 
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-    } else {
-      document.documentElement.classList.add('light');
-      document.documentElement.classList.remove('dark');
-    }
+    // Synchronize active theme classes on <html>: dark, light, or aesthetic
+    document.documentElement.classList.remove('dark', 'light', 'aesthetic');
+    document.documentElement.classList.add(theme);
   }, [theme]);
 
   useEffect(() => {
@@ -57,7 +55,12 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground antialiased relative overflow-x-hidden">
-      <div className="relative z-20">
+      {/* Ambient themed gradient field */}
+      <div className="ambient-field fixed inset-0 pointer-events-none z-0" />
+      <AestheticGlow />
+
+      {/* Top Banner and Navigation (z-40 to remain above scrolling content) */}
+      <div className="relative z-40">
         <Navbar />
       </div>
 
@@ -65,17 +68,19 @@ export const AppShell: React.FC = () => {
         <Sidebar />
 
         <main className="flex-1 min-w-0 py-6 md:py-8 pb-24 lg:pb-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
-              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={reduce ? { duration: 0.12 } : { duration: 0.22, ease: 'easeOut' }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <RouteErrorBoundary fallbackTitle="This view encountered an error">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+                animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                transition={reduce ? { duration: 0.12 } : { duration: 0.22, ease: 'easeOut' }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </RouteErrorBoundary>
         </main>
       </div>
 
