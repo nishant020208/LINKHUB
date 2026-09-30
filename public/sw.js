@@ -1,6 +1,5 @@
-const CACHE_NAME = 'unifyhub-v2';
+const CACHE_NAME = 'unifyhub-v3';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/favicon.svg',
 ];
@@ -65,18 +64,23 @@ self.addEventListener('fetch', (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((networkResponse) => {
-        // Cache valid same-origin assets
-        if (
-          networkResponse &&
-          networkResponse.status === 200 &&
-          url.origin === location.origin
-        ) {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return networkResponse;
-      });
+      return fetch(event.request)
+        .then((networkResponse) => {
+          // Cache valid same-origin assets
+          if (
+            networkResponse &&
+            networkResponse.status === 200 &&
+            url.origin === location.origin
+          ) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch((err) => {
+          console.warn('[SW] Failed to fetch static asset:', event.request.url, err);
+          return new Response('Asset unavailable', { status: 408, headers: { 'Content-Type': 'text/plain' } });
+        });
     })
   );
 });
