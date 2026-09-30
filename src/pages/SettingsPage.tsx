@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon, Bell, Clock, Link as LinkIcon, User as UserIcon } from 'lucide-react';
+import { Sun, Moon, Sparkles, Bell, Clock, Link as LinkIcon, User as UserIcon, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Card, CardHeader, CardBody } from '@/components/ui/card';
@@ -14,7 +14,7 @@ import { formatTimeAgo } from '@/lib/utils';
  */
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { theme, toggleTheme, notificationPreferences, updateNotificationPreferences, accounts, lastSyncedAt } =
+  const { theme, setTheme, notificationPreferences, updateNotificationPreferences, accounts, lastSyncedAt } =
     useAppStore();
   const user = useAuthStore((s) => s.user);
 
@@ -29,19 +29,81 @@ export const SettingsPage: React.FC = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            {theme === 'dark' ? <Moon className="w-4 h-4 text-primary" /> : <Sun className="w-4 h-4 text-primary" />}
-            <h3 className="font-display font-semibold text-sm">Appearance</h3>
+            {theme === 'dark' ? (
+              <Moon className="w-4 h-4 text-primary" />
+            ) : theme === 'light' ? (
+              <Sun className="w-4 h-4 text-primary" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-primary" />
+            )}
+            <h3 className="font-display font-semibold text-sm">Display Mode & Atmosphere</h3>
           </div>
         </CardHeader>
-        <CardBody className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium">Theme</p>
-            <p className="text-xs text-muted-foreground">Both themes are hand-tuned; switch anytime.</p>
+        <CardBody className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Select an art-directed palette tailored for deep focus, crisp daylight reading, or atmospheric midnight immersion.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              {
+                id: 'dark' as const,
+                title: 'Dark',
+                desc: 'Deep space obsidian surfaces with electric indigo accents.',
+                icon: Moon,
+                colorDot: '#7c6cf6',
+              },
+              {
+                id: 'light' as const,
+                title: 'Light',
+                desc: 'Warm alabaster paper with crisp violet ink for bright daylight.',
+                icon: Sun,
+                colorDot: '#6049ea',
+              },
+              {
+                id: 'aesthetic' as const,
+                title: 'Aesthetic',
+                desc: 'Midnight dusk with luminescent ultraviolet glow and tactile depth.',
+                icon: Sparkles,
+                colorDot: '#9d5cfc',
+              },
+            ].map((mode) => {
+              const Icon = mode.icon;
+              const isSelected = theme === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setTheme(mode.id)}
+                  className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all cursor-pointer relative ${
+                    isSelected
+                      ? 'border-primary ring-2 ring-primary/30 bg-primary/10 shadow-md'
+                      : 'border-border/60 bg-card/60 hover:bg-card hover:border-border'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-3 h-3 rounded-full border border-black/20 shrink-0"
+                          style={{ backgroundColor: mode.colorDot }}
+                        />
+                        <span className="font-display font-semibold text-xs text-foreground">{mode.title}</span>
+                      </div>
+                      <Icon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug">{mode.desc}</p>
+                  </div>
+
+                  {isSelected && (
+                    <div className="mt-3 pt-2 border-t border-primary/20 flex items-center gap-1.5 text-[10px] font-mono text-primary font-semibold">
+                      <Check className="w-3 h-3" />
+                      <span>Active Mode</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <Button variant="secondary" size="sm" onClick={toggleTheme}>
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            Switch to {theme === 'dark' ? 'light' : 'dark'}
-          </Button>
         </CardBody>
       </Card>
 
