@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Clock,
   ExternalLink,
@@ -13,12 +14,15 @@ import { Card, CardHeader, CardTitle, CardDescription, CardBody } from '@/compon
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MetricCounter } from '@/components/ui/metric-counter';
+import { CompleteBurst } from '@/components/ui/complete-burst';
 import { useLiveAnnouncer } from '@/components/ui/live-announcer';
 
 export const DeadlinesBoard: React.FC = () => {
   const { items, accounts, markItemDone, snoozeItem } = useAppStore();
   const [snoozeItemId, setSnoozeItemId] = useState<string | null>(null);
+  const [burstId, setBurstId] = useState<string | null>(null);
   const { announce } = useLiveAnnouncer();
+  const reduce = useReducedMotion();
 
   const deadlines = items.filter(
     (item) => item.type === 'deadline' || item.type === 'task'
@@ -28,7 +32,6 @@ export const DeadlinesBoard: React.FC = () => {
   const totalCount = deadlines.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
-  // Grouping
   const now = new Date();
   const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const endOfWeek = new Date(now.getTime() + 7 * 86400 * 1000);
@@ -64,6 +67,10 @@ export const DeadlinesBoard: React.FC = () => {
 
   const handleToggleDone = (item: Item) => {
     const nextState = !item.is_done;
+    if (nextState) {
+      setBurstId(item.id);
+      window.setTimeout(() => setBurstId((cur) => (cur === item.id ? null : cur)), 480);
+    }
     markItemDone(item.id, nextState);
     announce(
       nextState
@@ -77,9 +84,15 @@ export const DeadlinesBoard: React.FC = () => {
     const countdown = formatDueCountdown(item.due_at);
 
     return (
-      <div
+      <motion.div
         key={item.id}
-        className={`group flex items-start gap-3 p-3.5 rounded-2xl border transition-all ${
+        layout
+        initial={reduce ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: -6 }}
+        transition={reduce ? { duration: 0.01 } : { type: 'spring', stiffness: 380, damping: 28 }}
+        whileTap={reduce ? undefined : { scale: 0.99 }}
+        className={`group relative flex items-start gap-3 p-3.5 rounded-2xl border ${
           item.is_done
             ? 'bg-muted/20 border-border/30 opacity-60'
             : countdown.urgency === 'critical'
@@ -89,16 +102,16 @@ export const DeadlinesBoard: React.FC = () => {
             : 'bg-card/60 border-border/50 hover:border-border'
         }`}
       >
-        {/* Accessible Checkbox with spring animation */}
-        <div className="pt-0.5">
+        <CompleteBurst active={burstId === item.id} />
+        <div className="pt-0.5 relative">
           <Checkbox
             checked={item.is_done}
             onCheckedChange={() => handleToggleDone(item)}
             aria-label={`Mark "${item.title}" as ${item.is_done ? 'pending' : 'completed'}`}
+            className="min-w-[24px] min-h-[24px]"
           />
         </div>
 
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             {account && (
@@ -125,7 +138,7 @@ export const DeadlinesBoard: React.FC = () => {
           </div>
 
           <h5
-            className={`font-semibold text-sm text-foreground transition-all leading-snug ${
+            className={`font-semibold text-sm text-foreground leading-snug ${
               item.is_done ? 'line-through text-muted-foreground' : ''
             }`}
           >
@@ -136,7 +149,6 @@ export const DeadlinesBoard: React.FC = () => {
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.description}</p>
           )}
 
-          {/* Time & actions footer */}
           <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-2 text-xs font-mono">
               <span
@@ -153,8 +165,7 @@ export const DeadlinesBoard: React.FC = () => {
               </span>
             </div>
 
-            {/* Quick Actions (Snooze & Link) */}
-            <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
               {!item.is_done && (
                 <>
                   <button
@@ -163,7 +174,7 @@ export const DeadlinesBoard: React.FC = () => {
                       snoozeItem(item.id, 3);
                       announce(`Snoozed "${item.title}" for 3 hours.`);
                     }}
-                    className="text-[11px] px-2 py-0.5 rounded-lg hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="text-[11px] px-2 py-1 min-h-[32px] rounded-lg hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
                     title="Snooze for 3 hours"
                   >
                     +3h
@@ -174,7 +185,7 @@ export const DeadlinesBoard: React.FC = () => {
                       snoozeItem(item.id, 24);
                       announce(`Snoozed "${item.title}" for 1 day.`);
                     }}
-                    className="text-[11px] px-2 py-0.5 rounded-lg hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
+                    className="text-[11px] px-2 py-1 min-h-[32px] rounded-lg hover:bg-muted font-mono text-muted-foreground hover:text-foreground cursor-pointer"
                     title="Snooze for 1 day"
                   >
                     +1d
@@ -182,7 +193,7 @@ export const DeadlinesBoard: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setSnoozeItemId(item.id)}
-                    className="text-[11px] px-2 py-0.5 rounded-lg hover:bg-muted font-mono text-primary cursor-pointer"
+                    className="text-[11px] px-2 py-1 min-h-[32px] rounded-lg hover:bg-muted font-mono text-primary cursor-pointer"
                     title="More snooze options"
                   >
                     More
@@ -195,7 +206,7 @@ export const DeadlinesBoard: React.FC = () => {
                   href={item.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-1 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
+                  className="p-1 min-w-[32px] min-h-[32px] inline-flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground"
                   title="Open in provider"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -204,16 +215,15 @@ export const DeadlinesBoard: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   };
 
   return (
     <Card variant="bento" className="space-y-4">
-      {/* Board Header & Progress */}
       <CardHeader>
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <CardTitle>Unified Deadlines</CardTitle>
             <Badge tone="accent">
               <MetricCounter value={overdue.length + dueToday.length} /> due today
@@ -224,7 +234,6 @@ export const DeadlinesBoard: React.FC = () => {
           </CardDescription>
         </div>
 
-        {/* Progress Metric */}
         <div className="flex items-center gap-3">
           <div className="text-right">
             <div className="text-xs font-mono font-semibold text-foreground">
@@ -235,70 +244,86 @@ export const DeadlinesBoard: React.FC = () => {
             </div>
           </div>
           <div className="w-12 h-2 bg-muted/60 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              animate={{ scaleX: progressPercent / 100 }}
+              style={{ transformOrigin: 'left' }}
+              transition={reduce ? { duration: 0.01 } : { type: 'spring', stiffness: 120, damping: 20 }}
             />
           </div>
         </div>
       </CardHeader>
 
       <CardBody className="space-y-5 pt-0">
-        {/* Overdue Section */}
         {overdue.length > 0 && (
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 text-xs font-mono text-status-error font-bold uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-status-error animate-ping" />
               Overdue ({overdue.length})
             </div>
-            <div className="space-y-2">{overdue.map(renderItemRow)}</div>
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {overdue.map(renderItemRow)}
+              </AnimatePresence>
+            </div>
           </div>
         )}
 
-        {/* Due Today */}
         {dueToday.length > 0 && (
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 text-xs font-mono text-status-warning font-bold uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-status-warning" />
               Due Today ({dueToday.length})
             </div>
-            <div className="space-y-2">{dueToday.map(renderItemRow)}</div>
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {dueToday.map(renderItemRow)}
+              </AnimatePresence>
+            </div>
           </div>
         )}
 
-        {/* Due This Week */}
         {dueThisWeek.length > 0 && (
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 text-xs font-mono text-primary font-bold uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-primary" />
               This Week ({dueThisWeek.length})
             </div>
-            <div className="space-y-2">{dueThisWeek.map(renderItemRow)}</div>
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {dueThisWeek.map(renderItemRow)}
+              </AnimatePresence>
+            </div>
           </div>
         )}
 
-        {/* Due Later */}
         {dueLater.length > 0 && (
           <div className="space-y-2.5">
             <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
               Later ({dueLater.length})
             </div>
-            <div className="space-y-2">{dueLater.map(renderItemRow)}</div>
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {dueLater.map(renderItemRow)}
+              </AnimatePresence>
+            </div>
           </div>
         )}
 
-        {/* Completed items accordion preview */}
         {completed.length > 0 && (
           <details className="pt-2 border-t border-border/40 group">
             <summary className="text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-between py-1">
               <span>Completed ({completed.length})</span>
               <span className="text-[11px] underline">Toggle list</span>
             </summary>
-            <div className="space-y-2 mt-3">{completed.map(renderItemRow)}</div>
+            <div className="space-y-2 mt-3">
+              <AnimatePresence initial={false}>
+                {completed.map(renderItemRow)}
+              </AnimatePresence>
+            </div>
           </details>
         )}
 
-        {/* Empty State */}
         {deadlines.length === 0 && (
           <div className="py-10 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-2xl p-6">
             <CheckCircle2 className="w-8 h-8 text-status-connected mx-auto" />
@@ -310,7 +335,6 @@ export const DeadlinesBoard: React.FC = () => {
         )}
       </CardBody>
 
-      {/* Snooze Modal */}
       <SnoozeModal itemId={snoozeItemId} onClose={() => setSnoozeItemId(null)} />
     </Card>
   );
