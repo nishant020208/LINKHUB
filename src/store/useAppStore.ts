@@ -123,10 +123,14 @@ const INITIAL_WORKSPACES: Workspace[] = [
 ];
 
 function getInitialTheme(): ThemeMode {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const saved = window.localStorage.getItem('unifyhub-theme') as ThemeMode;
-    if (saved === 'dark' || saved === 'light' || saved === 'aesthetic') {
-      return saved;
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = window.localStorage?.getItem('unifyhub-theme') as ThemeMode;
+      if (saved === 'dark' || saved === 'light' || saved === 'aesthetic') {
+        return saved;
+      }
+    } catch {
+      // In restricted or incognito environments, localStorage may throw
     }
   }
   return 'dark';
