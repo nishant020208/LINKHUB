@@ -87,7 +87,7 @@ export const RightNowHero: React.FC = () => {
             <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
               Command Station &middot; {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </span>
-            <h1 className="font-display font-extrabold text-2xl sm:text-3xl text-foreground tracking-tight">
+            <h1 className="font-display font-extrabold text-[1.75rem] sm:text-4xl text-foreground tracking-tight">
               Good day, {user.fullName?.split(' ')[0] || 'Member'}
             </h1>
           </div>
@@ -132,10 +132,10 @@ export const RightNowHero: React.FC = () => {
       {/* Bento Dual Tile: Next Scheduled Meeting & Most Urgent Deadline */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Tile 1: Next Meeting */}
-        <Card variant="bento" interactive className="p-5 flex flex-col justify-between group">
+        <Card variant="bento" interactive tilt className="p-5 flex flex-col justify-between group">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground uppercase tracking-widest">
                 <Calendar className="w-3.5 h-3.5 text-primary" />
                 Next Up
               </span>
@@ -192,10 +192,8 @@ export const RightNowHero: React.FC = () => {
             {nextEvent ? (
               <div className="flex items-center gap-1.5 font-mono text-xs text-primary font-medium">
                 <Clock className="w-3.5 h-3.5" />
-                <span>
-                  {new Date(nextEvent.start_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  {' – '}
-                  {new Date(nextEvent.end_at!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                <span className="font-mono tracking-tight">
+                  {countdownInfo.label} {timeRemaining && `(${timeRemaining})`}
                 </span>
               </div>
             ) : (
@@ -208,10 +206,10 @@ export const RightNowHero: React.FC = () => {
         </Card>
 
         {/* Tile 2: Urgent Deadline */}
-        <Card variant="bento" interactive className="p-5 flex flex-col justify-between group">
+        <Card variant="bento" interactive tilt className="p-5 flex flex-col justify-between group">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground uppercase tracking-wider">
+              <span className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground uppercase tracking-widest">
                 <AlertCircle className="w-3.5 h-3.5 text-status-warning" />
                 Most Urgent Deadline
               </span>
