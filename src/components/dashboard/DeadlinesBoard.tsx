@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MetricCounter } from '@/components/ui/metric-counter';
 import { CompleteBurst } from '@/components/ui/complete-burst';
 import { useLiveAnnouncer } from '@/components/ui/live-announcer';
+import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
 export const DeadlinesBoard: React.FC = () => {
   const { items, accounts, markItemDone, snoozeItem } = useAppStore();
@@ -254,77 +255,79 @@ export const DeadlinesBoard: React.FC = () => {
         </div>
       </CardHeader>
 
-      <CardBody className="space-y-5 pt-0">
-        {overdue.length > 0 && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-status-error font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-status-error animate-ping" />
-              Overdue ({overdue.length})
-            </div>
-            <div className="space-y-2">
-              <AnimatePresence initial={false}>
-                {overdue.map(renderItemRow)}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
+      <CardBody className="pt-0">
+        {deadlines.length > 0 ? (
+          <ScrollablePanel maxHeight="max-h-[460px]" ariaLabel="Unified deadlines list" className="space-y-5">
+            {overdue.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-mono text-status-error font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-status-error animate-ping" />
+                  Overdue ({overdue.length})
+                </div>
+                <div className="space-y-2">
+                  <AnimatePresence initial={false}>
+                    {overdue.map(renderItemRow)}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
-        {dueToday.length > 0 && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-status-warning font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-status-warning" />
-              Due Today ({dueToday.length})
-            </div>
-            <div className="space-y-2">
-              <AnimatePresence initial={false}>
-                {dueToday.map(renderItemRow)}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
+            {dueToday.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-mono text-status-warning font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-status-warning" />
+                  Due Today ({dueToday.length})
+                </div>
+                <div className="space-y-2">
+                  <AnimatePresence initial={false}>
+                    {dueToday.map(renderItemRow)}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
-        {dueThisWeek.length > 0 && (
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-primary font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              This Week ({dueThisWeek.length})
-            </div>
-            <div className="space-y-2">
-              <AnimatePresence initial={false}>
-                {dueThisWeek.map(renderItemRow)}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
+            {dueThisWeek.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-mono text-primary font-bold uppercase tracking-wider">
+                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  This Week ({dueThisWeek.length})
+                </div>
+                <div className="space-y-2">
+                  <AnimatePresence initial={false}>
+                    {dueThisWeek.map(renderItemRow)}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
-        {dueLater.length > 0 && (
-          <div className="space-y-2.5">
-            <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-              Later ({dueLater.length})
-            </div>
-            <div className="space-y-2">
-              <AnimatePresence initial={false}>
-                {dueLater.map(renderItemRow)}
-              </AnimatePresence>
-            </div>
-          </div>
-        )}
+            {dueLater.length > 0 && (
+              <div className="space-y-2.5">
+                <div className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  Later ({dueLater.length})
+                </div>
+                <div className="space-y-2">
+                  <AnimatePresence initial={false}>
+                    {dueLater.map(renderItemRow)}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
-        {completed.length > 0 && (
-          <details className="pt-2 border-t border-border/40 group">
-            <summary className="text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-between py-1">
-              <span>Completed ({completed.length})</span>
-              <span className="text-[11px] underline">Toggle list</span>
-            </summary>
-            <div className="space-y-2 mt-3">
-              <AnimatePresence initial={false}>
-                {completed.map(renderItemRow)}
-              </AnimatePresence>
-            </div>
-          </details>
-        )}
-
-        {deadlines.length === 0 && (
+            {completed.length > 0 && (
+              <details className="pt-2 border-t border-border/40 group">
+                <summary className="text-xs font-mono text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-between py-1">
+                  <span>Completed ({completed.length})</span>
+                  <span className="text-[11px] underline">Toggle list</span>
+                </summary>
+                <div className="space-y-2 mt-3">
+                  <AnimatePresence initial={false}>
+                    {completed.map(renderItemRow)}
+                  </AnimatePresence>
+                </div>
+              </details>
+            )}
+          </ScrollablePanel>
+        ) : (
           <div className="py-10 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-2xl p-6">
             <CheckCircle2 className="w-8 h-8 text-status-connected mx-auto" />
             <p className="text-foreground font-semibold text-sm">No deadlines or tasks pending</p>
