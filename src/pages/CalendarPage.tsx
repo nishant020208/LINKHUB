@@ -22,8 +22,8 @@ export const CalendarPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const reduce = useReducedMotion();
 
-  const events = items
-    .filter((item) => item.type === 'event' && item.start_at)
+  const events = (items || [])
+    .filter((item) => item?.type === 'event' && item.start_at && !isNaN(new Date(item.start_at).getTime()))
     .sort((a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime());
 
   // Hours for Day View
