@@ -216,7 +216,6 @@ export const IntegrationsPage: React.FC = () => {
     isSyncing,
     disconnectAccount,
     reconnectAccount,
-    wipeAccountData,
     toggleAccountSyncType,
   } = useAppStore();
 
@@ -414,29 +413,32 @@ export const IntegrationsPage: React.FC = () => {
                   <span>Last synced: {formatTimeAgo(acc.last_synced_at)}</span>
 
                   <div className="flex items-center gap-2">
-                    {hasError ? (
+                    {hasError && (
                       <button
                         onClick={() => reconnectAccount(acc.id)}
                         className="px-2.5 py-1 rounded-lg bg-sky-500 text-slate-950 font-medium text-xs hover:bg-sky-400 transition-colors cursor-pointer"
                       >
                         Reconnect
                       </button>
-                    ) : (
-                      <button
-                        onClick={() => disconnectAccount(acc.id)}
-                        className="text-muted-foreground hover:text-foreground text-xs cursor-pointer px-1 py-0.5"
-                        title="Pause sync"
-                      >
-                        {isPaused ? 'Resume' : 'Pause'}
-                      </button>
                     )}
 
                     <button
-                      onClick={() => wipeAccountData(acc.id)}
-                      className="text-rose-400 hover:text-rose-300 text-xs flex items-center gap-1 cursor-pointer p-1"
-                      title="Wipe synced items for this account"
+                      onClick={async () => {
+                        const confirmed = window.confirm(
+                          `Disconnect ${acc.label}? This will permanently remove its credentials and delete all its synchronized emails, events, and tasks from UnifyHub.`
+                        );
+                        if (confirmed) {
+                          await disconnectAccount(acc.id);
+                          queryClient.invalidateQueries({ queryKey: ['connected_accounts'] });
+                          queryClient.invalidateQueries({ queryKey: ['items'] });
+                          queryClient.invalidateQueries({ queryKey: ['sync_logs'] });
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Disconnect account and delete all stored items"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
+                      <span>Disconnect</span>
                     </button>
                   </div>
                 </div>
