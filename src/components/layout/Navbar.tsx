@@ -56,7 +56,7 @@ export const Navbar: React.FC = () => {
         {/* Left: Brand Identity */}
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2.5 group select-none">
-            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base tracking-tighter shadow-md shadow-primary/25 group-hover:scale-105 transition-transform">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base tracking-tighter shadow-md shadow-primary/25 group-hover:scale-105">
               U
             </div>
             <div className="flex flex-col">
@@ -75,7 +75,7 @@ export const Navbar: React.FC = () => {
           <button
             type="button"
             onClick={() => setCommandPaletteOpen(true)}
-            className="w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-card/60 hover:bg-card border border-border/60 hover:border-primary/40 text-muted-foreground hover:text-foreground text-xs transition-all cursor-pointer group shadow-sm"
+            className="w-full min-h-[40px] flex items-center justify-between px-3.5 py-1.5 rounded-xl bg-card/60 hover:bg-card border border-border/60 hover:border-primary/40 text-muted-foreground hover:text-foreground text-xs cursor-pointer group shadow-sm"
           >
             <div className="flex items-center gap-2">
               <Search className="w-3.5 h-3.5 group-hover:text-primary transition-colors" />
@@ -149,7 +149,7 @@ export const Navbar: React.FC = () => {
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-300" />
+              <Sun className="w-4 h-4 text-primary" />
             ) : (
               <Moon className="w-4 h-4 text-primary" />
             )}
