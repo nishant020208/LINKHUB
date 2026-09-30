@@ -62,13 +62,13 @@ export const GoogleApiErrorHelp: React.FC<{ errorMessage: string | null | undefi
       {failing.map((part, idx) => (
         <div
           key={`${part.dataType}-${idx}`}
-          className="text-xs text-rose-300/90 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl space-y-2"
+          className="text-xs text-status-error/90 bg-status-error/10 border border-status-error/20 p-2.5 rounded-xl space-y-2"
         >
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-rose-400" />
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-status-error" />
             <div className="min-w-0">
-              <span className="font-mono font-semibold text-rose-300">{part.dataType}</span>
-              <span className="text-rose-200/80"> — {part.message}</span>
+              <span className="font-mono font-semibold text-status-error">{part.dataType}</span>
+              <span className="text-status-error/80"> — {part.message}</span>
             </div>
           </div>
 
@@ -77,7 +77,7 @@ export const GoogleApiErrorHelp: React.FC<{ errorMessage: string | null | undefi
               href={part.enableUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-sky-500/15 border border-sky-500/40 text-sky-300 text-[11px] font-semibold hover:bg-sky-500/25 transition-colors"
+              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-primary/15 border border-primary/40 text-primary text-[11px] font-semibold hover:bg-primary/25 transition-colors"
             >
               <ExternalLink className="w-3 h-3" />
               Enable {part.apiName} on Google Cloud
