@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Award, FileSpreadsheet, Calendar } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { exportToCSV, exportToICal } from '@/lib/export';
@@ -12,8 +13,9 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
   const { items } = useAppStore();
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  const deadlines = items.filter((i) => i.type === 'deadline' || i.type === 'task');
+  const deadlines = (items || []).filter((i) => i.type === 'deadline' || i.type === 'task');
   const completed = deadlines.filter((d) => d.is_done);
   const now = new Date();
   const missed = deadlines.filter((d) => !d.is_done && d.due_at && new Date(d.due_at) < now);
@@ -21,7 +23,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
   const total = deadlines.length;
   const completionRate = total > 0 ? Math.round((completed.length / total) * 100) : 0;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-card border border-border/70 rounded-3xl max-w-lg w-full p-4 sm:p-6 md:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
@@ -30,7 +32,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
               <Award className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-heading font-bold text-lg text-foreground">Weekly Performance Report</h3>
+              <h3 className="font-display font-bold text-lg text-foreground">Weekly Performance Report</h3>
               <p className="text-[11px] font-mono text-muted-foreground">Coursework & Deadline Velocity</p>
             </div>
           </div>
@@ -102,6 +104,7 @@ export const WeeklyReportModal: React.FC<WeeklyReportModalProps> = ({ isOpen, on
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
