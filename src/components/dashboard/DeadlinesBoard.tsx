@@ -142,8 +142,8 @@ export const DeadlinesBoard: React.FC = () => {
               </span>
             </div>
 
-            {/* Quick Actions (Snooze & Link) */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Quick Actions (Snooze & Link) — always visible on touch devices */}
+            <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
               {!item.is_done && (
                 <>
                   <button
@@ -189,7 +189,7 @@ export const DeadlinesBoard: React.FC = () => {
   };
 
   return (
-    <div className="rounded-2xl glass-panel border border-border/60 p-5 shadow-xl space-y-6">
+    <div className="rounded-2xl glass-panel border border-border/60 p-4 sm:p-5 shadow-xl space-y-4 sm:space-y-6">
       {/* Board Header & Progress Ring / Bar */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-border/40">
         <div>
