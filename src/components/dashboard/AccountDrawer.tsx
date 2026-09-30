@@ -47,6 +47,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
       <div className="w-full max-w-md bg-card border-l border-border/70 h-full p-4 sm:p-6 shadow-2xl flex flex-col justify-between space-y-6 overflow-y-auto">
         <div>
           <div className="flex items-center justify-between pb-4 border-b border-border/40">
+            <div>
               <h3 id="account-drawer-title" className="font-display font-bold text-lg text-foreground">
                 Connected Accounts Health
               </h3>
