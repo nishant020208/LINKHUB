@@ -57,7 +57,7 @@ export const Toaster: React.FC = () => {
   const reduced = useReducedMotion();
 
   return (
-    <div className="fixed bottom-4 right-4 z-[100] flex flex-col gap-2 max-w-sm pointer-events-none">
+    <div className="fixed bottom-20 lg:bottom-4 right-2 left-2 sm:left-auto sm:right-4 sm:max-w-sm z-[100] flex flex-col gap-2 pointer-events-none">
       <AnimatePresence>
         {toasts.map((t) => (
           <ToastCard key={t.id} toast={t} onDismiss={dismiss} reduced={reduced} />
