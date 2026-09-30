@@ -39,7 +39,7 @@ export const OnboardingWizard: React.FC = () => {
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
       <div className="bg-card border border-border/80 rounded-3xl max-w-xl w-full p-4 sm:p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-h-[92vh] overflow-y-auto">
         {/* Subtle accent backdrop */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header & Step progress */}
         <div className="flex items-center justify-between pb-4 border-b border-border/40">
@@ -47,7 +47,7 @@ export const OnboardingWizard: React.FC = () => {
             <span className="text-[11px] font-mono text-primary uppercase tracking-wider font-semibold">
               Step {step} of 3 &middot; Quick Setup
             </span>
-            <h3 className="font-heading font-bold text-xl text-white mt-0.5">
+            <h3 className="font-heading font-bold text-xl text-foreground mt-0.5">
               Welcome to UnifyHub
             </h3>
           </div>
@@ -78,11 +78,11 @@ export const OnboardingWizard: React.FC = () => {
                 onClick={() => setSelectedRole('student')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   selectedRole === 'student'
-                    ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500/50'
+                     ? 'border-primary bg-primary/10 ring-1 ring-primary/50'
                     : 'border-border/60 bg-card/40 hover:bg-card'
                 }`}
               >
-                <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 w-fit mb-3">
+                <div className="p-2 rounded-xl bg-primary/20 text-primary w-fit mb-3">
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
@@ -98,11 +98,11 @@ export const OnboardingWizard: React.FC = () => {
                 onClick={() => setSelectedRole('pro')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   selectedRole === 'pro'
-                    ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500/50'
+                     ? 'border-primary bg-primary/10 ring-1 ring-primary/50'
                     : 'border-border/60 bg-card/40 hover:bg-card'
                 }`}
               >
-                <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 w-fit mb-3">
+                <div className="p-2 rounded-xl bg-primary/20 text-primary w-fit mb-3">
                   <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
@@ -118,11 +118,11 @@ export const OnboardingWizard: React.FC = () => {
                 onClick={() => setSelectedRole('hybrid')}
                 className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
                   selectedRole === 'hybrid'
-                    ? 'border-sky-500 bg-sky-500/10 ring-1 ring-sky-500/50'
+                     ? 'border-primary bg-primary/10 ring-1 ring-primary/50'
                     : 'border-border/60 bg-card/40 hover:bg-card'
                 }`}
               >
-                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 w-fit mb-3">
+                <div className="p-2 rounded-xl bg-status-connected/20 text-status-connected w-fit mb-3">
                   <Layers className="w-5 h-5" />
                 </div>
                 <div>
@@ -164,7 +164,7 @@ export const OnboardingWizard: React.FC = () => {
                     onClick={() => toggleAccountChoice(provider.key)}
                     className={`w-full p-3.5 rounded-2xl border flex items-center justify-between text-left transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-sky-500/60 bg-sky-500/10 shadow-sm'
+                         ? 'border-primary/60 bg-primary/10 shadow-sm'
                         : 'border-border/50 bg-card/30 hover:bg-card/70'
                     }`}
                   >
@@ -180,7 +180,7 @@ export const OnboardingWizard: React.FC = () => {
                     <div
                       className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
                         isSelected
-                          ? 'bg-sky-500 border-sky-500 text-slate-950 font-bold'
+                           ? 'bg-primary border-primary text-primary-foreground font-bold'
                           : 'border-border text-transparent'
                       }`}
                     >
@@ -208,7 +208,7 @@ export const OnboardingWizard: React.FC = () => {
             <div className="space-y-2 font-mono text-xs">
               <div className="p-3 rounded-xl bg-card/40 border border-border/40 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                   <span className="w-2 h-2 rounded-full bg-primary" />
                   All Combined (Full master stream)
                 </span>
                 <span className="text-muted-foreground">Enabled</span>
@@ -222,21 +222,21 @@ export const OnboardingWizard: React.FC = () => {
               </div>
               <div className="p-3 rounded-xl bg-card/40 border border-border/40 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                  <span className="w-2 h-2 rounded-full bg-primary" />
                   Tech Work (GitHub + Work Calendar)
                 </span>
                 <span className="text-muted-foreground">Enabled</span>
               </div>
               <div className="p-3 rounded-xl bg-card/40 border border-border/40 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                   <span className="w-2 h-2 rounded-full bg-status-connected" />
                   Personal Life (Personal Gmail + Flights/Bills)
                 </span>
                 <span className="text-muted-foreground">Enabled</span>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-center gap-2">
+             <div className="p-3 rounded-xl bg-status-connected/10 border border-status-connected/20 text-xs text-status-connected flex items-center gap-2">
               <Lock className="w-4 h-4 shrink-0" />
               <span>Read-only permissions active. You can customize workspaces anytime.</span>
             </div>
