@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Layers, Plus, Check } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ItemType } from '@/types';
@@ -28,7 +29,16 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ isOpen, onClose 
     'file',
   ]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || typeof document === 'undefined') return null;
 
   const toggleAccount = (id: string) => {
     setSelectedAccounts((prev) =>
@@ -60,18 +70,25 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ isOpen, onClose 
       activeWorkspaceId: newWorkspace.id,
     });
 
+    setName('');
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="bg-card border border-border/70 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
-            <h3 className="font-heading font-bold text-lg text-foreground">Create Custom Workspace</h3>
+            <h3 className="font-display font-bold text-lg text-foreground">Create Custom Workspace</h3>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
@@ -87,6 +104,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ isOpen, onClose 
             <input
               type="text"
               required
+              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Master Thesis / Startup / Athletics"
@@ -168,6 +186,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ isOpen, onClose 
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
