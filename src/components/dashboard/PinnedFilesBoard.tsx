@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MetricCounter } from '@/components/ui/metric-counter';
+import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
 export const PinnedFilesBoard: React.FC = () => {
   const { items, accounts } = useAppStore();
@@ -42,7 +43,8 @@ export const PinnedFilesBoard: React.FC = () => {
 
       <CardBody className="pt-0">
         {files.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <ScrollablePanel maxHeight="max-h-[380px]" ariaLabel="Pinned files grid">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {files.map((file) => {
               const account = accounts.find((a) => a.id === file.account_id);
               const fileType = file.metadata?.file_type || 'DOC';
@@ -91,7 +93,8 @@ export const PinnedFilesBoard: React.FC = () => {
                 </a>
               );
             })}
-          </div>
+            </div>
+          </ScrollablePanel>
         ) : (
           <div className="py-8 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-2xl p-6">
             <FolderOpen className="w-6 h-6 text-muted-foreground mx-auto" />
