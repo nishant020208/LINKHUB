@@ -46,8 +46,8 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
       <div className="bg-card border border-border/70 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <Sliders className="w-5 h-5 text-sky-400" />
-            <h3 className="font-heading font-bold text-lg text-white">Customize Dashboard Layout</h3>
+            <Sliders className="w-5 h-5 text-primary" />
+            <h3 className="font-heading font-bold text-lg text-foreground">Customize Dashboard Layout</h3>
           </div>
           <button
             onClick={onClose}
@@ -72,7 +72,7 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
                 onClick={() => toggle(key)}
                 className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                   isVisible
-                    ? 'border-sky-500/50 bg-sky-500/10'
+                    ? 'border-primary/50 bg-primary/10'
                     : 'border-border/40 bg-card/20 opacity-60 hover:opacity-80'
                 }`}
               >
@@ -84,7 +84,7 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
                 <div
                   className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ml-3 ${
                     isVisible
-                      ? 'bg-sky-500 border-sky-500 text-slate-950 font-bold'
+                      ? 'bg-primary border-primary text-primary-foreground font-bold'
                       : 'border-border text-transparent'
                   }`}
                 >
