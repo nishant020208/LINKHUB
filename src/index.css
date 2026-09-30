@@ -10,6 +10,9 @@
   :root {
     color-scheme: dark;
 
+    /* Structural layout tokens */
+    --header-height: 4rem;
+
     --background: #0c0b0a;
     --foreground: #f4efe6;
     --card: #161412;
@@ -55,6 +58,8 @@
   .light {
     color-scheme: light;
 
+    --header-height: 4rem;
+
     --background: #f3eee6;
     --foreground: #1c1612;
     --card: #fffdf8;
@@ -91,6 +96,51 @@
     --ambient-2: rgba(15, 122, 88, 0.07);
   }
 
+  /* ----------------------------------------------------------- AESTHETIC (Atmospheric Midnight Dusk & Glow) */
+  .aesthetic {
+    color-scheme: dark;
+
+    --header-height: 4rem;
+
+    /* Surfaces: deep midnight violet with high WCAG contrast */
+    --background: #090a14;
+    --foreground: #f4f3ff;
+    --card: #121326;
+    --card-foreground: #f4f3ff;
+    --popover: #161830;
+    --popover-foreground: #f4f3ff;
+    --muted: #1c1d38;
+    --muted-foreground: #a6abd1;
+    --secondary: #222346;
+    --secondary-foreground: #f4f3ff;
+    --accent: #2e265c;
+    --accent-foreground: #e3dcff;
+
+    /* Vivid neon ultraviolet identity */
+    --primary: #9d5cfc;
+    --primary-hover: #b17aff;
+    --primary-foreground: #ffffff;
+
+    /* Luminescent status colors */
+    --status-connected: #10b981;
+    --status-syncing: #38bdf8;
+    --status-warning: #f59e0b;
+    --status-error: #f43f5e;
+
+    --destructive: #f43f5e;
+    --destructive-foreground: #ffffff;
+    --border: #2c2b54;
+    --input: #232247;
+    --ring: #9d5cfc;
+
+    --shadow-card: 0 10px 32px -10px rgba(157, 92, 252, 0.22), 0 2px 8px -2px rgba(0, 0, 0, 0.6);
+    --shadow-card-hover: 0 16px 44px -10px rgba(157, 92, 252, 0.38), 0 0 24px -2px rgba(244, 63, 94, 0.20);
+    --shadow-glow: 0 0 32px -4px rgba(157, 92, 252, 0.65);
+
+    --ambient-1: rgba(157, 92, 252, 0.22);
+    --ambient-2: rgba(244, 63, 94, 0.14);
+  }
+
   * {
     border-color: var(--border);
   }
@@ -105,6 +155,10 @@
     font-family: 'Source Sans 3', system-ui, -apple-system, sans-serif;
     font-optical-sizing: auto;
     letter-spacing: 0.01em;
+  }
+
+  h1, h2, h3, h4, .font-display, section, [id] {
+    scroll-margin-top: calc(var(--header-height) + 1.25rem);
   }
 
   h1, h2, h3, h4, .font-display {
