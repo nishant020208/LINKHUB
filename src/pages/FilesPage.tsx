@@ -55,7 +55,7 @@ export const FilesPage: React.FC = () => {
           {files.map((file) => {
             const account = accounts.find((a) => a.id === file.account_id);
             return (
-              <Card key={file.id} interactive delay={0}>
+              <Card key={file.id} interactive tilt delay={0}>
                 <CardHeader>
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
