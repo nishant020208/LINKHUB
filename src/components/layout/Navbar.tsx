@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sliders,
   AlertTriangle,
+  Sparkles,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -51,8 +52,8 @@ export const Navbar: React.FC = () => {
   ).length;
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/85 backdrop-blur-xl transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-40 w-full h-[var(--header-height)] border-b border-border/50 bg-background/85 backdrop-blur-xl transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-3">
         {/* Left: Brand Identity */}
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-2.5 group select-none">
@@ -139,19 +140,27 @@ export const Navbar: React.FC = () => {
             <Bell className="w-4 h-4" />
           </Button>
 
-          {/* Dark / Light Theme Toggle */}
+          {/* Display Mode Toggle (Dark -> Light -> Aesthetic -> Dark) */}
           <Button
             variant="ghost"
             size="sm"
             iconOnly
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
-            aria-label="Toggle theme"
+            title={
+              theme === 'dark'
+                ? 'Active: Dark mode (Click for Light)'
+                : theme === 'light'
+                ? 'Active: Light mode (Click for Aesthetic)'
+                : 'Active: Aesthetic mode (Click for Dark)'
+            }
+            aria-label="Toggle display theme mode"
           >
             {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-primary" />
+              <Sun className="w-4 h-4 text-amber-300" />
+            ) : theme === 'light' ? (
+              <Sparkles className="w-4 h-4 text-primary" />
             ) : (
-              <Moon className="w-4 h-4 text-primary" />
+              <Moon className="w-4 h-4 text-purple-400" />
             )}
           </Button>
 
