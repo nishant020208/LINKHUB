@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Activity,
   Link2,
+  ExternalLink,
 } from 'lucide-react';
 import { useSyncData } from '@/hooks/useSyncData';
 import { useAppStore } from '@/store/useAppStore';
@@ -54,6 +55,24 @@ const OTHER_STREAMS: Record<string, StreamDef[]> = {
   ical: [{ type: 'ical_events', name: 'iCal Feeds', service: 'ICS Parse', icon: <Calendar className="w-3.5 h-3.5 text-status-connected" />, provider: 'ical' }],
 };
 
+/**
+ * The account row stores a joined summary like "calendar: ... | gmail: ...".
+ * Extract only the segment belonging to this stream so every card shows its
+ * own failure, not the whole account summary.
+ */
+export function errorForStream(joined: string | null | undefined, dataType: string): string | null {
+  if (!joined) return null;
+  const parts = joined.split('|').map((p) => p.trim());
+  for (const part of parts) {
+    const sep = part.indexOf(':');
+    if (sep > 0 && part.slice(0, sep).trim() === dataType) {
+      return part.slice(sep + 1).trim() || null;
+    }
+  }
+  // Segment for this stream absent: signal with null rather than showing noise.
+  return null;
+}
+
 export const SyncStatusPanel: React.FC = () => {
   const { accounts, syncLogs, isSyncing, triggerSync } = useSyncData();
   const { items } = useAppStore();
@@ -73,51 +92,94 @@ export const SyncStatusPanel: React.FC = () => {
   }, [accounts]);
 
   const latestLogFor = (streamType: string, accountId?: string) =>
-    syncLogs.find((log) => log.data_type === streamType && (!accountId || log.account_id === accountId));
+    syncLogs.find(
+      (log) =>
+        log.data_type === streamType &&
+        (!accountId || log.account_id === accountId)
+    );
 
   const getStreamStatus = (
     stream: StreamDef & { account?: typeof accounts[number] }
   ): { state: CanonicalStatus | 'no_data' | 'failed'; label: string; error: string | null; fetched: number; upserted: number } => {
     if (!stream.account) return { state: 'idle', label: 'Not Connected', error: null, fetched: 0, upserted: 0 };
-    if (stream.account.status === 'needs_reconnect')
-      return { state: 'needs_reconnect', label: 'Reconnect', error: stream.account.error_message ?? 'Token expired or revoked', fetched: 0, upserted: 0 };
-    if (stream.account.status === 'error')
-      return { state: 'error', label: 'Error', error: stream.account.error_message ?? 'Account error', fetched: 0, upserted: 0 };
     if (isSyncing) return { state: 'syncing', label: 'Syncing…', error: null, fetched: 0, upserted: 0 };
 
+    // Per-stream log wins: it carries THIS stream's own precise error, not the
+    // account-level joined summary (which previously painted every card red
+    // with the same text).
     const log = latestLogFor(stream.type, stream.account.id);
-    if (!log) return { state: 'no_data', label: 'No Sync Run', error: null, fetched: 0, upserted: 0 };
+    if (log) {
+      if (log.status === 'failed') {
+        return {
+          state: 'failed',
+          label: 'Failed',
+          error: log.error_message ?? 'API error',
+          fetched: log.items_fetched,
+          upserted: 0,
+        };
+      }
 
-    if (log.status === 'failed') {
-      return { state: 'failed', label: 'Failed', error: log.error_message ?? 'API error', fetched: log.items_fetched, upserted: 0 };
+      // Scope hint: OAuth provider granted scopes missing this stream's requirement.
+      const granted = stream.account.granted_scopes ?? [];
+      if (stream.requiredScope && granted.length > 0 && !granted.some((s) => s.includes(stream.requiredScope!))) {
+        return {
+          state: 'needs_reconnect',
+          label: 'Scope Missing',
+          error: `Reconnect required: "${stream.requiredScope}" scope was not granted during authorization.`,
+          fetched: 0,
+          upserted: 0,
+        };
+      }
+
+      if (log.status === 'partial_error' && log.error_message) {
+        return {
+          state: 'failed',
+          label: 'Partial',
+          error: log.error_message,
+          fetched: log.items_fetched,
+          upserted: log.items_upserted,
+        };
+      }
+
+      if (log.items_fetched === 0 && log.items_upserted === 0) {
+        return { state: 'no_data', label: 'Empty Result', error: null, fetched: 0, upserted: 0 };
+      }
+
+      return {
+        state: 'connected',
+        label: `${log.items_upserted} synced`,
+        error: null,
+        fetched: log.items_fetched,
+        upserted: log.items_upserted,
+      };
     }
 
-    // Scope hint: OAuth provider granted scopes missing this stream's requirement.
-    const granted = stream.account.granted_scopes ?? [];
-    if (stream.requiredScope && granted.length > 0 && !granted.some((s) => s.includes(stream.requiredScope!))) {
+    // No log for this stream yet: fall back to account-level health.
+    if (stream.account.status === 'needs_reconnect') {
       return {
         state: 'needs_reconnect',
-        label: 'Scope Missing',
-        error: `Reconnect required: "${stream.requiredScope}" scope was not granted during authorization.`,
+        label: 'Reconnect',
+        error: errorForStream(stream.account.error_message, stream.type) ?? 'Token expired or revoked — reconnect this account.',
         fetched: 0,
         upserted: 0,
       };
     }
-
-    if (log.items_fetched === 0 && log.items_upserted === 0) {
-      return { state: 'no_data', label: 'Empty Result', error: null, fetched: 0, upserted: 0 };
+    if (stream.account.status === 'error') {
+      return {
+        state: 'error',
+        label: 'Error',
+        error: errorForStream(stream.account.error_message, stream.type) ?? 'Account error — run a sync for details.',
+        fetched: 0,
+        upserted: 0,
+      };
     }
-
-    return {
-      state: 'connected',
-      label: `${log.items_upserted} synced`,
-      error: null,
-      fetched: log.items_fetched,
-      upserted: log.items_upserted,
-    };
+    return { state: 'no_data', label: 'No Sync Run', error: null, fetched: 0, upserted: 0 };
   };
 
-  const failedCount = streams.filter((s) => getStreamStatus(s).state === 'failed').length;
+  const failedCount = streams.filter((s) => {
+    const st = getStreamStatus(s);
+    return st.state === 'failed' || st.state === 'error' || st.state === 'needs_reconnect';
+  }).length;
   const itemsRendered = items.length;
 
   return (
@@ -145,11 +207,11 @@ export const SyncStatusPanel: React.FC = () => {
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground truncate">
+            <p className="text-xs text-muted-foreground line-clamp-2 sm:truncate">
               {streams.length === 0
                 ? 'No live accounts connected yet.'
                 : failedCount > 0
-                ? `${failedCount} data stream${failedCount === 1 ? '' : 's'} failing — expand for the exact API error.`
+                ? `${failedCount} data stream${failedCount === 1 ? '' : 's'} need${failedCount === 1 ? 's' : ''} attention — expand Stream Health for the exact fix.`
                 : 'All synchronized data streams operational.'}
             </p>
           </div>
@@ -171,60 +233,108 @@ export const SyncStatusPanel: React.FC = () => {
 
       {/* Collapsible Granular Stream Health Grid */}
       {isExpanded && (
-        <div className="mt-4 pt-3 border-t border-border/40 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="mt-4 pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {streams.length === 0 && (
             <p className="text-xs text-muted-foreground col-span-full text-center py-4">
               Connect an account on the Integrations page to activate its data streams.
             </p>
           )}
-          {streams.map((stream) => {
-            const status = getStreamStatus(stream);
-            const account = stream.account;
-            return (
-              <div
-                key={`${stream.provider}-${stream.type}`}
-                className={`p-3 rounded-xl border space-y-2 transition-colors ${
-                  status.state === 'failed'
-                    ? 'bg-status-error/5 border-status-error/40'
-                    : status.state === 'connected'
-                    ? 'bg-card/50 border-status-connected/30'
-                    : status.state === 'syncing'
-                    ? 'bg-primary/5 border-primary/30'
-                    : 'bg-card/30 border-border/40'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {stream.icon}
-                    <span className="font-display font-medium text-xs truncate">{stream.name}</span>
-                  </div>
-                  <Badge status={(status.state === 'no_data' ? 'idle' : status.state) as CanonicalStatus} className="shrink-0">
-                    {status.label}
-                  </Badge>
-                </div>
+          {streams.map((stream) => (
+            <StreamCard key={`${stream.provider}-${stream.type}`} stream={stream} status={getStreamStatus(stream)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
-                {status.error && (
-                  <p className="text-[10px] font-mono text-status-error/90 bg-status-error/10 p-2 rounded border border-status-error/30 break-words leading-tight">
-                    {status.error}
-                  </p>
-                )}
+// -----------------------------------------------------------------------------
+// Stream card: shows THIS stream's own error (matched by account + data_type),
+// clamped to three lines with a tap-to-expand, plus a one-click "Enable on
+// Google Cloud" action when the failure is an accessNotConfigured 403.
+// -----------------------------------------------------------------------------
+const ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/[^\s,]+/;
 
-                <div className="text-[10px] font-mono text-muted-foreground flex items-center justify-between gap-1">
-                  <span className="truncate">{account?.email ?? stream.service}</span>
-                  <span className="shrink-0">
-                    {status.fetched > 0 ? `${status.fetched} fetched / ${status.upserted} kept` : account?.last_synced_at ? formatTimeAgo(account.last_synced_at) : stream.service}
-                  </span>
-                </div>
+const StreamCard: React.FC<{
+  stream: (typeof GOOGLE_STREAMS)[number] & { account?: any };
+  status: { state: string; label: string; error: string | null; fetched: number; upserted: number };
+}> = ({ stream, status }) => {
+  const [expanded, setExpanded] = useState(false);
+  const account = stream.account;
+  const enableUrl = status.error?.match(ENABLE_URL_RE)?.[0] ?? null;
+  const isEnableError = enableUrl !== null;
+  const isFailed = status.state === 'failed';
 
-                {account && (
-                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/70">
-                    <StatusDot status={account.status as CanonicalStatus} />
-                    {account.provider}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+  return (
+    <div
+      className={`p-3 rounded-xl border space-y-2 transition-colors ${
+        isFailed
+          ? 'bg-status-error/5 border-status-error/40'
+          : status.state === 'connected'
+          ? 'bg-card/50 border-status-connected/30'
+          : status.state === 'syncing'
+          ? 'bg-primary/5 border-primary/30'
+          : 'bg-card/30 border-border/40'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {stream.icon}
+          <span className="font-display font-medium text-xs truncate">{stream.name}</span>
+        </div>
+        <Badge
+          status={(status.state === 'no_data' ? 'idle' : status.state) as CanonicalStatus}
+          className="shrink-0"
+        >
+          {status.label}
+        </Badge>
+      </div>
+
+      {status.error && (
+        <div className="space-y-1.5">
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="w-full text-left cursor-pointer"
+            title={expanded ? 'Collapse' : 'Expand full error'}
+          >
+            <p
+              className={`text-[10px] font-mono text-status-error/90 bg-status-error/10 p-2 rounded border border-status-error/30 break-words leading-snug ${
+                expanded ? '' : 'line-clamp-3'
+              }`}
+            >
+              {status.error}
+            </p>
+          </button>
+
+          {isEnableError && (
+            <a
+              href={enableUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-primary/15 border border-primary/40 text-primary text-[11px] font-semibold hover:bg-primary/25 transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Enable on Google Cloud
+            </a>
+          )}
+        </div>
+      )}
+
+      <div className="text-[10px] font-mono text-muted-foreground flex items-center justify-between gap-1">
+        <span className="truncate">{account?.email ?? stream.service}</span>
+        <span className="shrink-0">
+          {status.fetched > 0
+            ? `${status.fetched} fetched / ${status.upserted} kept`
+            : account?.last_synced_at
+            ? formatTimeAgo(account.last_synced_at)
+            : stream.service}
+        </span>
+      </div>
+
+      {account && (
+        <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-foreground/70">
+          <StatusDot status={account.status as CanonicalStatus} />
+          {account.provider}
         </div>
       )}
     </div>
