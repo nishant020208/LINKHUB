@@ -111,50 +111,95 @@ export async function upsertItems(ctx: StreamContext, items: NormalizedItem[]): 
  * i.e. an optional path segment (/overview) sits between the service name and
  * the query string — the pattern must allow it or the match silently fails.
  */
-const GOOGLE_ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/apis\/api\/([a-z0-9.\-]+)(?:\/[^\s"'<>\\]*)?\?[^\s"'<>\\]+/i;
+/**
+ * Extract the enable-API console URL from a Google error body.
+ * Real activation URLs look like:
+ *   https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=123
+ *   https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=123
+ *   https://console.cloud.google.com/apis/enableflow?apiid=gmail.googleapis.com&project=123
+ */
+const GOOGLE_ENABLE_URL_RE = /https:\/\/(?:console\.developers\.google\.com|console\.cloud\.google\.com)\/(?:apis\/[^\s"'<>\\]+)/i;
 
 function apiNameFromEnableUrl(url: string): string {
-  const m = url.match(/apis\/api\/([a-z0-9.\-]+)/i);
-  const map: Record<string, string> = {
-    'calendar-json': 'Google Calendar',
-    'gmail': 'Gmail',
-    'drive': 'Google Drive',
-    'tasks': 'Google Tasks',
-    'classroom': 'Google Classroom',
-  };
-  return m ? map[m[1]] ?? m[1] : 'Google';
+  if (/gmail/i.test(url)) return 'Gmail';
+  if (/calendar/i.test(url)) return 'Google Calendar';
+  if (/drive/i.test(url)) return 'Google Drive';
+  if (/tasks/i.test(url)) return 'Google Tasks';
+  if (/classroom/i.test(url)) return 'Google Classroom';
+  return 'Google';
 }
 
 /**
  * Turn a provider API failure into a precise, actionable message.
- * Main case: HTTP 403 accessNotConfigured (APIs disabled in the Google Cloud
- * project) must say exactly which API to enable and where, instead of
- * dumping raw JSON on every card.
+ * Extracts the full Google API error object (message, reason, status, enable link)
+ * and formats an actionable message while preserving exact technical details.
  */
 export function humanizeProviderError(provider: string, stream: string, status: number | null, rawBody: string): string {
+  let parsedErrorMsg = '';
+  let parsedErrorCode: any = null;
+  let parsedReason = '';
+
+  try {
+    const json = JSON.parse(rawBody);
+    if (json?.error) {
+      if (typeof json.error === 'string') {
+        parsedErrorMsg = json.error;
+      } else if (typeof json.error === 'object') {
+        parsedErrorMsg = json.error.message || '';
+        parsedErrorCode = json.error.code || null;
+        parsedReason =
+          json.error.details?.[0]?.reason ||
+          json.error.errors?.[0]?.reason ||
+          json.error.status ||
+          '';
+      }
+    }
+  } catch {
+    // not JSON
+  }
+
+  const effectiveStatus = status ?? parsedErrorCode;
+  const searchableText = `${rawBody} ${parsedErrorMsg} ${parsedReason}`;
+
   if (provider === 'google') {
-    const enableMatch = rawBody.match(GOOGLE_ENABLE_URL_RE);
+    const enableMatch = searchableText.match(GOOGLE_ENABLE_URL_RE);
     const notConfigured =
-      rawBody.includes('accessNotConfigured') ||
-      rawBody.includes('has not been used in project') ||
-      (rawBody.includes('is disabled') && rawBody.includes('Enable it by visiting'));
+      searchableText.includes('accessNotConfigured') ||
+      searchableText.includes('SERVICE_DISABLED') ||
+      searchableText.includes('has not been used in project') ||
+      (searchableText.includes('is disabled') && searchableText.includes('Enable it'));
+
     if (notConfigured) {
       const apiName = enableMatch ? apiNameFromEnableUrl(enableMatch[0]) : `Google ${stream}`;
-      const url = enableMatch ? enableMatch[0] : 'https://console.developers.google.com/apis/library';
-      return `${apiName} API is not enabled for your Google Cloud project. Open ${url} , click Enable, wait about a minute, then press Sync Now.`;
+      const url = enableMatch ? enableMatch[0] : 'https://console.cloud.google.com/apis/library';
+      return `${apiName} API is disabled for your Google Cloud project. Open ${url} , click Enable, wait about 1-2 minutes, then press Sync Now. [Details: ${parsedErrorMsg || 'API not configured in Google Cloud Console'}]`;
     }
-    if (status === 401 || /invalid credentials|INVALID_CREDENTIALS|invalid_grant/i.test(rawBody)) {
-      return 'Access token expired or revoked. Reconnect this Google account from the Integrations page.';
+
+    if (
+      effectiveStatus === 401 ||
+      /invalid credentials|INVALID_CREDENTIALS|invalid_grant|token expired/i.test(searchableText)
+    ) {
+      return `Access token expired or revoked. Reconnect this Google account from the Integrations page. [Details: ${parsedErrorMsg || 'Invalid grant'}]`;
     }
-    if (status === 403 && /insufficientPermissions|PERMISSION_DENIED/i.test(rawBody)) {
-      return 'The granted scopes do not cover this Google service. Reconnect the account and approve the missing permission.';
+
+    if (
+      (effectiveStatus === 403 || effectiveStatus === 401) &&
+      /insufficientPermissions|PERMISSION_DENIED|insufficient authentication scopes/i.test(searchableText)
+    ) {
+      return `Missing granted scope for ${stream}. Reconnect this Google account and ensure all permissions (including Gmail and Calendar) are checked in the Google consent screen. [Details: ${parsedErrorMsg || 'Insufficient permissions'}]`;
     }
-    if (status === 429) {
-      return 'Google API rate limit reached. The sync retries automatically with backoff; try again shortly.';
+
+    if (effectiveStatus === 429) {
+      return `Google API rate limit reached. The sync retries automatically with backoff. [Details: ${parsedErrorMsg || 'Quota exceeded'}]`;
+    }
+
+    if (parsedErrorMsg) {
+      return `Google ${stream} API error (${effectiveStatus || 'API'}): ${parsedErrorMsg}`;
     }
   }
-  const short = rawBody.replace(/\s+/g, ' ').trim().slice(0, 300);
-  return status ? `HTTP ${status}: ${short}` : short;
+
+  const short = rawBody.replace(/\s+/g, ' ').trim().slice(0, 500);
+  return effectiveStatus ? `HTTP ${effectiveStatus}: ${short}` : short;
 }
 
 /** Fetch JSON with authenticated headers, retry/backoff, and full error surfacing. */
@@ -162,7 +207,7 @@ export async function fetchJson(
   url: string,
   headers: Record<string, string>,
   httpInfo: { provider: string; stream: string }
-): Promise<{ ok: true; data: any } | { ok: false; error: string }> {
+): Promise<{ ok: true; data: any } | { ok: false; error: string; rawBody?: string; status?: number }> {
   const res = await fetchWithRetry(url, { headers });
   if (!res.ok) {
     let body = '';
@@ -172,8 +217,8 @@ export async function fetchJson(
       body = '<unreadable body>';
     }
     const msg = humanizeProviderError(httpInfo.provider, httpInfo.stream, res.status, body);
-    console.error(`[${httpInfo.provider}:${httpInfo.stream}] HTTP ${res.status}: ${body.slice(0, 400)}`);
-    return { ok: false, error: msg };
+    console.error(`[${httpInfo.provider}:${httpInfo.stream}] HTTP ${res.status}: ${body.slice(0, 600)}`);
+    return { ok: false, error: msg, rawBody: body, status: res.status };
   }
   try {
     return { ok: true, data: await res.json() };
@@ -237,9 +282,11 @@ export async function runStream(
     await writeSyncLog(ctx, result, startedAt);
     return result;
   } catch (err) {
-    errorMessage = err instanceof Error ? err.message : String(err);
-    // Keep stream error text tight and actionable (never dump full JSON bodies).
-    errorMessage = humanizeProviderError(provider, dataType, null, errorMessage);
+    const rawError = err instanceof Error ? err.message : String(err);
+    // If rawError is already humanized with [Details: ...] or contains API activation link, preserve it directly
+    errorMessage = rawError.includes('[Details:') || rawError.includes('API is disabled')
+      ? rawError
+      : humanizeProviderError(provider, dataType, null, rawError);
     console.error(`[${provider}:${dataType}] stream failed: ${errorMessage}`);
     const result: StreamResult = {
       dataType,
