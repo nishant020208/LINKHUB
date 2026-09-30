@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 /**
@@ -15,6 +16,7 @@ export const SortableWidget: React.FC<{
   const [isDragging, setIsDragging] = useState(false);
   const [isOver, setIsOver] = useState(false);
   const dragCounter = useRef(0);
+  const reduce = useReducedMotion();
 
   return (
     <div
@@ -44,12 +46,26 @@ export const SortableWidget: React.FC<{
       }}
       className={cn(
         'transition-opacity',
-        isDragging && 'opacity-40',
+        isDragging && 'opacity-50',
         isOver && 'ring-2 ring-primary/50 rounded-3xl',
         className
       )}
     >
-      {children}
+      <motion.div
+        layout
+        transition={reduce ? { duration: 0.01 } : { type: 'spring', stiffness: 420, damping: 32 }}
+        animate={
+          reduce
+            ? undefined
+            : isDragging
+              ? { scale: 0.97, rotate: 0.4 }
+              : isOver
+                ? { scale: 1.015 }
+                : { scale: 1, rotate: 0 }
+        }
+      >
+        {children}
+      </motion.div>
     </div>
   );
 };
