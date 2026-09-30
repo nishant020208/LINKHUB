@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronRight, Key, RefreshCw, X } from 'lucide-react';
 import { env } from '@/lib/env';
 import { useAppStore } from '@/store/useAppStore';
@@ -57,8 +58,13 @@ export const DemoBanner: React.FC = () => {
       </div>
 
       {/* Setup modal */}
-      {showDetails && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      {showDetails && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowDetails(false);
+          }}
+        >
           <div className="bg-card border border-border/80 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl text-foreground space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
@@ -66,6 +72,7 @@ export const DemoBanner: React.FC = () => {
                 <h3 className="font-heading font-semibold text-lg text-foreground">Integration Readiness</h3>
               </div>
               <button
+                type="button"
                 onClick={() => setShowDetails(false)}
                 className="text-muted-foreground hover:text-foreground p-1 rounded-lg hover:bg-muted/60 transition-colors"
               >
@@ -112,14 +119,16 @@ export const DemoBanner: React.FC = () => {
 
             <div className="pt-2 flex justify-end">
               <button
+                type="button"
                 onClick={() => setShowDetails(false)}
-                 className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-xs cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-xs cursor-pointer"
               >
                 Close & Explore Demo
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
