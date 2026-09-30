@@ -211,7 +211,7 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
             {/* Description and Scopes Pill Box */}
             <div className="p-3 rounded-xl bg-card/40 border border-border/40 text-xs space-y-2">
               <p className="text-muted-foreground leading-relaxed">{provider.description}</p>
-              <div className="flex items-center gap-1.5 text-[11px] font-mono text-emerald-400">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-status-connected">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Read-Only Scopes Requested:</span>
               </div>
@@ -229,14 +229,14 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
 
             {/* Error and Success banners */}
             {error && (
-              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="p-3 rounded-xl bg-status-error/10 border border-status-error/30 text-status-error text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-status-error" />
                 <span>{error}</span>
               </div>
             )}
             {success && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              <div className="p-3 rounded-xl bg-status-connected/10 border border-status-connected/30 text-status-connected text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-status-connected" />
                 <span>Successfully linked and verified! Synchronizing items...</span>
               </div>
             )}
@@ -258,8 +258,8 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
                   />
                 </div>
 
-                <div className="p-3 rounded-xl bg-sky-500/5 border border-sky-500/20 text-xs text-muted-foreground flex items-start gap-2.5">
-                  <Lock className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+                <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-xs text-muted-foreground flex items-start gap-2.5">
+                  <Lock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   <p>
                     Connecting will request zero write permissions. Authentication happens directly with{' '}
                     <strong className="text-foreground">{provider.name}</strong>; tokens are encrypted.
