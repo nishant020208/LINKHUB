@@ -362,6 +362,26 @@
   scrollbar-width: none;
 }
 
+/* Custom themed scrollbar for bento panels */
+.unifyhub-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.unifyhub-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.unifyhub-scrollbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: 9999px;
+}
+.unifyhub-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+.unifyhub-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--border) 80%, transparent) transparent;
+}
+
 @media (pointer: coarse) {
   .hero-orb {
     animation-duration: 28s;
