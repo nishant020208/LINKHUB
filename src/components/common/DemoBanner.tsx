@@ -62,8 +62,8 @@ export const DemoBanner: React.FC = () => {
           <div className="bg-card border border-border/80 rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl text-foreground space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-border/80">
               <div className="flex items-center gap-2">
-                <Key className="w-5 h-5 text-sky-400" />
-                <h3 className="font-heading font-semibold text-lg text-white">Integration Readiness</h3>
+                <Key className="w-5 h-5 text-primary" />
+                <h3 className="font-heading font-semibold text-lg text-foreground">Integration Readiness</h3>
               </div>
               <button
                 onClick={() => setShowDetails(false)}
@@ -113,7 +113,7 @@ export const DemoBanner: React.FC = () => {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setShowDetails(false)}
-                className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-medium text-xs transition-colors cursor-pointer"
+                 className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-medium text-xs cursor-pointer"
               >
                 Close & Explore Demo
               </button>
