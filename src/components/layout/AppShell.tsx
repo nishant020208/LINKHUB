@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
@@ -8,8 +8,6 @@ import { Toaster } from '@/components/ui/toast';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
-// Heavy modals are code-split: their chunks download only on first open, not
-// on every page load. Each keeps its own store-driven open/close logic.
 const CommandPalette = lazy(() =>
   import('@/components/search/CommandPalette').then((m) => ({ default: m.CommandPalette }))
 );
@@ -22,7 +20,6 @@ const OnboardingWizard = lazy(() =>
   import('@/components/auth/OnboardingWizard').then((m) => ({ default: m.OnboardingWizard }))
 );
 
-/** Nothing renders while a closed modal's chunk loads on first open. */
 const ModalFallback: React.FC = () => null;
 
 export const AppShell: React.FC = () => {
@@ -30,9 +27,14 @@ export const AppShell: React.FC = () => {
   const isNotificationModalOpen = useAppStore((s) => s.isNotificationModalOpen);
   const isOnboardingOpen = useAuthStore((s) => s.isOnboardingOpen);
   const location = useLocation();
+  const reduce = useReducedMotion();
+  const [paletteMounted, setPaletteMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isCommandPaletteOpen) setPaletteMounted(true);
+  }, [isCommandPaletteOpen]);
 
   useEffect(() => {
-    // Dark is the default (no class); .light opts into the light token set.
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
       document.documentElement.classList.remove('light');
@@ -43,7 +45,6 @@ export const AppShell: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
-    // Global keyboard shortcut for Command Palette
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -56,16 +57,10 @@ export const AppShell: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground antialiased relative overflow-x-hidden">
-      {/* Ambient themed gradient field */}
-      <div className="ambient-field fixed inset-0 pointer-events-none z-0" />
-
-      {/* Top Banner and Navigation */}
       <div className="relative z-20">
         <Navbar />
       </div>
 
-      {/* Shell body: persistent sidebar + animated routed content.
-          The shell never remounts between tabs, so navigation is SPA-only. */}
       <div className="flex-1 relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 flex gap-6">
         <Sidebar />
 
@@ -73,10 +68,10 @@ export const AppShell: React.FC = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.22, ease: 'easeOut' }}
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
+              transition={reduce ? { duration: 0.12 } : { duration: 0.22, ease: 'easeOut' }}
             >
               <Outlet />
             </motion.div>
@@ -84,7 +79,6 @@ export const AppShell: React.FC = () => {
         </main>
       </div>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-border/40 py-6 text-center text-xs text-muted-foreground font-mono mb-14 lg:mb-0">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>UnifyHub &middot; Unified Personal Command Center</span>
@@ -94,11 +88,9 @@ export const AppShell: React.FC = () => {
         </div>
       </footer>
 
-      {/* Mobile bottom navigation */}
       <MobileNav />
 
-      {/* Global Modals — each chunk downloads only when first opened */}
-      {isCommandPaletteOpen && (
+      {(isCommandPaletteOpen || paletteMounted) && (
         <Suspense fallback={<ModalFallback />}>
           <CommandPalette />
         </Suspense>
@@ -114,7 +106,6 @@ export const AppShell: React.FC = () => {
         </Suspense>
       )}
 
-      {/* Toast notifications */}
       <Toaster />
     </div>
   );
