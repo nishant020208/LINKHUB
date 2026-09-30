@@ -177,9 +177,10 @@ export const CalendarPage: React.FC = () => {
         </div>
       )}
 
-      {/* 2. WEEK VIEW */}
+      {/* 2. WEEK VIEW — horizontal scroll on phones so columns stay readable */}
       {viewMode === 'week' && (
-        <div className="grid grid-cols-7 gap-2 overflow-x-auto min-w-[700px]">
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 min-w-[640px] sm:min-w-0">
           {weekDays.map((day, idx) => {
             const isToday = day.toDateString() === new Date().toDateString();
             const dayEvents = events.filter((e) => {
@@ -238,6 +239,7 @@ export const CalendarPage: React.FC = () => {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 
