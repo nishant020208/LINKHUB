@@ -68,8 +68,8 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ isOpen, onClose 
       <div className="bg-card border border-border/70 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-sky-400" />
-            <h3 className="font-heading font-bold text-lg text-white">Create Custom Workspace</h3>
+            <Layers className="w-5 h-5 text-primary" />
+            <h3 className="font-heading font-bold text-lg text-foreground">Create Custom Workspace</h3>
           </div>
           <button
             onClick={onClose}
@@ -109,7 +109,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({ isOpen, onClose 
                     onClick={() => toggleAccount(acc.id)}
                     className={`w-full p-2.5 rounded-xl border flex items-center justify-between text-left text-xs cursor-pointer transition-colors ${
                       isSelected
-                        ? 'border-sky-500/50 bg-sky-500/10 text-foreground'
+                        ? 'border-primary/50 bg-primary/10 text-foreground'
                         : 'border-border/40 bg-card/20 text-muted-foreground hover:bg-card/50'
                     }`}
                   >
