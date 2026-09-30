@@ -17,12 +17,12 @@ export const AuthModal: React.FC = () => {
           <X className="w-4 h-4" />
         </button>
 
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center mx-auto shadow-lg shadow-sky-500/20">
-          <span className="font-heading font-black text-white text-xl">U</span>
+        <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center mx-auto shadow-lg shadow-primary/20">
+          <span className="font-heading font-black text-xl">U</span>
         </div>
 
         <div>
-          <h3 className="font-heading font-bold text-xl text-white">Sign In to UnifyHub</h3>
+          <h3 className="font-heading font-bold text-xl text-foreground">Sign In to UnifyHub</h3>
           <p className="text-xs text-muted-foreground mt-1">
             Access your unified command center with Google authentication.
           </p>
@@ -55,7 +55,7 @@ export const AuthModal: React.FC = () => {
         </button>
 
         <div className="pt-2 text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 font-mono">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          <ShieldCheck className="w-3.5 h-3.5 text-status-connected" />
           <span>Read-only default &middot; Row Level Security</span>
         </div>
       </div>
