@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSyncData } from '@/hooks/useSyncData';
 import { queryClient } from '@/lib/queryClient';
 import { formatTimeAgo } from '@/lib/utils';
 import { Link, useLocation } from 'react-router-dom';
@@ -42,12 +43,11 @@ export const Navbar: React.FC = () => {
     theme,
     toggleTheme,
     setCommandPaletteOpen,
-    isSyncing,
-    triggerSync,
     lastSyncedAt,
     setNotificationModalOpen,
   } = useAppStore();
   const { user, signOut } = useAuthStore();
+  const { isSyncing, triggerSync } = useSyncData();
 
   const handleSignOut = async () => {
     queryClient.clear();
@@ -64,10 +64,10 @@ export const Navbar: React.FC = () => {
         {/* Left: Brand & Main Navigation */}
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shadow-lg shadow-sky-500/20 group-hover:scale-105 transition-transform">
-              <span className="font-heading font-black text-white text-base tracking-tighter">U</span>
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-[#4f8cff] flex items-center justify-center shadow-lg shadow-primary/25 group-hover:scale-105 transition-transform">
+              <span className="font-display font-black text-white text-base tracking-tighter">U</span>
             </div>
-            <span className="font-heading font-bold text-lg tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-transparent">
+            <span className="font-display font-bold text-lg tracking-tight">
               UnifyHub
             </span>
           </Link>
