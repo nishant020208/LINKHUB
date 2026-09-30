@@ -56,7 +56,12 @@ interface AppState {
   setCommandPaletteOpen: (open: boolean) => void;
   setQuickAddOpen: (open: boolean) => void;
   setNotificationModalOpen: (open: boolean) => void;
-  updateNotificationPreferences: (prefs: Partial<NotificationPreferences>) => void;
+  updateNotificationPreferences: (prefs: {
+    channels?: Partial<NotificationPreferences['channels']>;
+    targets?: Partial<NotificationPreferences['targets']>;
+    quietHours?: Partial<NotificationPreferences['quietHours']>;
+    frequency?: NotificationPreferences['frequency'];
+  }) => void;
   markItemDone: (itemId: string, done: boolean) => void;
   snoozeItem: (itemId: string, hours: number) => void;
   addItem: (item: Partial<Item>) => void;
