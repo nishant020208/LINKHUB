@@ -29,10 +29,10 @@ export const FilterBar: React.FC = () => {
   } = useAppStore();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl glass-panel-subtle border border-border/50 mb-6">
-      {/* Account filter chips */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <span className="text-[11px] font-mono text-muted-foreground mr-1 hidden sm:inline">
+    <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-xl glass-panel-subtle border border-border/50">
+      {/* Account filter chips — horizontally scrollable on mobile */}
+      <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap max-w-full overflow-x-auto no-scrollbar pb-0.5">
+        <span className="text-[11px] font-mono text-muted-foreground mr-1 hidden sm:inline shrink-0">
           Accounts:
         </span>
         {accounts.map((acc) => {
@@ -41,17 +41,17 @@ export const FilterBar: React.FC = () => {
             <button
               key={acc.id}
               onClick={() => toggleAccountFilter(acc.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer border ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer border shrink-0 whitespace-nowrap ${
                 isSelected
-                  ? 'border-sky-500/40 bg-sky-500/10 text-foreground font-semibold shadow-sm'
+                  ? 'border-primary/40 bg-primary/10 text-foreground font-semibold shadow-sm'
                   : 'border-border/40 bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/70'
               }`}
             >
               <span
-                className="w-2 h-2 rounded-full"
+                className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: acc.color }}
               />
-              <span>{acc.label}</span>
+              <span className="max-w-[120px] truncate">{acc.label}</span>
             </button>
           );
         })}
