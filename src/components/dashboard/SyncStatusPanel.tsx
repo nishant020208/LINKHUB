@@ -11,10 +11,14 @@ import {
   Activity,
   Link2,
   ExternalLink,
+  LogIn,
 } from 'lucide-react';
 import { useSyncData } from '@/hooks/useSyncData';
 import { useAppStore } from '@/store/useAppStore';
 import { formatTimeAgo } from '@/lib/utils';
+import { startProviderOAuth } from '@/lib/oauth';
+import { useToastStore } from '@/components/ui/toast';
+import type { AccountProvider } from '@/types';
 import { Badge, StatusDot, CanonicalStatus } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -240,7 +244,12 @@ export const SyncStatusPanel: React.FC = () => {
             </p>
           )}
           {streams.map((stream) => (
-            <StreamCard key={`${stream.provider}-${stream.type}`} stream={stream} status={getStreamStatus(stream)} />
+            <StreamCard
+              key={`${stream.provider}-${stream.type}`}
+              stream={stream}
+              status={getStreamStatus(stream)}
+              onRetry={() => stream.account && triggerSync(stream.account.id)}
+            />
           ))}
         </div>
       )}
@@ -250,20 +259,56 @@ export const SyncStatusPanel: React.FC = () => {
 
 // -----------------------------------------------------------------------------
 // Stream card: shows THIS stream's own error (matched by account + data_type),
-// clamped to three lines with a tap-to-expand, plus a one-click "Enable on
-// Google Cloud" action when the failure is an accessNotConfigured 403.
+// clamped to three lines with tap-to-expand, plus one-click recovery:
+//   "Enable on Google Cloud" for accessNotConfigured 403s,
+//   "Reconnect" for auth/scope failures (full OAuth re-consent),
+//   "Retry" for transient API failures.
 // -----------------------------------------------------------------------------
 const ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/[^\s,]+/;
+
+/** Auth-type failures: a fresh OAuth grant is the only fix. */
+function isAuthFailure(error: string | null): boolean {
+  if (!error) return false;
+  return (
+    /reconnect/i.test(error) ||
+    /token expired|revoked|invalid credentials|invalid_grant/i.test(error) ||
+    /scope/i.test(error)
+  );
+}
 
 const StreamCard: React.FC<{
   stream: (typeof GOOGLE_STREAMS)[number] & { account?: any };
   status: { state: string; label: string; error: string | null; fetched: number; upserted: number };
-}> = ({ stream, status }) => {
+  onRetry: () => void;
+}> = ({ stream, status, onRetry }) => {
   const [expanded, setExpanded] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const account = stream.account;
   const enableUrl = status.error?.match(ENABLE_URL_RE)?.[0] ?? null;
   const isEnableError = enableUrl !== null;
-  const isFailed = status.state === 'failed';
+  const isFailed = status.state === 'failed' || status.state === 'error';
+  const needsAuth =
+    status.state === 'needs_reconnect' || (isFailed && isAuthFailure(status.error));
+  const oauthCapable =
+    account && !['ical', 'imap', 'canvas', 'moodle'].includes(account.provider);
+
+  const handleReconnect = async () => {
+    if (!account || reconnecting) return;
+    setReconnecting(true);
+    try {
+      await startProviderOAuth(account.provider as AccountProvider);
+      // Browser navigates to the provider consent screen on success.
+    } catch (err) {
+      useToastStore
+        .getState()
+        .toast({
+          kind: 'error',
+          title: 'Reconnect failed',
+          message: err instanceof Error ? err.message : 'Could not start OAuth flow',
+        });
+      setReconnecting(false);
+    }
+  };
 
   return (
     <div
@@ -316,6 +361,27 @@ const StreamCard: React.FC<{
               <ExternalLink className="w-3 h-3" />
               Enable on Google Cloud
             </a>
+          )}
+
+          {/* Recovery actions: reconnect (auth) or retry (transient) */}
+          {!isEnableError && needsAuth && oauthCapable && (
+            <button
+              onClick={handleReconnect}
+              disabled={reconnecting}
+              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-status-warning/10 border border-status-warning/40 text-status-warning text-[11px] font-semibold hover:bg-status-warning/20 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <LogIn className={`w-3 h-3 ${reconnecting ? 'animate-pulse' : ''}`} />
+              {reconnecting ? 'Redirecting…' : 'Reconnect Account'}
+            </button>
+          )}
+          {!isEnableError && !needsAuth && account && (
+            <button
+              onClick={onRetry}
+              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-card/70 border border-border/60 text-foreground text-[11px] font-semibold hover:bg-card hover:border-border transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry Stream
+            </button>
           )}
         </div>
       )}
