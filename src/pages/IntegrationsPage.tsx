@@ -10,6 +10,7 @@ import {
   Lock,
   Layers,
   Check,
+  ExternalLink,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useSyncData } from '@/hooks/useSyncData';
@@ -275,7 +276,43 @@ export const IntegrationsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
+      {/* Google Cloud setup notice — the #1 cause of 403 accessNotConfigured */}
+      <div className="p-4 rounded-2xl border bg-status-warning/5 border-status-warning/25 space-y-2">
+        <div className="flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-status-warning mt-0.5" />
+          <div className="min-w-0 text-xs">
+            <p className="font-semibold text-foreground">First time connecting Google?</p>
+            <p className="text-muted-foreground mt-0.5 leading-relaxed">
+              Your Google Cloud project must enable each API before UnifyHub can read it. If a stream fails
+              with <span className="font-mono text-status-warning">403 accessNotConfigured</span>, the Sync
+              Status panel shows a direct <strong className="text-foreground">Enable on Google Cloud</strong>{' '}
+              button for that exact API — click it, press Enable, wait a minute, then Sync Now.
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {[
+                ['Calendar', 'https://console.developers.google.com/apis/api/calendar-json.googleapis.com?project=945009721694'],
+                ['Gmail', 'https://console.developers.google.com/apis/api/gmail.googleapis.com?project=945009721694'],
+                ['Drive', 'https://console.developers.google.com/apis/api/drive.googleapis.com?project=945009721694'],
+                ['Tasks', 'https://console.developers.google.com/apis/api/tasks.googleapis.com?project=945009721694'],
+                ['Classroom', 'https://console.developers.google.com/apis/api/classroom.googleapis.com?project=945009721694'],
+              ].map(([label, href]) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-card/60 border border-border/50 text-[11px] font-mono text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                >
+                  {label}
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* OAuth Callback Notice Banner */}
       {callbackBanner && (
         <div
