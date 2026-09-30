@@ -27,20 +27,20 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#090d16] text-slate-100 flex items-center justify-center p-4">
-          <div className="max-w-md w-full p-8 rounded-3xl bg-[#0f172a] border border-rose-500/30 text-center space-y-4 shadow-2xl">
-            <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto">
+        <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4">
+          <div className="max-w-md w-full p-8 rounded-3xl bg-card border border-status-error/30 text-center space-y-4 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-status-error/10 text-status-error border border-status-error/20 flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>
 
-            <h2 className="font-heading font-bold text-xl text-white">Something went wrong</h2>
+            <h2 className="font-heading font-bold text-xl text-foreground">Something went wrong</h2>
             <p className="text-xs text-muted-foreground leading-relaxed font-mono">
               {this.state.error?.message || 'An unexpected error occurred during application render.'}
             </p>
 
             <button
               onClick={() => window.location.reload()}
-              className="w-full py-2.5 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg"
+              className="w-full py-2.5 px-4 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Reload UnifyHub</span>
