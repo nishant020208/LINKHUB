@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { supabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
 import { Item, ConnectedAccount, Workspace, DailyBriefing, ItemType, NotificationPreferences } from '@/types';
 
 const DEFAULT_NOTIFICATION_PREFS: NotificationPreferences = {
@@ -185,6 +187,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     set((state) => {
       const nextTheme = state.theme === 'dark' ? 'light' : 'dark';
       if (typeof document !== 'undefined') {
+        // Dark is the default (no class); light theme adds .light on <html>.
+        document.documentElement.classList.toggle('light', nextTheme === 'light');
         document.documentElement.classList.toggle('dark', nextTheme === 'dark');
       }
       return { theme: nextTheme };
@@ -202,6 +206,16 @@ export const useAppStore = create<AppState>((set, get) => ({
           : item
       ),
     }));
+    // Persist to Supabase when configured; local-only otherwise.
+    if (env.isConfigured.supabase) {
+      supabase
+        .from('items')
+        .update({ is_done: done, updated_at: new Date().toISOString() })
+        .eq('id', itemId)
+        .then(({ error }) => {
+          if (error) console.warn('Failed to persist is_done:', error.message);
+        });
+    }
   },
 
   snoozeItem: (itemId, hours) => {
@@ -243,29 +257,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  triggerSync: async (accountId) => {
-    set({ isSyncing: true });
-    // Simulate real network fetch with smooth completion
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-
-    set((state) => {
-      const updatedAccounts: ConnectedAccount[] = state.accounts.map((acc) => {
-        if (!accountId || acc.id === accountId) {
-          return {
-            ...acc,
-            status: acc.status === 'error' ? 'error' : ('connected' as const),
-            last_synced_at: new Date().toISOString(),
-          };
-        }
-        return acc;
-      });
-
-      return {
-        isSyncing: false,
-        accounts: updatedAccounts,
-        lastSyncedAt: new Date().toISOString(),
-      };
-    });
+  triggerSync: async () => {
+    // Deprecated mock. Real syncs run through useSyncData's mutation which
+    // invokes the sync-provider Edge Function. Kept as a no-op so any stale
+    // callers compile; the UI has been migrated to the hook.
+    console.warn('[useAppStore] triggerSync is deprecated; use useSyncData().triggerSync');
   },
 
   setSyncState: (syncing) => set({ isSyncing: syncing }),
@@ -291,11 +287,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  disconnectAccount: (accountId) => {
+  disconnectAccount: async (accountId: string) => {
+    try {
+      await supabase.from('connected_accounts').delete().eq('id', accountId);
+    } catch (err) {
+      console.error('Failed to delete connected account from Supabase:', err);
+    }
     set((state) => ({
-      accounts: state.accounts.map((acc) =>
-        acc.id === accountId ? { ...acc, status: 'paused' as const } : acc
-      ),
+      accounts: state.accounts.filter((acc) => acc.id !== accountId),
+      items: state.items.filter((item) => item.account_id !== accountId),
     }));
   },
 
@@ -314,15 +314,31 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  wipeAccountData: (accountId) => {
+  wipeAccountData: async (accountId) => {
+    try {
+      await supabase.from('items').delete().eq('account_id', accountId);
+    } catch (err) {
+      console.error('Failed to wipe account data from Supabase:', err);
+    }
     set((state) => ({
       items: state.items.filter((item) => item.account_id !== accountId),
     }));
   },
 
-  wipeAllData: () => {
+  wipeAllData: async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData?.session?.user?.id;
+      if (userId) {
+        await supabase.from('items').delete().eq('user_id', userId);
+        await supabase.from('connected_accounts').delete().eq('user_id', userId);
+      }
+    } catch (err) {
+      console.error('Failed to wipe all data from Supabase:', err);
+    }
     set({
       items: [],
+      accounts: [],
       briefing: null,
     });
   },
