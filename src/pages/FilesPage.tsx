@@ -14,8 +14,8 @@ export const FilesPage: React.FC = () => {
   const { isLoading } = useSyncData();
   const { items, accounts } = useAppStore();
 
-  const files = items
-    .filter((i) => i.type === 'file')
+  const files = (items || [])
+    .filter((i) => i && i.type === 'file')
     .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
 
   if (isLoading) {
