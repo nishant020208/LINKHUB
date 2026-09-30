@@ -116,7 +116,7 @@ export const DashboardPage: React.FC = () => {
           <FilterBar />
 
           {/* Bento Grid or Connect-First-Account onboarding */}
-          {accounts.length === 0 ? (
+          {(accounts || []).length === 0 ? (
             <Card variant="bento" className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
               <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary border border-primary/25 flex items-center justify-center mx-auto shadow-sm">
                 <Blocks className="w-8 h-8" />
