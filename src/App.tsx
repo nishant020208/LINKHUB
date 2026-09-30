@@ -5,15 +5,18 @@ import { queryClient } from '@/lib/queryClient';
 import { env } from '@/lib/env';
 import { AppShell } from '@/components/layout/AppShell';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { DeadlinesPage } from '@/pages/DeadlinesPage';
 import { CalendarPage } from '@/pages/CalendarPage';
+import { FilesPage } from '@/pages/FilesPage';
 import { IntegrationsPage } from '@/pages/IntegrationsPage';
 import { PrivacyPage } from '@/pages/PrivacyPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { AuthCallbackPage } from '@/pages/AuthCallbackPage';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 
 export const App: React.FC = () => {
-  // Client-side fallback for Google Search Console verification meta tag
+  // Google Search Console verification meta tag injection fallback
   useEffect(() => {
     if (env.googleSiteVerification) {
       let meta = document.querySelector('meta[name="google-site-verification"]');
@@ -30,17 +33,21 @@ export const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Routes>
-          {/* Public Routes (Accessible without login for Google verification & legal transparency) */}
+          {/* Public Routes (Accessible without login for Google verification reviewers and visitors) */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
 
-          {/* Protected Application Routes */}
+          {/* Protected Application Routes — one shared shell, no reloads between tabs */}
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<AppShell />}>
               <Route index element={<DashboardPage />} />
+              <Route path="deadlines" element={<DeadlinesPage />} />
               <Route path="calendar" element={<CalendarPage />} />
+              <Route path="files" element={<FilesPage />} />
               <Route path="integrations" element={<IntegrationsPage />} />
+              <Route path="privacy" element={<PrivacyPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>
 
