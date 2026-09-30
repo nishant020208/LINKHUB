@@ -34,6 +34,7 @@ export interface ConnectedAccount {
   status: AccountStatus;
   last_synced_at: string | null;
   error_message?: string | null;
+  granted_scopes?: string[];
   sync_enabled_types?: ItemType[];
   created_at: string;
 }
