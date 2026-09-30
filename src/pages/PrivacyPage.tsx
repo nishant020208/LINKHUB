@@ -76,8 +76,8 @@ export const PrivacyPage: React.FC = () => {
       <header className="w-full border-b border-border/40 backdrop-blur-xl bg-background/80 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link to={user ? '/' : '/login'} className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 flex items-center justify-center shadow-md shadow-sky-500/20">
-              <span className="font-heading font-black text-white text-base tracking-tight">U</span>
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/20">
+              <span className="font-heading font-black text-base tracking-tight">U</span>
             </div>
             <div className="flex flex-col">
               <span className="font-heading font-bold text-lg tracking-tight text-foreground group-hover:text-primary transition-colors">
@@ -110,7 +110,7 @@ export const PrivacyPage: React.FC = () => {
               className="p-2 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-300" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4" />}
             </button>
           </div>
         </div>
@@ -121,7 +121,7 @@ export const PrivacyPage: React.FC = () => {
         {/* Title Banner */}
         <div className="p-8 rounded-3xl glass-panel border border-border/60 space-y-4 shadow-xl relative overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium bg-status-connected/10 text-status-connected border border-status-connected/20">
               <ShieldCheck className="w-3.5 h-3.5" />
               <span>Official Privacy Policy &amp; Data Transparency</span>
             </div>
@@ -147,7 +147,7 @@ export const PrivacyPage: React.FC = () => {
         </div>
 
         {wipeSuccess && (
-          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+          <div className="p-4 rounded-2xl bg-status-connected/10 border border-status-connected/30 text-status-connected text-xs flex items-center gap-2">
             <CheckCircle className="w-4 h-4 shrink-0" />
             <span>All your synchronized items and credentials have been permanently deleted.</span>
           </div>
@@ -170,7 +170,7 @@ export const PrivacyPage: React.FC = () => {
             {/* Google Workspace: Gmail */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-status-syncing/10 text-status-syncing border border-status-syncing/20 flex items-center justify-center font-bold text-xs">
                   <Mail className="w-4 h-4" />
                 </div>
                 <div>
@@ -180,14 +180,14 @@ export const PrivacyPage: React.FC = () => {
               </div>
               <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
                 <li><strong className="text-foreground">What we read:</strong> Metadata only — message subject line, sender name and email address, timestamp received, a short snippet preview (first 100 characters), and a web link to open the message directly in Gmail.</li>
-                <li><strong className="text-rose-400">What we NEVER read:</strong> UnifyHub <strong>never</strong> requests, inspects, processes, or stores full email message bodies, email threads, drafts, sent messages, or file attachments.</li>
+                <li><strong className="text-status-error">What we NEVER read:</strong> UnifyHub <strong>never</strong> requests, inspects, processes, or stores full email message bodies, email threads, drafts, sent messages, or file attachments.</li>
               </ul>
             </div>
 
             {/* Google Calendar */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-status-connected/10 text-status-connected border border-status-connected/20 flex items-center justify-center font-bold text-xs">
                   <Calendar className="w-4 h-4" />
                 </div>
                 <div>
@@ -221,7 +221,7 @@ export const PrivacyPage: React.FC = () => {
             {/* Google Drive */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-status-syncing/10 text-status-syncing border border-status-syncing/20 flex items-center justify-center font-bold text-xs">
                   <HardDrive className="w-4 h-4" />
                 </div>
                 <div>
@@ -231,14 +231,14 @@ export const PrivacyPage: React.FC = () => {
               </div>
               <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
                 <li><strong className="text-foreground">What we read:</strong> File metadata only — file name, file MIME type, last modified date, and web view URL for recently accessed or starred documents.</li>
-                <li><strong className="text-rose-400">What we NEVER read:</strong> We <strong>never</strong> download, read, alter, or delete the contents of your Google Drive files or folders.</li>
+                <li><strong className="text-status-error">What we NEVER read:</strong> We <strong>never</strong> download, read, alter, or delete the contents of your Google Drive files or folders.</li>
               </ul>
             </div>
 
             {/* Google Tasks */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs">
                   <ListTodo className="w-4 h-4" />
                 </div>
                 <div>
@@ -255,7 +255,7 @@ export const PrivacyPage: React.FC = () => {
             {/* Microsoft 365 */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-600/10 text-blue-400 border border-blue-600/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-status-syncing/10 text-status-syncing border border-status-syncing/20 flex items-center justify-center font-bold text-xs">
                   <Server className="w-4 h-4" />
                 </div>
                 <div>
@@ -287,7 +287,7 @@ export const PrivacyPage: React.FC = () => {
             {/* Notion, Todoist, Slack, iCal */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-accent text-accent-foreground border border-border/20 flex items-center justify-center font-bold text-xs">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>
@@ -306,17 +306,17 @@ export const PrivacyPage: React.FC = () => {
         </section>
 
         {/* Section 2: Strict Read-Only Policy */}
-        <section className="p-6 rounded-3xl glass-panel border border-emerald-500/30 bg-emerald-950/10 space-y-3">
-          <div className="flex items-center gap-2.5 text-emerald-400">
+        <section className="p-6 rounded-3xl glass-panel border border-status-connected/30 bg-status-connected/10 space-y-3">
+          <div className="flex items-center gap-2.5 text-status-connected">
             <Lock className="w-5 h-5" />
-            <h2 className="font-heading font-bold text-lg text-emerald-300">
+            <h2 className="font-heading font-bold text-lg text-status-connected">
               2. Strict Read-Only Policy — Zero Actions on Your Behalf
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-emerald-200/90 leading-relaxed">
+          <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
             All OAuth permission scopes requested by UnifyHub are <strong>strictly read-only</strong>. By architectural design, our backend does not have write, edit, delete, or send permissions for any connected service:
           </p>
-          <ul className="text-xs text-emerald-200/80 space-y-1 list-disc pl-5 leading-relaxed font-mono">
+          <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5 leading-relaxed font-mono">
             <li>UnifyHub NEVER sends emails on your behalf.</li>
             <li>UnifyHub NEVER creates, edits, or deletes calendar events.</li>
             <li>UnifyHub NEVER alters, downloads, or deletes Google Drive or OneDrive documents.</li>
@@ -366,7 +366,7 @@ export const PrivacyPage: React.FC = () => {
         {/* Section 4: Data Storage, Isolation & Encryption */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <Database className="w-5 h-5 text-indigo-400" />
+            <Database className="w-5 h-5 text-primary" />
             <h2 className="font-heading font-bold text-xl text-foreground">
               4. How Your Data is Stored &amp; Encrypted
             </h2>
@@ -374,7 +374,7 @@ export const PrivacyPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
-              <div className="flex items-center gap-2 text-indigo-400 text-xs font-mono font-semibold">
+              <div className="flex items-center gap-2 text-primary text-xs font-mono font-semibold">
                 <Eye className="w-4 h-4" />
                 <span>ROW LEVEL SECURITY (RLS)</span>
               </div>
@@ -385,7 +385,7 @@ export const PrivacyPage: React.FC = () => {
             </div>
 
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
-              <div className="flex items-center gap-2 text-sky-400 text-xs font-mono font-semibold">
+              <div className="flex items-center gap-2 text-status-syncing text-xs font-mono font-semibold">
                 <Lock className="w-4 h-4" />
                 <span>ENCRYPTION AT REST</span>
               </div>
@@ -400,7 +400,7 @@ export const PrivacyPage: React.FC = () => {
         {/* Section 5: How Data is Used & No Data Sale */}
         <section className="p-6 rounded-3xl glass-panel border border-border/60 space-y-3">
           <div className="flex items-center gap-2.5">
-            <UserCheck className="w-5 h-5 text-emerald-400" />
+            <UserCheck className="w-5 h-5 text-status-connected" />
             <h2 className="font-heading font-bold text-lg text-foreground">
               5. How Your Data is Used — Zero Third-Party Sharing
             </h2>
@@ -418,7 +418,7 @@ export const PrivacyPage: React.FC = () => {
         {/* Section 6: Data Retention & Instant Account Disconnect Purge */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <Trash2 className="w-5 h-5 text-rose-400" />
+            <Trash2 className="w-5 h-5 text-status-error" />
             <h2 className="font-heading font-bold text-xl text-foreground">
               6. Data Retention &amp; Automatic Disconnect Purge
             </h2>
@@ -430,7 +430,7 @@ export const PrivacyPage: React.FC = () => {
             </p>
             <ul className="space-y-2 list-disc pl-5">
               <li>
-                <strong className="text-foreground">Instant Disconnect Deletion:</strong> Clicking the <strong className="text-rose-400">Disconnect</strong> button for any account on the Integrations page immediately and permanently deletes its encrypted credentials from the database. A database cascading delete instantly removes all synchronized email headers, calendar events, tasks, and coursework associated with that account.
+                <strong className="text-foreground">Instant Disconnect Deletion:</strong> Clicking the <strong className="text-status-error">Disconnect</strong> button for any account on the Integrations page immediately and permanently deletes its encrypted credentials from the database. A database cascading delete instantly removes all synchronized email headers, calendar events, tasks, and coursework associated with that account.
               </li>
               <li>
                 <strong className="text-foreground">Total Data Wipe:</strong> You can purge all data across all providers at any time using the &quot;Wipe All Data&quot; option in the Danger Zone below.
@@ -442,7 +442,7 @@ export const PrivacyPage: React.FC = () => {
         {/* Section 7: How to Revoke Access */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <ExternalLink className="w-5 h-5 text-sky-400" />
+            <ExternalLink className="w-5 h-5 text-status-syncing" />
             <h2 className="font-heading font-bold text-xl text-foreground">
               7. How to Revoke Access at Any Time
             </h2>
@@ -497,7 +497,7 @@ export const PrivacyPage: React.FC = () => {
         {/* Section 8: User Data Controls & Danger Zone */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <ShieldCheck className="w-5 h-5 text-status-connected" />
             <h2 className="font-heading font-bold text-xl text-foreground">
               8. User Data Tools &amp; Complete Purge
             </h2>
@@ -507,7 +507,7 @@ export const PrivacyPage: React.FC = () => {
             <div className="p-6 rounded-2xl glass-panel border border-border/60 space-y-3 flex flex-col justify-between">
               <div>
                 <h3 className="font-heading font-semibold text-base text-foreground flex items-center gap-2">
-                  <Download className="w-4 h-4 text-sky-400" />
+                  <Download className="w-4 h-4 text-status-syncing" />
                   <span>Export Your Data</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
@@ -519,25 +519,25 @@ export const PrivacyPage: React.FC = () => {
                 onClick={handleExportData}
                 className="w-fit px-4 py-2 rounded-xl bg-card border border-border/70 hover:bg-muted text-xs font-mono text-foreground flex items-center gap-2 transition-colors cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-sky-400" />
+                <Download className="w-3.5 h-3.5 text-status-syncing" />
                 <span>Download JSON Backup</span>
               </button>
             </div>
 
-            <div className="p-6 rounded-2xl border border-rose-500/30 bg-rose-950/10 space-y-3 flex flex-col justify-between">
+            <div className="p-6 rounded-2xl border border-status-error/30 bg-status-error/10 space-y-3 flex flex-col justify-between">
               <div>
-                <h3 className="font-heading font-semibold text-base text-rose-300 flex items-center gap-2">
-                  <Trash2 className="w-4 h-4 text-rose-400" />
+                <h3 className="font-heading font-semibold text-base text-status-error flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-status-error" />
                   <span>Total Data Wipe</span>
                 </h3>
-                <p className="text-xs text-rose-300/80 mt-1 leading-relaxed">
+                <p className="text-xs text-status-error/80 mt-1 leading-relaxed">
                   Permanently delete all synchronized items, briefings, and linked accounts from both our database and your local browser session.
                 </p>
               </div>
 
               <button
                 onClick={() => setConfirmWipeOpen(true)}
-                className="w-fit px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-mono text-xs font-semibold cursor-pointer transition-colors"
+                className="w-fit px-4 py-2 rounded-xl bg-status-error/20 hover:bg-status-error/30 border border-status-error/40 text-status-error font-mono text-xs font-semibold cursor-pointer transition-colors"
               >
                 Wipe All Data
               </button>
@@ -566,7 +566,7 @@ export const PrivacyPage: React.FC = () => {
       <footer className="w-full border-t border-border/40 py-8 text-center text-xs text-muted-foreground font-mono mt-12">
         <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <ShieldCheck className="w-4 h-4 text-status-connected" />
             <span>UnifyHub &middot; Read-Only Architecture &middot; AES-256 Encryption &middot; Strict RLS</span>
           </div>
           <div>&copy; {new Date().getFullYear()} UnifyHub &middot; All Rights Reserved</div>
@@ -577,9 +577,9 @@ export const PrivacyPage: React.FC = () => {
       {confirmWipeOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-card border border-status-error/40 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl text-foreground space-y-4 max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center gap-3 text-rose-400">
+            <div className="flex items-center gap-3 text-status-error">
               <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h4 className="font-heading font-bold text-lg text-white">Confirm Total Data Wipe</h4>
+              <h4 className="font-heading font-bold text-lg text-foreground">Confirm Total Data Wipe</h4>
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -595,7 +595,7 @@ export const PrivacyPage: React.FC = () => {
               </button>
               <button
                 onClick={handleWipe}
-                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold cursor-pointer shadow-lg"
+                className="px-4 py-2 rounded-xl bg-destructive hover:bg-destructive/90 text-destructive-foreground text-xs font-semibold cursor-pointer shadow-lg"
               >
                 Yes, Permanently Delete All
               </button>
