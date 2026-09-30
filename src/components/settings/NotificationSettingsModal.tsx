@@ -91,7 +91,7 @@ export const NotificationSettingsModal: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between pb-4 mb-6 border-b border-border/40">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
                 <Bell className="w-5 h-5" />
               </div>
               <div>
@@ -115,7 +115,7 @@ export const NotificationSettingsModal: React.FC = () => {
             {/* Section 1: Channels */}
             <div>
               <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                <Send className="w-3.5 h-3.5 text-sky-400" />
+                <Send className="w-3.5 h-3.5 text-primary" />
                 Delivery Channels
               </h4>
 
@@ -130,7 +130,7 @@ export const NotificationSettingsModal: React.FC = () => {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-foreground font-medium text-sm">
-                      <Mail className="w-4 h-4 text-sky-400" />
+                      <Mail className="w-4 h-4 text-primary" />
                       <span>Email Digest</span>
                     </div>
                     <input
@@ -188,7 +188,7 @@ export const NotificationSettingsModal: React.FC = () => {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 text-foreground font-medium text-sm">
-                      <Send className="w-4 h-4 text-cyan-400" />
+                      <Send className="w-4 h-4 text-primary" />
                       <span>Telegram Bot</span>
                     </div>
                     <input
@@ -233,7 +233,7 @@ export const NotificationSettingsModal: React.FC = () => {
             <div className="p-4 rounded-xl bg-card/40 border border-border/40">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Moon className="w-4 h-4 text-indigo-400" />
+                  <Moon className="w-4 h-4 text-primary" />
                   <span className="font-heading font-medium text-sm text-foreground">
                     Quiet Hours Schedule
                   </span>
@@ -294,7 +294,7 @@ export const NotificationSettingsModal: React.FC = () => {
                       }
                       className="rounded border-border accent-primary cursor-pointer w-3.5 h-3.5"
                     />
-                    <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                    <ShieldAlert className="w-3.5 h-3.5 text-status-error" />
                     <span>Always allow critical alerts (deadlines due within 2 hours)</span>
                   </label>
                 </div>
@@ -304,7 +304,7 @@ export const NotificationSettingsModal: React.FC = () => {
             {/* Section 3: Frequency */}
             <div>
               <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                <MessageSquare className="w-3.5 h-3.5 text-sky-400" />
+                <MessageSquare className="w-3.5 h-3.5 text-primary" />
                 Notification Cadence
               </h4>
               <div className="grid grid-cols-3 gap-2">
@@ -340,13 +340,13 @@ export const NotificationSettingsModal: React.FC = () => {
           <div className="mt-6 pt-4 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
               {testSent && (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                <div className="flex items-center gap-1.5 text-xs text-status-connected">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>Test notification sent to configured channels!</span>
                 </div>
               )}
               {testError && (
-                <div className="flex items-center gap-1.5 text-xs text-rose-400">
+                <div className="flex items-center gap-1.5 text-xs text-status-error">
                   <AlertCircle className="w-3.5 h-3.5" />
                   <span>{testError}</span>
                 </div>
@@ -359,7 +359,7 @@ export const NotificationSettingsModal: React.FC = () => {
                 disabled={isSending}
                 className="px-3.5 py-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-card text-xs font-mono text-muted-foreground hover:text-foreground flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-colors"
               >
-                <Send className="w-3 h-3 text-sky-400" />
+                <Send className="w-3 h-3 text-primary" />
                 <span>{isSending ? 'Sending...' : 'Test Channels'}</span>
               </button>
 
