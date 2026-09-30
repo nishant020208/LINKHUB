@@ -9,6 +9,7 @@ interface EnvConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
   appUrl: string;
+  googleSiteVerification: string;
   demoFallbackEnabled: boolean;
   isConfigured: {
     supabase: boolean;
@@ -24,6 +25,7 @@ interface EnvConfig {
 const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const rawAppUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+const rawGoogleSiteVerification = import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || '';
 
 // Validates whether Supabase credentials look real vs placeholders
 const hasValidSupabase = Boolean(
@@ -37,6 +39,7 @@ export const env: EnvConfig = {
   supabaseUrl: rawSupabaseUrl,
   supabaseAnonKey: rawAnonKey,
   appUrl: rawAppUrl,
+  googleSiteVerification: rawGoogleSiteVerification,
   demoFallbackEnabled: false,
   isConfigured: {
     supabase: hasValidSupabase,
