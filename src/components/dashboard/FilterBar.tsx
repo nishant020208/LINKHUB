@@ -40,8 +40,9 @@ export const FilterBar: React.FC = () => {
           return (
             <button
               key={acc.id}
+              type="button"
               onClick={() => toggleAccountFilter(acc.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer border shrink-0 whitespace-nowrap ${
+              className={`relative flex items-center gap-1.5 px-2.5 py-1 min-h-[36px] rounded-lg text-xs font-mono cursor-pointer border shrink-0 whitespace-nowrap ${
                 isSelected
                   ? 'border-primary/40 bg-primary/10 text-foreground font-semibold shadow-sm'
                   : 'border-border/40 bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/70'
@@ -66,7 +67,7 @@ export const FilterBar: React.FC = () => {
               <button
                 key={type}
                 onClick={() => toggleTypeFilter(type)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 min-h-[32px] rounded-md text-xs cursor-pointer ${
                   isSelected
                     ? 'bg-card text-foreground font-semibold shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
