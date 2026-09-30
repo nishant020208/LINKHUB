@@ -165,8 +165,13 @@
   --shadow-glow: var(--shadow-glow);
 
   --font-display: 'Sora', 'Inter', sans-serif;
+  --font-heading: 'Sora', 'Inter', sans-serif;
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+}
+
+.font-tabular {
+  font-feature-settings: 'tnum' on, 'zero' on;
 }
 
 /* ==========================================================================
