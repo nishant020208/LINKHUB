@@ -56,9 +56,17 @@ export function registerServiceWorker() {
           console.warn('[SW] Registration failed:', err);
         });
 
-      // Reload on controller change so new SW takes over cleanly
+      // Reload on controller change ONLY if upgrading from a previous worker.
+      // On first visit, controller starts null and claiming it should NOT interrupt the initial load.
+      let hadController = Boolean(navigator.serviceWorker.controller);
       let refreshing = false;
+
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) {
+          // Initial claim on first visit — already has freshest bundle from network
+          hadController = true;
+          return;
+        }
         if (!refreshing) {
           refreshing = true;
           console.log('[SW] Controller changed, reloading page...');
