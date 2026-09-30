@@ -5,12 +5,19 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { registerServiceWorker } from './registerServiceWorker';
 import './index.css';
 
-registerServiceWorker();
+try {
+  registerServiceWorker();
+} catch (err) {
+  console.warn('[UnifyHub] Service worker initialization non-fatal error:', err);
+}
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
-);
+const container = document.getElementById('root');
+if (container) {
+  ReactDOM.createRoot(container).render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </React.StrictMode>
+  );
+}
