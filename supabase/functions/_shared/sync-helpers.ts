@@ -104,11 +104,17 @@ export async function upsertItems(ctx: StreamContext, items: NormalizedItem[]): 
   return upserted;
 }
 
-/** Extract the enable-API console URL from a Google error body. */
-const GOOGLE_ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/apis\/api\/[a-z0-9.\-]+\?[^\s"'<>\\]+/i;
+/**
+ * Extract the enable-API console URL from a Google error body.
+ * Real activation URLs look like:
+ *   https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=123
+ * i.e. an optional path segment (/overview) sits between the service name and
+ * the query string — the pattern must allow it or the match silently fails.
+ */
+const GOOGLE_ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/apis\/api\/([a-z0-9.\-]+)(?:\/[^\s"'<>\\]*)?\?[^\s"'<>\\]+/i;
 
 function apiNameFromEnableUrl(url: string): string {
-  const m = url.match(/apis\/api\/([a-z0-9.\-]+)\?/i);
+  const m = url.match(/apis\/api\/([a-z0-9.\-]+)/i);
   const map: Record<string, string> = {
     'calendar-json': 'Google Calendar',
     'gmail': 'Gmail',
@@ -266,12 +272,22 @@ export async function finalizeAccount(
   const anyFailed = results.some((r) => r.status === 'failed');
   const allFailed = results.length > 0 && results.every((r) => r.status === 'failed');
   // Compact per-stream summary: the UI splits it back out per card. Keep each
-  // segment short — full details already live in sync_logs.
+  // segment short — full details already live in sync_logs. Google enable-API
+  // URLs are preserved WHOLE (never sliced) so the UI can render a working
+  // "Enable on Google Cloud" recovery link from the summary alone.
   const errorSummary = results
     .filter((r) => r.errorMessage)
-    .map((r) => `${r.dataType}: ${r.errorMessage.slice(0, 140)}`)
+    .map((r) => {
+      const msg = r.errorMessage!;
+      const enableMatch = msg.match(GOOGLE_ENABLE_URL_RE);
+      if (enableMatch) {
+        const apiName = apiNameFromEnableUrl(enableMatch[0]);
+        return `${r.dataType}: ${apiName} API is disabled for this Google Cloud project — enable: ${enableMatch[0]}`;
+      }
+      return `${r.dataType}: ${msg.slice(0, 140)}`;
+    })
     .join(' | ')
-    .slice(0, 1600);
+    .slice(0, 2400);
 
   await admin
     .from('connected_accounts')
