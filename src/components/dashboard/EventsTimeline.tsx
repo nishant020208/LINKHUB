@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardBody } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MetricCounter } from '@/components/ui/metric-counter';
+import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
 export const EventsTimeline: React.FC = () => {
   const { items, accounts, briefing } = useAppStore();
@@ -55,7 +56,8 @@ export const EventsTimeline: React.FC = () => {
 
         {/* Timeline items */}
         {events.length > 0 ? (
-          <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-border/60">
+          <ScrollablePanel maxHeight="max-h-[380px]" ariaLabel="Schedule timeline">
+            <div className="relative pl-6 space-y-4 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-border/60">
             {events.map((event) => {
               const account = accounts.find((a) => a.id === event.account_id);
               const startTime = new Date(event.start_at!).toLocaleTimeString([], {
@@ -119,7 +121,8 @@ export const EventsTimeline: React.FC = () => {
                 </div>
               );
             })}
-          </div>
+            </div>
+          </ScrollablePanel>
         ) : (
           <div className="py-8 text-center text-xs font-mono space-y-2 border border-dashed border-border/60 rounded-2xl p-6">
             <Calendar className="w-6 h-6 text-muted-foreground mx-auto" />
