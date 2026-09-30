@@ -163,7 +163,7 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -178,7 +178,7 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          className="relative w-full max-w-lg rounded-2xl glass-panel border border-border/80 p-6 shadow-2xl z-10"
+          className="relative w-full max-w-lg rounded-2xl glass-panel border border-border/80 p-4 sm:p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-4 mb-5 border-b border-border/40">
