@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -161,9 +162,11 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -443,6 +446,7 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
           </form>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
