@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { ChevronRight, Key, RefreshCw, X } from 'lucide-react';
 import { env } from '@/lib/env';
 import { useAppStore } from '@/store/useAppStore';
+import { useSyncData } from '@/hooks/useSyncData';
 
 export const DemoBanner: React.FC = () => {
   const [isDismissed, setIsDismissed] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
-  const { isSyncing, triggerSync } = useAppStore();
+  const { isSyncing } = useAppStore();
+  const { triggerSync } = useSyncData();
 
-  if (isDismissed) return null;
+  if (isDismissed || env.demoFallbackEnabled === false) return null;
 
   return (
     <>
