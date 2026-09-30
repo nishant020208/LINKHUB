@@ -37,7 +37,7 @@ export const OnboardingWizard: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#0f1626] border border-border/80 rounded-3xl max-w-xl w-full p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden">
+      <div className="bg-card border border-border/80 rounded-3xl max-w-xl w-full p-4 sm:p-6 md:p-8 shadow-2xl space-y-6 relative overflow-hidden max-h-[92vh] overflow-y-auto">
         {/* Subtle accent backdrop */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -54,7 +54,7 @@ export const OnboardingWizard: React.FC = () => {
 
           <button
             onClick={() => setOnboardingOpen(false)}
-            className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-xl hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
