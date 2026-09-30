@@ -27,7 +27,8 @@ export const DeadlinesPage: React.FC = () => {
     setParams(next, { replace: true });
   };
 
-  const filtered = items.filter((item: Item) => {
+  const filtered = (items || []).filter((item: Item) => {
+    if (!item) return false;
     if (item.type !== 'deadline' && item.type !== 'task') return false;
     if (accountFilter && item.account_id !== accountFilter) return false;
     if (typeFilter && item.type !== typeFilter) return false;
@@ -35,9 +36,13 @@ export const DeadlinesPage: React.FC = () => {
   });
 
   const open = filtered.filter((i) => !i.is_done);
-  const overdue = open.filter((i) => i.due_at && new Date(i.due_at) < new Date());
+  const overdue = open.filter((i) => {
+    if (!i.due_at) return false;
+    const t = new Date(i.due_at).getTime();
+    return !isNaN(t) && t < Date.now();
+  });
   const next = open
-    .filter((i) => i.due_at)
+    .filter((i) => i.due_at && !isNaN(new Date(i.due_at).getTime()))
     .sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime())[0];
 
   if (isLoading) {
