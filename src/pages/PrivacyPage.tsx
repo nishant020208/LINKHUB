@@ -271,7 +271,7 @@ export const PrivacyPage: React.FC = () => {
             {/* GitHub */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-slate-500/10 text-slate-300 border border-slate-500/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs">
                   <Github className="w-4 h-4" />
                 </div>
                 <div>
@@ -576,20 +576,20 @@ export const PrivacyPage: React.FC = () => {
       {/* Wipe Confirmation Dialog */}
       {confirmWipeOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0f1626] border border-rose-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl text-slate-200 space-y-4">
+          <div className="bg-card border border-status-error/40 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl text-foreground space-y-4 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center gap-3 text-rose-400">
               <AlertTriangle className="w-6 h-6 shrink-0" />
               <h4 className="font-heading font-bold text-lg text-white">Confirm Total Data Wipe</h4>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               This will permanently delete all {items.length} synchronized items, {accounts.length} connected account credentials, and stored briefings from both our database and your browser. This action cannot be reversed.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-3">
               <button
                 onClick={() => setConfirmWipeOpen(false)}
-                className="px-4 py-2 rounded-xl border border-slate-700 text-xs text-slate-300 hover:bg-slate-800 cursor-pointer"
+                className="px-4 py-2 rounded-xl border border-border text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground cursor-pointer"
               >
                 Cancel
               </button>
