@@ -53,17 +53,17 @@ export function formatDueCountdown(dueDateStr: string | null | undefined): {
 export function getProviderBadgeStyle(provider: string): { bg: string; text: string; border: string } {
   switch (provider) {
     case 'google':
-      return { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'border-emerald-500/30' };
+      return { bg: 'bg-status-connected/10', text: 'text-status-connected', border: 'border-status-connected/30' };
     case 'microsoft':
-      return { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'border-blue-500/30' };
+      return { bg: 'bg-status-syncing/10', text: 'text-status-syncing', border: 'border-status-syncing/30' };
     case 'github':
-      return { bg: 'bg-neutral-500/10', text: 'text-neutral-300', border: 'border-neutral-500/30' };
+      return { bg: 'bg-muted', text: 'text-foreground', border: 'border-border/30' };
     case 'canvas':
     case 'moodle':
-      return { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'border-amber-500/30' };
+      return { bg: 'bg-status-warning/10', text: 'text-status-warning', border: 'border-status-warning/30' };
     case 'notion':
-      return { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'border-indigo-500/30' };
+      return { bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/30' };
     default:
-      return { bg: 'bg-cyan-500/10', text: 'text-cyan-400', border: 'border-cyan-500/30' };
+      return { bg: 'bg-accent', text: 'text-accent-foreground', border: 'border-border/30' };
   }
 }
