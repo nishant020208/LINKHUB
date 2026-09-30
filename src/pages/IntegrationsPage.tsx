@@ -12,6 +12,8 @@ import {
   Check,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
+import { useSyncData } from '@/hooks/useSyncData';
+import { queryKeys } from '@/lib/queryKeys';
 import { formatTimeAgo } from '@/lib/utils';
 import { ItemType } from '@/types';
 import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
@@ -212,12 +214,12 @@ const CATEGORIES = ['All', 'Academic', 'Productivity', 'Developer', 'Collaborati
 export const IntegrationsPage: React.FC = () => {
   const {
     accounts,
-    triggerSync,
     isSyncing,
     disconnectAccount,
     reconnectAccount,
     toggleAccountSyncType,
   } = useAppStore();
+  const { triggerSync } = useSyncData();
 
   const [activeTab, setActiveTab] = useState('All');
   const [selectedProvider, setSelectedProvider] = useState<ProviderConnectConfig | null>(null);
@@ -232,13 +234,17 @@ export const IntegrationsPage: React.FC = () => {
     const message = params.get('message');
 
     if (status === 'connected') {
+      const synced = params.get('synced');
+      const syncError = params.get('sync_error');
       setCallbackBanner({
         type: 'success',
-        message: `Successfully connected ${provider || 'account'}! Initial synchronization has been triggered.`,
+        message: syncError
+          ? `Connected ${provider || 'account'}, but the first sync reported: ${syncError}`
+          : `Connected ${provider || 'account'}! ${synced && synced !== '0' ? `${synced} items synced.` : 'Initial sync triggered.'}`,
       });
-      queryClient.invalidateQueries({ queryKey: ['connected-accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['sync-logs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items });
+      queryClient.invalidateQueries({ queryKey: queryKeys.syncLogs });
       navigate('/integrations', { replace: true });
     } else if (status === 'error') {
       setCallbackBanner({
