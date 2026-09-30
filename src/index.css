@@ -1,50 +1,102 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   UNIFYHUB DESIGN TOKENS — single source of truth
+   Identity: electric indigo -> violet accent on two deliberately-designed
+   themes. Every color, radius, and shadow in the app resolves here.
+   ========================================================================== */
+
 @layer base {
+  /* ------------------------------------------------------------ DARK (default) */
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
-    --card: #ffffff;
-    --card-foreground: #0f172a;
-    --popover: #ffffff;
-    --popover-foreground: #0f172a;
-    --primary: #0284c7;
+    color-scheme: dark;
+
+    /* Surfaces: deep space graphite, layered cool */
+    --background: #0b0e16;
+    --foreground: #eef0f8;
+    --card: #121627;
+    --card-foreground: #eef0f8;
+    --popover: #151a2e;
+    --popover-foreground: #eef0f8;
+    --muted: #1a2036;
+    --muted-foreground: #9aa3bd;
+    --secondary: #1c2340;
+    --secondary-foreground: #eef0f8;
+    --accent: #232b4d;
+    --accent-foreground: #c7cbff;
+
+    /* Accent identity: electric indigo -> violet */
+    --primary: #7c6cf6;
+    --primary-hover: #8f80f8;
     --primary-foreground: #ffffff;
-    --secondary: #f1f5f9;
-    --secondary-foreground: #0f172a;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --accent: #e0f2fe;
-    --accent-foreground: #0369a1;
-    --destructive: #ef4444;
-    --destructive-foreground: #ffffff;
-    --border: #e2e8f0;
-    --input: #e2e8f0;
-    --ring: #0284c7;
-    --radius: 0.85rem;
+
+    /* Status roles (identical meaning on every surface) */
+    --status-connected: #34d399;
+    --status-syncing: #38bdf8;
+    --status-warning: #fbbf24;
+    --status-error: #fb7185;
+
+    --destructive: #fb7185;
+    --destructive-foreground: #2a0a12;
+    --border: #252c47;
+    --input: #2a3352;
+    --ring: #7c6cf6;
+
+    /* Radii scale */
+    --radius-sm: 0.5rem;
+    --radius-md: 0.85rem;
+    --radius-lg: 1.15rem;
+    --radius-xl: 1.5rem;
+    --radius: var(--radius-md);
+
+    /* Shadows: indigo-tinted glows */
+    --shadow-card: 0 8px 30px -12px rgba(10, 8, 40, 0.55);
+    --shadow-card-hover: 0 14px 40px -12px rgba(96, 76, 255, 0.28);
+    --shadow-glow: 0 0 24px -6px rgba(124, 108, 246, 0.45);
+
+    /* Ambient gradient orbs */
+    --ambient-1: rgba(124, 108, 246, 0.13);
+    --ambient-2: rgba(56, 189, 248, 0.09);
   }
 
-  .dark {
-    --background: #090d16;
-    --foreground: #f1f5f9;
-    --card: #0f1626;
-    --card-foreground: #f8fafc;
-    --popover: #0f1626;
-    --popover-foreground: #f8fafc;
-    --primary: #38bdf8;
-    --primary-foreground: #082f49;
-    --secondary: #17223b;
-    --secondary-foreground: #f8fafc;
-    --muted: #131d33;
-    --muted-foreground: #94a3b8;
-    --accent: #1e293b;
-    --accent-foreground: #38bdf8;
-    --destructive: #f87171;
-    --destructive-foreground: #450a0a;
-    --border: #1e293b;
-    --input: #1e293b;
-    --ring: #38bdf8;
-    --radius: 0.85rem;
+  /* ----------------------------------------------------------- LIGHT (designed, not inverted) */
+  .light {
+    color-scheme: light;
+
+    --background: #f7f6f2;           /* warm paper */
+    --foreground: #191b26;           /* soft ink */
+    --card: #ffffff;
+    --card-foreground: #191b26;
+    --popover: #ffffff;
+    --popover-foreground: #191b26;
+    --muted: #efede7;
+    --muted-foreground: #626a80;
+    --secondary: #eceaf9;
+    --secondary-foreground: #2a2450;
+    --accent: #e5e1fb;
+    --accent-foreground: #4b3ecf;
+
+    --primary: #6049ea;
+    --primary-hover: #5340d6;
+    --primary-foreground: #ffffff;
+
+    --status-connected: #0e9f6e;
+    --status-syncing: #0284c7;
+    --status-warning: #b45309;
+    --status-error: #e11d48;
+
+    --destructive: #e11d48;
+    --destructive-foreground: #ffffff;
+    --border: #e3e0d8;
+    --input: #d8d5cb;
+    --ring: #6049ea;
+
+    --shadow-card: 0 6px 24px -14px rgba(38, 30, 90, 0.18);
+    --shadow-card-hover: 0 12px 32px -14px rgba(96, 73, 234, 0.30);
+    --shadow-glow: 0 0 22px -6px rgba(96, 73, 234, 0.35);
+
+    --ambient-1: rgba(96, 73, 234, 0.10);
+    --ambient-2: rgba(2, 132, 199, 0.07);
   }
 
   * {
@@ -54,11 +106,11 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  h1, h2, h3, h4, .font-heading {
-    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  h1, h2, h3, h4, .font-display {
+    font-family: 'Sora', 'Inter', sans-serif;
     letter-spacing: -0.02em;
   }
 
@@ -66,29 +118,83 @@
     font-family: 'JetBrains Mono', monospace;
     font-feature-settings: 'tnum' on, 'zero' on;
   }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
+    color: var(--foreground);
+  }
 }
 
-/* Glassmorphism and Command Center Utilities */
+/* ==========================================================================
+   TAILWIND V4 @theme — exposes tokens as utilities
+   (bg-card, text-muted-foreground, bg-primary, bg-status-*, rounded-*, etc.)
+   ========================================================================== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-status-connected: var(--status-connected);
+  --color-status-syncing: var(--status-syncing);
+  --color-status-warning: var(--status-warning);
+  --color-status-error: var(--status-error);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+  --shadow-glow: var(--shadow-glow);
+
+  --font-display: 'Sora', 'Inter', sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ==========================================================================
+   MATERIAL UTILITIES (frosted panels used by cards & modals)
+   ========================================================================== */
 .glass-panel {
-  background: rgba(15, 22, 38, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 
 .glass-panel-subtle {
-  background: rgba(15, 22, 38, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--card) 45%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--foreground) 6%, transparent);
 }
 
 .glow-accent {
-  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.15);
+  box-shadow: var(--shadow-glow);
 }
 
-.glow-urgent {
-  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.2);
+/* Ambient background orbs, theme-aware */
+.ambient-field {
+  background:
+    radial-gradient(600px circle at 20% 10%, var(--ambient-1), transparent 60%),
+    radial-gradient(500px circle at 85% 45%, var(--ambient-2), transparent 60%);
 }
 
 /* Custom scrollbars */
@@ -96,16 +202,30 @@
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: color-mix(in srgb, var(--muted-foreground) 25%, transparent);
   border-radius: 9999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
+  background: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Respect reduced motion globally as a baseline */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
