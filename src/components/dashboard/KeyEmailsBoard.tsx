@@ -43,7 +43,7 @@ export const KeyEmailsBoard: React.FC = () => {
       : 'Connect Gmail or Outlook to triage critical incoming emails';
 
   return (
-    <div className="rounded-2xl glass-panel border border-border/60 p-5 shadow-xl space-y-4">
+    <div className="rounded-2xl glass-panel border border-border/60 p-4 sm:p-5 shadow-xl space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div>
           <h3 className="font-heading font-bold text-lg text-foreground">Actionable Emails</h3>
