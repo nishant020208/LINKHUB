@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Sliders, Plus, Users, FileText, Sparkles, ArrowRight, GripVertical } from 'lucide-react';
+import { Sliders, Plus, Users, FileText, ArrowRight, GripVertical, Blocks } from 'lucide-react';
 import { RightNowHero } from '@/components/dashboard/RightNowHero';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { DeadlinesBoard } from '@/components/dashboard/DeadlinesBoard';
@@ -15,6 +15,7 @@ import { SyncStatusPanel } from '@/components/dashboard/SyncStatusPanel';
 import { SortableWidget, applyWidgetOrder } from '@/components/dashboard/SortableWidget';
 import { BoardSkeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useSyncData } from '@/hooks/useSyncData';
 import { useWidgetOrder } from '@/hooks/useWidgetOrder';
 import { useAppStore } from '@/store/useAppStore';
@@ -28,7 +29,6 @@ const DEFAULT_VISIBILITY: WidgetVisibility = {
 };
 
 export const DashboardPage: React.FC = () => {
-  // Single real-time data pipeline: Supabase -> TanStack Query -> store -> widgets
   const { isLoading } = useSyncData();
   const { setQuickAddOpen, accounts } = useAppStore();
   const [visibility, setVisibility] = useState<WidgetVisibility>(DEFAULT_VISIBILITY);
@@ -68,17 +68,16 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-5 sm:space-y-6">
-      {/* Top Action Bar — wraps on mobile instead of overflowing */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* Top Action Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5">
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="primary" size="sm" onClick={() => setQuickAddOpen(true)}>
             <Plus className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Add Deadline / Task</span>
-            <span className="sm:hidden">Add</span>
+            <span>Add Deadline / Task</span>
           </Button>
 
           <Button variant="secondary" size="sm" onClick={() => setAccountsDrawerOpen(true)}>
-            <Users className="w-3.5 h-3.5 text-status-syncing" />
+            <Users className="w-3.5 h-3.5 text-primary" />
             <span className="hidden sm:inline">Account Health</span>
           </Button>
 
@@ -118,34 +117,33 @@ export const DashboardPage: React.FC = () => {
 
           {/* Bento Grid or Connect-First-Account onboarding */}
           {accounts.length === 0 ? (
-            <div className="rounded-3xl glass-panel border border-border/60 p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6 shadow-card">
-              <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary border border-primary/20 flex items-center justify-center mx-auto shadow-glow">
-                <Sparkles className="w-8 h-8" />
+            <Card variant="bento" className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
+              <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary border border-primary/25 flex items-center justify-center mx-auto shadow-sm">
+                <Blocks className="w-8 h-8" />
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-display font-black text-2xl sm:text-3xl tracking-tight">
-                  Connect your first account
+                <h3 className="font-display font-extrabold text-2xl sm:text-3xl tracking-tight text-foreground">
+                  Connect your first service
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-lg mx-auto">
-                  UnifyHub needs at least one connected service to begin populating your unified schedule,
-                  course deadlines, and prioritized inboxes.
+                  UnifyHub aggregates your schedules, deadlines, files, and prioritized mail into one calm dashboard.
+                  Connect your Google, Microsoft, or developer accounts to get started.
                 </p>
               </div>
 
               <div className="pt-2">
-                <Link
-                  to="/integrations"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-primary hover:brightness-110 text-primary-foreground font-semibold text-sm transition-all shadow-glow cursor-pointer"
-                >
-                  <span>Connect Account in Integrations</span>
-                  <ArrowRight className="w-4 h-4" />
+                <Link to="/integrations">
+                  <Button variant="primary" size="md" className="gap-2">
+                    <span>Connect Account in Integrations</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
                 </Link>
               </div>
-            </div>
+            </Card>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
-              {/* Primary column */}
+              {/* Primary column (Deadlines & Files) */}
               <div className="lg:col-span-7 space-y-4 sm:space-y-6">
                 {leftWidgets.map((w) => (
                   <SortableWidget key={w.id} id={w.id} onReorder={handleReorder}>
@@ -162,7 +160,7 @@ export const DashboardPage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Secondary column */}
+              {/* Secondary column (Schedule Timeline & Actionable Emails) */}
               <div className="lg:col-span-5 space-y-4 sm:space-y-6">
                 {rightWidgets.map((w) => (
                   <SortableWidget key={w.id} id={w.id} onReorder={handleReorder}>
