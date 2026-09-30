@@ -485,3 +485,258 @@
 - Updates to `index.html`
 - Updates to `src/pages/PrivacyPage.tsx`
 - Updates to `README.md`
+
+---
+
+## Live Sync Pipeline Diagnosis (End-to-End Trace)
+
+### 1. Database & Account Linkage (`connected_accounts`)
+- **Finding**: Accounts added via the UI `ConnectModal` were previously only stored in-memory in Zustand (`useAppStore.accounts`).
+- **Root Cause**: There was no client-side sync hook querying `supabase.from('connected_accounts').select('*')` on authentication.
+- **Fix**: The client store must query Supabase `connected_accounts` using the active session user ID, and `ConnectModal` must insert into `connected_accounts` (or initiate the OAuth redirect to `oauth-callback`).
+
+### 2. Edge Function Invocation (`sync-provider`)
+- **Finding**: The manual "Sync All" button in `Navbar` / `IntegrationsPage` was calling a dummy `setTimeout(1100)` inside `useAppStore.triggerSync`.
+- **Root Cause**: The client never called `supabase.functions.invoke('sync-provider', { body: { accountId } })`.
+- **Fix**: `triggerSync` must invoke the `sync-provider` Edge Function via Supabase client, await the response, and re-fetch `items` and `sync_logs`.
+
+### 3. Token Decryption & Google Access Token Handshake
+- **Finding**: `sync-provider` calls internal `oauth-refresh` Edge Function to decrypt `encrypted_refresh_token` using AES-256-GCM.
+- **Root Cause**: If `TOKEN_ENCRYPTION_KEY`, `GOOGLE_CLIENT_ID`, or `GOOGLE_CLIENT_SECRET` are not set in Supabase Secrets, token exchange returns HTTP 500.
+- **Fix**: Provide clear status logging and fallbacks. If refresh returns HTTP 401/400 (token revoked/invalid), update `connected_accounts.status = 'needs_reconnect'`.
+
+### 4. Google API Error Surface (403, 401, 429)
+- **Finding**: Google APIs are disabled by default on newly created Google Cloud projects.
+  - **403 Forbidden**: Occurs if Google Calendar API, Google Classroom API, Gmail API, Google Drive API, or Google Tasks API are not enabled in Google Cloud Console.
+  - **401 Unauthorized**: Occurs if refresh token is expired or client secret is incorrect.
+  - **429 Rate Limit**: Occurs if quota limits are exceeded.
+- **Fix**: Wrap each of the 5 Google integrations (Calendar, Classroom, Gmail, Drive, Tasks) in its own isolated `try/catch`. Log the exact HTTP status and error body, and record it into `sync_logs` per data type so a failure in one service (e.g. Classroom API not enabled) does not block the other services (Calendar and Gmail).
+
+### 5. Row Level Security (RLS) on `items`
+- **Finding**: The Edge Function uses `SUPABASE_SERVICE_ROLE_KEY` to upsert into `public.items`, which bypasses RLS. However, `items` requires `account_id` to reference a valid row in `connected_accounts`.
+- **Frontend RLS**: The frontend client reads from `items` with the user's JWT (`auth.uid() = user_id`). If the frontend is not logged in with Supabase Auth, RLS returns an empty array.
+- **Fix**: Support both authenticated Supabase session querying and direct synchronization.
+
+### 6. UI Components & TanStack Query Bindings
+- **Finding**: Dashboard widgets were reading directly from in-memory Zustand `state.items` instead of fetching live database rows via TanStack Query.
+- **Fix**: Bind TanStack Query `useQuery` hooks to `supabase.from('items').select('*')` and `supabase.from('sync_logs').select('*')`, and provide a real-time Sync Status Panel in the UI displaying live status per data type.
+
+---
+
+## Live Auth, Account Connection, and Zero-Demo Production Pipeline
+
+### 1. Goals & What Could Go Wrong
+- **Goals**:
+  - Implement full dedicated `/login` route with Google and GitHub OAuth buttons using `supabase.auth.signInWithOAuth`.
+  - Protect all routes (`/`, `/calendar`, `/integrations`, `/privacy`) behind auth session check, redirecting unauthenticated visitors to `/login`, and redirecting authenticated users away from `/login` to `/`.
+  - Provide an `/auth/callback` route with resilient token exchange, graceful error handling for cancellation/disabled providers, and routing new users to the 3-step onboarding wizard vs returning users directly to the dashboard.
+  - Separate login authentication (Supabase Auth identity) strictly from integration access (Google/Microsoft data sync): logging in NEVER requests broad Gmail/Calendar scopes; connection happens via distinct "Connect" actions with read-only scopes.
+  - Provide database migration for `public.profiles` with automatic trigger on `auth.users` creation.
+  - Implement `oauth-start` Edge Function to generate cryptographically signed, expiring CSRF state tokens and redirect to provider consent screens with read-only scopes.
+  - Upgrade `oauth-callback` Edge Function to exchange codes for Google, Microsoft, GitHub, Notion, Todoist, Slack, and Linear, storing AES-256-GCM encrypted tokens in `connected_accounts` and triggering an immediate first sync.
+  - Build Multi-Adapter Sync pipeline in `sync-provider` supporting Google (Gmail, Calendar, Classroom, Drive, Tasks), Microsoft (Outlook, Calendar, Tasks), GitHub (Issues, PRs), Notion, Todoist, Linear, and Slack.
+  - Render an empty-state card ("Connect your first account") on the dashboard when `accounts.length === 0`, directing the user to `/integrations` instead of showing empty widgets.
+  - Render actual user name and avatar from Supabase session in the navbar and greeting hero, along with a functional Sign Out button that purges cached TanStack queries and store state.
+  - Show "Not configured" badges on integration cards whose environment variables/keys are missing.
+- **What could go wrong**:
+  - Auth loop between `/login` and `/` if session state is not resolved synchronously or during hydration.
+  - State parameter tampering or replay attacks during OAuth callback if HMAC signature is missing.
+  - Refresh token collisions or scope mismatches when connecting multiple accounts from the same provider (e.g. 2 Gmail accounts).
+  - Race conditions between database user trigger and client profile query.
+
+### 2. Data Flow from Provider API to Database to UI
+1. **User Sign In**:
+   - `User clicks "Continue with Google" or "Continue with GitHub"` -> `supabase.auth.signInWithOAuth({ provider, options: { redirectTo: ${appUrl}/auth/callback } })` -> `Provider signs in user` -> `Redirect to /auth/callback` -> `Exchange session` -> `Check public.profiles.is_onboarded` -> `Redirect to / or trigger OnboardingWizard`.
+2. **Account Linking**:
+   - `User clicks "Connect" on Integrations Card` -> `Client calls oauth-start Edge Function with user JWT and provider name` -> `oauth-start verifies JWT, signs HMAC state with timestamp + user_id + provider, generates consent URL with read-only scopes` -> `User grants read-only consent` -> `Provider redirects to oauth-callback Edge Function with code & state` -> `oauth-callback validates HMAC state, exchanges code for access & refresh tokens, fetches provider profile email, encrypts refresh token with AES-256-GCM, upserts connected_accounts(user_id, provider, email)` -> `oauth-callback invokes sync-provider in background` -> `Redirects user back to /integrations?status=connected&provider=${provider}`.
+3. **Real Data Ingestion**:
+   - `sync-provider runs per account` -> `decrypts refresh token via oauth-refresh` -> `fetches Google Calendar / Classroom / Gmail / Drive / Tasks / Microsoft / GitHub / etc.` -> `normalizes records into items schema` -> `upserts into items table on (account_id, source_id)` -> `writes sync_logs per data stream` -> `TanStack Query refetches items and sync_logs` -> `Dashboard widgets update live`.
+
+### 3. Edge Cases & Resilience
+- **Expired Tokens (HTTP 401)**: `sync-provider` calls token refresh endpoint. If refresh token is revoked or invalid, account is updated to `status: 'needs_reconnect'`.
+- **Rate Limits (HTTP 429 & 5xx)**: Implemented jittered exponential backoff (up to 3 retries) with isolated try/catch per stream.
+- **Multiple Accounts Per Provider**: Schema uses `UNIQUE(user_id, provider, email)`, allowing unlimited separate Gmail, Outlook, or GitHub accounts for the same user.
+- **Unconfigured Providers**: Integrations page cards inspect server/client availability. If keys are missing, the card displays "Not configured" and disables the connect action with a tooltip explaining required setup.
+
+### 4. Security Considerations
+- **Strict Read-Only Scopes**: Only read permissions (`calendar.readonly`, `gmail.readonly`, `classroom.courses.readonly`, `drive.readonly`, `tasks.readonly`, `User.Read`, `Calendars.Read`, `Mail.Read`, etc.) are requested. Full email bodies are never fetched or stored—only subject, sender, date, and brief snippet for task classification.
+- **Server-Side Secret Isolation**: No client secret or encryption key is exposed to the frontend bundle. All token exchanges and decryption occur strictly within Supabase Edge Functions.
+- **State HMAC CSRF Protection**: OAuth `state` parameter contains `{ userId, provider, exp, sig }` verified against server encryption key, preventing CSRF injection.
+
+### 5. Files to Create and Update
+- Database Migration: `supabase/migrations/20260303000000_profiles_and_triggers.sql`
+- Edge Function `oauth-start`: `supabase/functions/oauth-start/index.ts`
+- Edge Function `oauth-callback`: `supabase/functions/oauth-callback/index.ts` (enhanced multi-provider + HMAC verification)
+- Edge Function `sync-provider`: `supabase/functions/sync-provider/index.ts` (enhanced multi-provider pipelines)
+- Auth Store: `src/store/useAuthStore.ts` (connected to real Supabase session, profile, sign-out)
+- Login Page: `src/pages/LoginPage.tsx` (unique brand UI, preview, dark/light theme, Google & GitHub buttons)
+- Auth Callback Page: `src/pages/AuthCallbackPage.tsx` (exchanges hash/code, loading and error states)
+- Route Guard & App Routing: `src/App.tsx` (protected routes, redirect logic)
+- Dashboard Page: `src/pages/DashboardPage.tsx` (connect first account empty state when accounts = 0)
+- Navbar: `src/components/layout/Navbar.tsx` (user avatar, display name, real sign-out dropdown with query cache clearing)
+- Hero: `src/components/dashboard/RightNowHero.tsx` (personalized user greeting with avatar)
+- Integrations: `src/pages/IntegrationsPage.tsx` (OAuth start trigger, multi-account support, "Not configured" state)
+
+---
+
+## Phase 10: Live Sync Reliability + UI/UX Overhaul (Diagnosis → Fix → Redesign)
+
+### 1. DIAGNOSIS: Why "No Data After Connect" Happened
+
+Audit findings (verified by reading every relevant file before changing anything):
+
+1. **Demo fallback is already OFF — confirmed.** `src/lib/env.ts` hardcodes `demoFallbackEnabled: false` and `isDemoMode() => false`. No component imports `src/lib/demo-data.ts` (ripgrep found zero matches in `src/`). Mock data cannot be the cause.
+2. **Per-provider sync functions do not exist — confirmed missing.** Only a single monolithic `sync-provider` exists, and its body only implements `if (account.provider === 'google')`. Microsoft/GitHub/Notion/Todoist/Slack/Linear/iCal accounts sync **nothing** silently. → FIX: dedicated `google-sync`, `microsoft-sync`, `github-sync`, `notion-sync`, `todoist-sync`, `slack-sync`, `linear-sync`, `ical-sync` functions + `sync-provider` becomes a thin dispatcher.
+3. **oauth-callback first-sync race — confirmed.** It fires `fetch(...)` to `sync-provider` without `await` and without `.json()` consumption; on deny it still redirects. Worse, the old dispatcher would 404/401 silently. → FIX: `await` the first sync against the new per-provider function, wait for completion, then redirect with `synced=true&items=N`.
+4. **Query-key mismatch — confirmed silent killer.** `ConnectModal` invalidates `['connected-accounts']`, `['sync-logs']` (kebab-case), but `useSyncData` queries `['connected_accounts']`, `['sync_logs']` (snake_case). Invalidations hit nothing. → FIX: shared query-key constants module.
+5. **Dual sync triggers — confirmed.** `useAppStore.triggerSync` is a fake `setTimeout(1100)` mock; `useSyncData.syncMutation` is the real Edge Function call. Navbar uses the fake one. → FIX: delete the mock; single source of truth in the hook.
+6. **`sync_logs` upsert mismatch — confirmed.** Old logs insert `items_synced` but UI reads `items_upserted`/`items_fetched` (migration added the columns, sync code half-adopted them). Also the sync log SELECT policy exists but the Edge Function writes via service role (fine) — the real gap is per-stream error text was never consistently surfaced. → FIX: helpers always write all columns; SyncStatusPanel reads them.
+7. **Upsert semantics — verified OK but fragile.** `items` has `UNIQUE(account_id, source_id)` and upserts pass `onConflict: 'account_id,source_id'`. KEPT, but moved into a shared `upsertItems()` helper that (a) never throws mid-stream (per-item try/catch), (b) strips `raw` payloads > 64KB to avoid Postgres TOAST/row-size failures before insert, (c) returns exact counts.
+8. **RLS — verified correct shape.** Edge Functions write with `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS, preserves `user_id`); frontend reads with user JWT (`auth.uid() = user_id`). Both migration files confirm policies. No change needed; documented + regression-tested via `sync_logs` visibility.
+9. **Scopes — not recorded.** `connected_accounts` has no `granted_scopes` column, so the app can't tell which Google stream failed due to missing consent. → FIX: migration adds `granted_scopes TEXT[]`; oauth-callback parses Google's `scope` response field and stores it; SyncStatusPanel + IntegrationsPage render "Scope missing — reconnect" hints when a stream's required scope isn't granted.
+10. **Token refresh gaps — confirmed.** `oauth-refresh` handles only google/microsoft; GitHub/Notion/Todoist/Linear/Slack use long-lived tokens. Refresh logic duplicated inline. → FIX: `_shared/token-refresh.ts` with per-provider strategy map (real refresh vs bearer-token reuse), used by every sync function.
+11. **No disconnect function.** → FIX: `disconnect-account` Edge Function: revoke where provider supports it (Google, GitHub), delete tokens, delete account row (DB cascade wipes items + sync_logs), frontend invalidates queries.
+
+### 2. DATA FLOW (After Fix)
+`Connect` → `oauth-start` (signed state, read-only scopes) → provider consent → `oauth-callback` (verify state → exchange → encrypt AES-256-GCM → upsert account + granted scopes → **await** `sync-provider` → per-provider dispatch) → `{provider}-sync` (refresh via shared helper → per-data-type try/catch → fetchWithRetry pagination → `upsertItems` on `(account_id, source_id)` → per-stream `sync_logs` row incl. HTTP status + error body) → client `useSyncData` invalidates exact keys → TanStack Query refetch under RLS → Zustand → widgets render with per-stream health + exact counts + visible error text.
+
+### 3. Edge Cases & Resilience
+- Stream failure isolation: each data type in its own try/catch; one failing stream never blocks others; every non-2xx logs `HTTP <status>: <body>` to console AND `sync_logs.error_message`.
+- 401 → shared token refresh → single retry → else `needs_reconnect`. 429/5xx → `fetchWithRetry` honors `Retry-After`, jittered exponential backoff (already exists, reused everywhere).
+- iCal: fetch raw `.ics`, parse VEVENTs (SUMMARY/DTSTART/DTEND/LOCATION/URL), handle webcal://→https://, guard against malformed lines; upsert with `source_id = uid or hash`. `disconnected@` sentinel skipped.
+- First-sync timeout: oauth-callback caps awaited sync at ~25s then still redirects (URL carries outcome).
+- Zero-result streams distinguished from failures in the UI: "No data found" vs "Failed: <HTTP error>".
+- prefers-reduced-motion gates all route/widget animations.
+
+### 4. Security
+- Read-only scopes only (unchanged). Secrets only in Edge Function env (unchanged). State HMAC verified with exp check (kept). Tokens AES-256-GCM encrypted (kept). `disconnect-account` authenticated by user JWT; deletes scoped to `auth.uid()`-verified user.
+
+### 5. UI/UX & Navigation Overhaul — Design Decisions
+
+**Design tokens (one source: `src/index.css`)**
+- Full CSS-variable token set for BOTH themes, each designed deliberately (not inverted): dark = deep space-graphite `#0B0E14` base with layered panels; light = warm paper `#FAF7F2` with ink text.
+- Accent identity: **electric indigo→violet** (`#6C5CE7` family) — confident, distinctive, not the default slate/blue dashboard look. Success=emerald, warning=amber, danger=rose, info=sky — identical roles everywhere.
+- Typography pairing (Google Fonts): **Sora** (expressive geometric display for headings), **Inter** (UI text), **JetBrains Mono** (timestamps, countdowns, source tags). Loaded in `index.html` with preconnect.
+- Spacing/radius/shadow scales as tokens: `--radius-*`, `--shadow-glow-*`; Tailwind v4 `@theme` block maps tokens so utilities like `bg-card`, `text-muted-foreground`, `rounded-xl`, `font-display` are token-driven everywhere.
+
+**Navigation (react-router)**
+- Nested routes under persistent `AppShell`: `/` (Dashboard), `/deadlines`, `/calendar`, `/files`, `/integrations`, `/settings`, `/privacy`. Shell (sidebar/header) never remounts → zero full page reloads between tabs.
+- New persistent left **Sidebar** (desktop ≥lg): brand, nav items with active-route pill (Framer Motion `layoutId` sliding highlight), workspace switcher, account dots; collapses to icons on md.
+- **Mobile bottom nav** (<md) with 5 primary destinations + drawer for the rest.
+- Route transitions: `AnimatePresence` + `motion.div` fade/slide on every route element.
+- Filters (account/type/workspace/view) become **URL query params** (`useSearchParams`) so refresh/back/forward preserve state; store filters stay as derived state from URL.
+- Shared `layoutId` elements: Ctrl+K trigger pill and account-switcher dots animate across pages.
+
+**Interactivity**
+- Toast system (`src/components/ui/toast.tsx`, Zustand-driven): fired on connect, sync start/finish w/ counts, mark-done, errors.
+- Skeleton loaders shaped like real cards (`src/components/ui/skeleton.tsx`) for dashboard boards.
+- Animated counters for deadline metrics; spring check-off animation on completion; smooth expand/collapse (height auto) on cards.
+- Drag-to-reorder dashboard widgets (native HTML5 DnD), order persisted per user in `user_settings.widget_order` (JSONB) via debounce upsert; falls back to local order for unconfigured DB.
+- Command palette reachable on every tab (already global — kept, restyled to tokens).
+- All hover states: border + subtle translate/scale + shadow transitions (not just color); focus-visible rings everywhere.
+
+**Consistency**
+- One `Button` (variants: primary/secondary/ghost/danger; sizes sm/md), one `Card`, one `Badge`/`StatusDot` component with the canonical status→color map (connected=emerald, syncing=sky pulse, needs_reconnect=amber, error=rose, paused=slate) used by account cards, sync panel, integrations page.
+- Shared `EmptyState`, `Skeleton`, `ErrorNotice` used by every widget; no one-off visuals.
+
+### 6. Exact Files for Phase 10
+- DB: `supabase/migrations/20260304000000_sync_reliability.sql`
+- Shared (Deno): `supabase/functions/_shared/token-refresh.ts`, `supabase/functions/_shared/sync-helpers.ts`
+- New sync functions: `google-sync`, `microsoft-sync`, `github-sync`, `notion-sync`, `todoist-sync`, `slack-sync`, `linear-sync`, `ical-sync`, `disconnect-account` (each `index.ts`)
+- Rewritten: `sync-provider` (dispatcher), `oauth-callback` (scopes + awaited first sync), `oauth-refresh` (uses shared helper)
+- Frontend: `src/lib/queryKeys.ts`, `src/hooks/useSyncData.ts`, `src/store/useAppStore.ts`, `src/components/ui/{button,card,badge,skeleton,toast}.tsx`, `src/components/layout/{Sidebar,AppShell,Navbar,MobileNav}.tsx`, `src/pages/{DashboardPage,DeadlinesPage,FilesPage,SettingsPage}.tsx`, `src/App.tsx`, `src/index.css`, `index.html`, dashboards boards refit to primitives
+
+---
+
+## Phase 11: Frontend Rebuild — Elimination of "AI Slop" & Cohesive Design System
+
+### 1. Concrete Audit: What Reads as "AI Slop" (Per Screen)
+
+#### A. Global App Shell, Navigation & Layout (`Navbar.tsx`, `Sidebar.tsx`, `MobileNav.tsx`, `AppShell.tsx`)
+1. **Redundant Duplicate Navigation**: The workspace switcher appears both as raw pills in the top navbar AND as a vertical list in the sidebar. This confuses mental models and looks like two uncoordinated prompt outputs merged together.
+2. **Generic Blue Gradient & Disjointed Brand Identity**: The logo uses `from-primary to-[#4f8cff]` in Navbar, but `from-sky-400 to-blue-600` on LoginPage, with an ad-hoc letter "U" inside a generic rounded box.
+3. **Mismatched Interactive Controls**: Notification buttons, theme toggles, and sync triggers each have inline styling (`p-1.5`, `p-2`, `px-3`), inconsistent hover effects, and lack standardized focus-visible rings.
+4. **Missing Shared Layout Polish**: Nav transitions feel like separate pages without springy shared-layout animations. Mobile navigation lacks ergonomic thumb-zone feel and haptic visual feedback.
+
+#### B. Dashboard & Hero (`DashboardPage.tsx`, `RightNowHero.tsx`)
+1. **The Classic AI Gradient Blob**: `bg-sky-500/10 rounded-full blur-3xl pointer-events-none` floating in the top right. A trademark tell of an AI generating a "futuristic glassmorphism" template.
+2. **Cliché '✨ Powered by AI' and Sparkle Icons**: Sparkle icons (`Sparkles`) scattered with vague buzzwords ("Personalized Hub", "Intelligent Command Center") instead of showing concrete, actionable data.
+3. **Rigid Uniform 2-Column Grid instead of a Real Bento Grid**: Deadlines, files, timeline, and emails are squished into two identical columns regardless of content priority or emptiness. A true bento grid dynamically scales the hero and highest-urgency streams with visual variety.
+4. **Light-Mode Contrast Breakdown**: In dark mode, `bg-rose-950/20` and `bg-amber-950/20` look tolerable; in light mode, they render as muddy brown sludge on warm paper, violating WCAG contrast ratios.
+5. **Static Numbers Without Living Metrics**: Urgency scores, deadline counts, and sync status are static text with no animated number counters (`framer-motion` counter) or living pulse.
+
+#### C. Deadlines & Tasks (`DeadlinesBoard.tsx`, `DeadlinesPage.tsx`)
+1. **Hand-Rolled Custom Checkboxes**: Raw `<button>` elements with brittle Tailwind classes instead of an accessible, animated Checkbox component with spring physics and proper ARIA states.
+2. **Raw Inline Color Hacks**: `style={{ backgroundColor: `${account.color}15`, color: account.color }}` producing unreadable low-contrast text on bright backgrounds.
+3. **Badge Chaos**: Some badges use `font-mono px-2 py-0.5`, others use `px-2.5 py-1`, others use ad-hoc colored borders. No unified `Badge` primitive.
+4. **Abrupt State Updates**: Completing a task immediately snaps the row into strikethrough with zero micro-interaction celebration or smooth reordering.
+
+#### D. Events & Timeline (`EventsTimeline.tsx`, `CalendarPage.tsx`)
+1. **Floating Incoherent Timeline Line**: A disconnected `border-l-2` line with misaligned bullet dots that don't match event durations or intervals.
+2. **Boring Empty States**: Generic gray circles with "No events found" instead of an actionable invitation with quick-add shortcuts or Google/Outlook sync prompts.
+3. **Missing Date Scroller Ergonomics**: Calendar page displays static tables without intuitive keyboard navigation (left/right arrow navigation) or animated day transitions.
+
+#### E. Login & Landing (`LoginPage.tsx`)
+1. **The Centered Cliché Hero**: Centered text with `One calm view for everything you do` and a generic "✨ Cross-Platform Command Center" pill.
+2. **Fake Static Mock Preview**: The right side displays hardcoded fake JSX components that don't match the real app's design system or live components.
+3. **Disconnected OAuth Button Styles**: Raw button markup with inline SVGs instead of leveraging the central `Button` component with hover springs and active states.
+
+#### F. Design System & Accessibility Primitives
+1. **Non-Existent Font Classes**: Components frequently use `font-heading`, which was never defined in Tailwind v4 theme, causing browser fallback to system-ui!
+2. **Missing Radix Primitive Backbones**: Modals and dropdowns use raw unmanaged divs with partial keyboard traps and missing screen reader announcements.
+3. **No Screen Reader Live Region**: Sync updates, deadline check-offs, and error states only trigger visual toasts without polite `aria-live="polite"` feedback for screen reader users.
+
+---
+
+### 2. Concrete Architectural Remediation Plan
+
+#### Step 1: Design Tokens & Typography Standardization (`src/index.css`, `index.html`)
+- **Accent Identity**: Firmly anchor the entire application to **Electric Indigo** (`#7c6cf6` dark / `#6049ea` light). Secondary accents: emerald (`#10b981`), amber (`#f59e0b`), rose (`#f43f5e`), cyan (`#06b6d4`).
+- **Typography Scale**:
+  - Display: `Sora` (loaded via Google Fonts) for display titles, card headers, and metrics. Define `font-display` and alias `font-heading` to `Sora` so legacy classes resolve correctly.
+  - Body: `Inter` for crisp readability, form controls, and labels.
+  - Mono: `JetBrains Mono` with `font-feature-settings: 'tnum' on, 'zero' on` for timestamps, countdowns, and source tags.
+- **Surface Elevation & Shadows**:
+  - Tokenized shadows: `--shadow-card`, `--shadow-card-hover`, `--shadow-glow`, `--shadow-float`.
+  - Tokenized radii: `--radius-sm` (8px), `--radius-md` (12px), `--radius-lg` (16px), `--radius-xl` (24px), `--radius-full`.
+  - Light theme: Warm alabaster (`#f7f6f3`), slate ink (`#181a20`), soft linen cards (`#ffffff`), and violet-tinted borders (`#e6e4df`).
+  - Dark theme: Space obsidian (`#0b0e14`), high-contrast off-white (`#f0f2f8`), deep graphite cards (`#121622`), and indigo borders (`#22293e`).
+
+#### Step 2: Unified Reusable Primitives (`src/components/ui/`)
+1. **Button (`button.tsx`)**:
+   - Variants: `primary`, `secondary`, `outline`, `ghost`, `danger`.
+   - Sizes: `xs`, `sm`, `md`, `lg`, `icon`.
+   - Built on `framer-motion` with spring hover (`y: -1`), tap feedback (`scale: 0.98`), focus-visible rings (`ring-2 ring-primary ring-offset-2`).
+2. **Card (`card.tsx`)**:
+   - Variants: `bento` (glass panel with subtle hover lift and reactive border), `subtle` (embedded section container), `floating` (modal/popover surface).
+   - Primitives: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardBody`, `CardFooter`.
+3. **Badge & StatusDot (`badge.tsx`)**:
+   - Canonical status tones: `connected` (emerald), `syncing` (sky pulsing), `warning` (amber), `error` (rose), `neutral` (slate), `accent` (indigo).
+   - High WCAG AA contrast in both dark and light modes using deliberate color tokens.
+4. **Checkbox (`checkbox.tsx`)**:
+   - Radix-inspired accessible toggle with spring-checked icon animation and sound/haptic visual ripple.
+5. **MetricCounter (`metric-counter.tsx`)**:
+   - Living animated number counters for urgent deadlines, active sync streams, and unread items using `framer-motion`.
+6. **LiveAnnouncer (`live-announcer.tsx`)**:
+   - Polite invisible ARIA live region announcing background sync completions and action confirmations to screen readers.
+
+#### Step 3: Bento Grid Dashboard Overhaul (`DashboardPage.tsx`, `RightNowHero.tsx`)
+- **True Bento Layout**:
+  - Hero item (closest meeting + countdown) spans full width or 8 columns with prominent typography and visual clarity.
+  - Priority Deadlines card gets large primary visual weight with animated progress ring.
+  - Schedule Timeline gets dedicated vertical rhythm.
+  - Active Files and Key Emails sit in compact secondary bento tiles.
+- **Eliminate AI Tropes**:
+  - Remove all generic gradient blob divs. Replace with purposeful, subtle ambient radial gradient tied to the electric indigo accent.
+  - Strip cliché "✨ powered by AI" copy; replace with clear, concrete action labels: "Unified Feed", "Upcoming Deadlines", "Account Health".
+
+#### Step 4: Cohesive Navigation & Polish
+- Unify Workspace Switcher into the Sidebar (desktop) and Drawer (mobile). Top Navbar remains dedicated to Search (Ctrl+K), Sync Status, Notifications, Theme Toggle, and User Profile.
+- Shared `layoutId` on navigation pills for seamless fluid animations between views.
+- Keyboard navigation: Full tab-index flow, arrow keys in lists and calendars, Ctrl+K command palette with instant search and shortcuts.
+
+#### Step 5: Mobile & PWA Verification
+- Bottom navigation with safe-area padding and 44px+ touch targets.
+- Responsive bento grid gracefully collapses to a single stacked column on mobile.
+
+
