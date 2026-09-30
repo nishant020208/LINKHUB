@@ -170,8 +170,8 @@ export const CommandPalette: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-start justify-center pt-20 px-4">
-      <div className="bg-[#0f1626] border border-border/80 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-start justify-center pt-[12vh] px-3 sm:px-4">
+      <div className="bg-card border border-border/80 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Search Input Bar */}
         <div className="p-4 border-b border-border/40 flex items-center gap-3">
           <Search className="w-5 h-5 text-primary shrink-0" />
@@ -186,7 +186,7 @@ export const CommandPalette: React.FC = () => {
           />
           <button
             onClick={() => setCommandPaletteOpen(false)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -240,7 +240,7 @@ export const CommandPalette: React.FC = () => {
         </div>
 
         {/* Keyboard hints footer */}
-        <div className="px-4 py-2 bg-slate-900/50 border-t border-border/30 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+        <div className="px-4 py-2 bg-muted/40 border-t border-border/30 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
           <div className="flex items-center gap-3">
             <span>&uarr;&darr; navigate</span>
             <span>&crarr; select</span>
