@@ -174,7 +174,7 @@ export const CommandPalette: React.FC = () => {
     <AnimatePresence>
       {isCommandPaletteOpen && (
         <motion.div
-          className="fixed inset-0 z-50 bg-background/70 backdrop-blur-md flex items-stretch sm:items-start justify-center sm:pt-[10vh] p-0 sm:px-4"
+          className="fixed inset-0 z-[100] bg-background/70 backdrop-blur-md flex items-stretch sm:items-start justify-center sm:pt-[10vh] p-0 sm:px-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
