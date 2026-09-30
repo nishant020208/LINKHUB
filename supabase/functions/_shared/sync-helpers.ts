@@ -104,6 +104,53 @@ export async function upsertItems(ctx: StreamContext, items: NormalizedItem[]): 
   return upserted;
 }
 
+/** Extract the enable-API console URL from a Google error body. */
+const GOOGLE_ENABLE_URL_RE = /https:\/\/console\.developers\.google\.com\/apis\/api\/[a-z0-9.\-]+\?[^\s"'<>\\]+/i;
+
+function apiNameFromEnableUrl(url: string): string {
+  const m = url.match(/apis\/api\/([a-z0-9.\-]+)\?/i);
+  const map: Record<string, string> = {
+    'calendar-json': 'Google Calendar',
+    'gmail': 'Gmail',
+    'drive': 'Google Drive',
+    'tasks': 'Google Tasks',
+    'classroom': 'Google Classroom',
+  };
+  return m ? map[m[1]] ?? m[1] : 'Google';
+}
+
+/**
+ * Turn a provider API failure into a precise, actionable message.
+ * Main case: HTTP 403 accessNotConfigured (APIs disabled in the Google Cloud
+ * project) must say exactly which API to enable and where, instead of
+ * dumping raw JSON on every card.
+ */
+export function humanizeProviderError(provider: string, stream: string, status: number | null, rawBody: string): string {
+  if (provider === 'google') {
+    const enableMatch = rawBody.match(GOOGLE_ENABLE_URL_RE);
+    const notConfigured =
+      rawBody.includes('accessNotConfigured') ||
+      rawBody.includes('has not been used in project') ||
+      (rawBody.includes('is disabled') && rawBody.includes('Enable it by visiting'));
+    if (notConfigured) {
+      const apiName = enableMatch ? apiNameFromEnableUrl(enableMatch[0]) : `Google ${stream}`;
+      const url = enableMatch ? enableMatch[0] : 'https://console.developers.google.com/apis/library';
+      return `${apiName} API is not enabled for your Google Cloud project. Open ${url} , click Enable, wait about a minute, then press Sync Now.`;
+    }
+    if (status === 401 || /invalid credentials|INVALID_CREDENTIALS|invalid_grant/i.test(rawBody)) {
+      return 'Access token expired or revoked. Reconnect this Google account from the Integrations page.';
+    }
+    if (status === 403 && /insufficientPermissions|PERMISSION_DENIED/i.test(rawBody)) {
+      return 'The granted scopes do not cover this Google service. Reconnect the account and approve the missing permission.';
+    }
+    if (status === 429) {
+      return 'Google API rate limit reached. The sync retries automatically with backoff; try again shortly.';
+    }
+  }
+  const short = rawBody.replace(/\s+/g, ' ').trim().slice(0, 300);
+  return status ? `HTTP ${status}: ${short}` : short;
+}
+
 /** Fetch JSON with authenticated headers, retry/backoff, and full error surfacing. */
 export async function fetchJson(
   url: string,
@@ -118,9 +165,8 @@ export async function fetchJson(
     } catch {
       body = '<unreadable body>';
     }
-    const truncated = body.length > 600 ? `${body.slice(0, 600)}…` : body;
-    const msg = `${httpInfo.provider} ${httpInfo.stream} API returned HTTP ${res.status}: ${truncated}`;
-    console.error(`[${httpInfo.provider}:${httpInfo.stream}] ${msg}`);
+    const msg = humanizeProviderError(httpInfo.provider, httpInfo.stream, res.status, body);
+    console.error(`[${httpInfo.provider}:${httpInfo.stream}] HTTP ${res.status}: ${body.slice(0, 400)}`);
     return { ok: false, error: msg };
   }
   try {
@@ -186,6 +232,8 @@ export async function runStream(
     return result;
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : String(err);
+    // Keep stream error text tight and actionable (never dump full JSON bodies).
+    errorMessage = humanizeProviderError(provider, dataType, null, errorMessage);
     console.error(`[${provider}:${dataType}] stream failed: ${errorMessage}`);
     const result: StreamResult = {
       dataType,
@@ -217,17 +265,19 @@ export async function finalizeAccount(
 ): Promise<{ success: boolean; streams: StreamResult[]; totalUpserted: number }> {
   const anyFailed = results.some((r) => r.status === 'failed');
   const allFailed = results.length > 0 && results.every((r) => r.status === 'failed');
+  // Compact per-stream summary: the UI splits it back out per card. Keep each
+  // segment short — full details already live in sync_logs.
   const errorSummary = results
     .filter((r) => r.errorMessage)
-    .map((r) => `${r.dataType}: ${r.errorMessage}`)
+    .map((r) => `${r.dataType}: ${r.errorMessage.slice(0, 140)}`)
     .join(' | ')
-    .slice(0, 2000);
+    .slice(0, 1600);
 
   await admin
     .from('connected_accounts')
     .update({
       last_synced_at: new Date().toISOString(),
-      status: allFailed ? 'error' : anyFailed ? 'connected' : 'connected',
+      status: allFailed ? 'error' : 'connected',
       error_message: errorSummary || null,
     })
     .eq('id', accountId);
