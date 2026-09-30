@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import {
   Search,
   CheckSquare,
@@ -167,7 +168,9 @@ export const CommandPalette: React.FC = () => {
     }
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <AnimatePresence>
       {isCommandPaletteOpen && (
         <motion.div
@@ -269,6 +272,7 @@ export const CommandPalette: React.FC = () => {
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };
