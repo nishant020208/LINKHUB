@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   LayoutDashboard,
   CheckSquare,
@@ -18,9 +18,9 @@ const MOBILE_ITEMS = [
   { to: '/integrations', label: 'Hub', icon: Blocks },
 ];
 
-/** Mobile bottom navigation (<lg). Touch targets >= 44px. Active pill animates between items. */
 export const MobileNav: React.FC = () => {
   const location = useLocation();
+  const reduce = useReducedMotion();
 
   const isActive = (to: string) =>
     to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
@@ -38,7 +38,7 @@ export const MobileNav: React.FC = () => {
               key={to}
               to={to}
               className={cn(
-                'relative flex flex-col items-center justify-center min-h-[48px] py-1 text-[11px] font-medium transition-colors select-none rounded-xl',
+                'relative flex flex-col items-center justify-center min-h-[48px] py-1 text-[11px] font-medium select-none rounded-xl',
                 active ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -46,7 +46,7 @@ export const MobileNav: React.FC = () => {
                 <motion.span
                   layoutId="mobile-active-capsule"
                   className="absolute inset-1 rounded-xl bg-primary/10 border border-primary/20 pointer-events-none"
-                  transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                  transition={reduce ? { duration: 0.01 } : { type: 'spring', stiffness: 450, damping: 32 }}
                 />
               )}
               <Icon className="w-5 h-5 relative z-10" />
