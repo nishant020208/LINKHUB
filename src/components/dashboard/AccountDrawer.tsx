@@ -28,7 +28,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
         <div>
           <div className="flex items-center justify-between pb-4 border-b border-border/40">
             <div>
-              <h3 className="font-heading font-bold text-lg text-white">Connected Accounts Health</h3>
+               <h3 className="font-heading font-bold text-lg text-foreground">Connected Accounts Health</h3>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {accounts.length} linked logins monitored
               </p>
@@ -50,7 +50,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
                 <div
                   key={acc.id}
                   className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                    hasError ? 'border-rose-500/40 bg-rose-950/20' : 'border-border/40 bg-card/30'
+                    hasError ? 'border-status-error/40 bg-status-error/10' : 'border-border/40 bg-card/30'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -69,11 +69,11 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
 
                     <span
                       className={`text-[9px] font-mono uppercase px-2 py-0.5 rounded-full font-semibold ${
-                        hasError
-                          ? 'bg-rose-500/20 text-rose-300'
-                          : isPaused
-                          ? 'bg-muted text-muted-foreground'
-                          : 'bg-emerald-500/20 text-emerald-300'
+                         hasError
+                           ? 'bg-status-error/20 text-status-error'
+                           : isPaused
+                           ? 'bg-muted text-muted-foreground'
+                           : 'bg-status-connected/20 text-status-connected'
                       }`}
                     >
                       {acc.status}
@@ -81,7 +81,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
                   </div>
 
                   {acc.error_message && (
-                    <p className="text-[11px] text-rose-300 bg-rose-500/10 p-2 rounded-lg">
+                     <p className="text-[11px] text-status-error bg-status-error/10 p-2 rounded-lg">
                       {acc.error_message}
                     </p>
                   )}
@@ -119,7 +119,7 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
 
                       <button
                         onClick={() => wipeAccountData(acc.id)}
-                        className="p-1 rounded hover:bg-muted text-rose-400 hover:text-rose-300 cursor-pointer"
+                         className="p-1 rounded hover:bg-muted text-status-error hover:text-status-error/80 cursor-pointer"
                         title="Delete items from this account"
                       >
                         <Trash2 className="w-3 h-3" />
