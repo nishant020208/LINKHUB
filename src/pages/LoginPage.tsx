@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ShieldCheck, Sparkles, Sun, Moon, ArrowRight, Lock } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
@@ -127,6 +127,11 @@ export const LoginPage: React.FC = () => {
               <p>
                 Signing in only authenticates your UnifyHub identity. Your mail, calendars, and files are only linked later via distinct read-only scopes.
               </p>
+              <div className="pt-1">
+                <Link to="/privacy" className="text-primary hover:underline font-mono text-[11px] inline-flex items-center gap-1">
+                  <span>Read our Privacy Policy &amp; Data Transparency &rarr;</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -215,7 +220,13 @@ export const LoginPage: React.FC = () => {
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>AES-256 Token Encryption &middot; Strict RLS &middot; Zero Private Body Storage</span>
           </div>
-          <div>UnifyHub &middot; Phase 9 Production Grade</div>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="text-muted-foreground hover:text-foreground underline transition-colors">
+              Privacy Policy
+            </Link>
+            <span>&middot;</span>
+            <div>UnifyHub &middot; Phase 9 Production Grade</div>
+          </div>
         </div>
       </footer>
     </div>
