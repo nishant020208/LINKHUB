@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, CheckSquare } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { ItemType } from '@/types';
@@ -13,6 +14,7 @@ export const QuickAddModal: React.FC = () => {
   const [priorityScore, setPriorityScore] = useState(80);
 
   if (!isQuickAddOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,13 +34,13 @@ export const QuickAddModal: React.FC = () => {
     setQuickAddOpen(false);
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-card border border-border/70 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-primary" />
-            <h3 className="font-heading font-bold text-lg text-foreground">Create Deadline or Task</h3>
+            <h3 className="font-display font-bold text-lg text-foreground">Create Deadline or Task</h3>
           </div>
           <button
             onClick={() => setQuickAddOpen(false)}
@@ -147,6 +149,7 @@ export const QuickAddModal: React.FC = () => {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
