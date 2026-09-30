@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Sliders, RotateCcw } from 'lucide-react';
 
 export interface WidgetVisibility {
@@ -25,6 +26,7 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
   onReset,
 }) => {
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const toggle = (key: keyof WidgetVisibility) => {
     onChange({
@@ -41,13 +43,13 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
     { key: 'pinnedFiles', label: 'Pinned Files & Course Syllabi', desc: 'Quick-access cheat sheets, documents, and Figma links.' },
   ];
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-card border border-border/70 rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-5 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-border/40">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-primary" />
-            <h3 className="font-heading font-bold text-lg text-foreground">Customize Dashboard Layout</h3>
+            <h3 className="font-display font-bold text-lg text-foreground">Customize Dashboard Layout</h3>
           </div>
           <button
             onClick={onClose}
@@ -112,6 +114,7 @@ export const WidgetSettingsModal: React.FC<WidgetSettingsModalProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
