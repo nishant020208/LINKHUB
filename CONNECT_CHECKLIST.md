@@ -22,6 +22,25 @@ This checklist details every external integration, the required environment vari
 ---
 
 ## 2. Google Workspace & Classroom (Gmail, Calendar, Drive, Classroom, Tasks)
+
+### ⚠️ REQUIRED: Enable all 5 Google APIs before connecting (fixes `403 accessNotConfigured` / `SERVICE_DISABLED`)
+
+A brand-new Google Cloud project has every API turned OFF. If you connect an account before enabling them, every sync stream fails with HTTP 403:
+
+1. Open <https://console.developers.google.com/apis/library?project=YOUR_PROJECT_ID>
+2. Enable **each** of these five APIs (click → Enable, one at a time):
+   - [Google Calendar API](https://console.developers.google.com/apis/api/calendar-json.googleapis.com) (`calendar-json.googleapis.com`)
+   - [Google Classroom API](https://console.developers.google.com/apis/api/classroom.googleapis.com) (`classroom.googleapis.com`)
+   - [Gmail API](https://console.developers.google.com/apis/api/gmail.googleapis.com) (`gmail.googleapis.com`)
+   - [Google Drive API](https://console.developers.google.com/apis/api/drive.googleapis.com) (`drive.googleapis.com`)
+   - [Google Tasks API](https://console.developers.google.com/apis/api/tasks.googleapis.com) (`tasks.googleapis.com`)
+3. Wait 1–2 minutes for propagation (Google's own error message says so).
+4. In UnifyHub, press **Sync Now** (Integrations page) or the stream's **Retry** button.
+
+The Sync Status panel and the account card on the Integrations page render a direct
+**Enable on Google Cloud** button for the exact API that failed — clicking it, pressing
+Enable, then Sync Now is the full recovery flow.
+
 - **Status**: Ready for keys
 - **Variables Needed**:
   - Backend: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
