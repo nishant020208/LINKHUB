@@ -1,14 +1,15 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setAuthModalOpen, signInWithGoogle, isLoading } = useAuthStore();
 
-  if (!isAuthModalOpen) return null;
+  if (!isAuthModalOpen || typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
       <div className="bg-card border border-border/70 rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl text-center space-y-5 relative max-h-[92vh] overflow-y-auto">
         <button
           onClick={() => setAuthModalOpen(false)}
@@ -59,6 +60,7 @@ export const AuthModal: React.FC = () => {
           <span>Read-only default &middot; Row Level Security</span>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
