@@ -119,8 +119,8 @@ export const Navbar: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Quick actions & status */}
-        <div className="flex items-center gap-2">
+        {/* Right: Quick actions & status — collapses on small screens */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Quick sync trigger */}
           <button
             onClick={() => triggerSync()}
@@ -134,10 +134,10 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
-          {/* Account health indicator */}
+          {/* Account health indicator — dots only on mobile */}
           <Link
             to="/integrations"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-xs text-muted-foreground hover:text-foreground transition-all"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-xs text-muted-foreground hover:text-foreground transition-all"
             title="Manage connected accounts"
           >
             <div className="flex -space-x-1.5 items-center">
@@ -161,47 +161,49 @@ export const Navbar: React.FC = () => {
             )}
           </Link>
 
-          {/* Navigation links */}
-          <Link
-            to="/calendar"
-            className={`p-2 rounded-xl border border-border/50 transition-colors ${
-              location.pathname === '/calendar'
-                ? 'bg-primary/10 text-primary border-primary/30'
-                : 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-card'
-            }`}
-            title="Unified Multi-Account Calendar"
-          >
-            <CalendarIcon className="w-4 h-4" />
-          </Link>
+          {/* Navigation links — redundant with sidebar/bottom-nav; desktop only */}
+          <div className="hidden lg:flex items-center gap-2">
+            <Link
+              to="/calendar"
+              className={`p-2 rounded-xl border border-border/50 transition-colors ${
+                location.pathname === '/calendar'
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-card'
+              }`}
+              title="Unified Multi-Account Calendar"
+            >
+              <CalendarIcon className="w-4 h-4" />
+            </Link>
 
-          <Link
-            to="/integrations"
-            className={`p-2 rounded-xl border border-border/50 transition-colors ${
-              location.pathname === '/integrations'
-                ? 'bg-primary/10 text-primary border-primary/30'
-                : 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-card'
-            }`}
-            title="Connected Adapters & Integrations"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </Link>
+            <Link
+              to="/integrations"
+              className={`p-2 rounded-xl border border-border/50 transition-colors ${
+                location.pathname === '/integrations'
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-card'
+              }`}
+              title="Connected Adapters & Integrations"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </Link>
 
-          <Link
-            to="/privacy"
-            className={`p-2 rounded-xl border border-border/50 transition-colors ${
-              location.pathname === '/privacy'
-                ? 'bg-primary/10 text-primary border-primary/30'
-                : 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-card'
-            }`}
-            title="Privacy & Data Control"
-          >
-            <ShieldCheck className="w-4 h-4" />
-          </Link>
+            <Link
+              to="/privacy"
+              className={`p-2 rounded-xl border border-border/50 transition-colors ${
+                location.pathname === '/privacy'
+                  ? 'bg-primary/10 text-primary border-primary/30'
+                  : 'bg-card/60 text-muted-foreground hover:text-foreground hover:bg-card'
+              }`}
+              title="Privacy & Data Control"
+            >
+              <ShieldCheck className="w-4 h-4" />
+            </Link>
+          </div>
 
           {/* Notifications Hub Trigger */}
           <button
             onClick={() => setNotificationModalOpen(true)}
-            className="p-2 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer relative"
+            className="hidden sm:block p-2 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer relative"
             title="Notification Channels & Quiet Hours"
           >
             <Bell className="w-4 h-4" />
