@@ -12,7 +12,7 @@
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { encryptToken } from '../_shared/crypto.ts';
+import { decryptToken, encryptToken } from '../_shared/crypto.ts';
 import { verifyState } from '../_shared/state.ts';
 import { providerName, sharedCallbackUrl } from '../_shared/providers.ts';
 
@@ -521,12 +521,41 @@ serve(async (req: Request) => {
       return fail(`${providerLabel} returned no usable token.`, provider);
     }
 
+    // Preserve existing refresh token if provider (e.g. Google) did not return a new one on re-auth.
+    let finalRefreshToken = result.refreshToken;
+    if (!finalRefreshToken && result.refreshable) {
+      try {
+        const { data: existingAcc } = await supabase
+          .from('connected_accounts')
+          .select('encrypted_refresh_token')
+          .eq('user_id', verified.userId)
+          .eq('provider', provider)
+          .eq('email', result.email)
+          .maybeSingle();
+
+        if (existingAcc?.encrypted_refresh_token) {
+          const plain = await decryptToken(existingAcc.encrypted_refresh_token);
+          const parsed = JSON.parse(plain);
+          if (parsed && typeof parsed === 'object' && parsed.refresh_token && parsed.refresh_token !== parsed.access_token) {
+            finalRefreshToken = parsed.refresh_token;
+            console.log(`[OAuthCallback] preserved existing refresh_token for ${provider} (${result.email})`);
+          }
+        }
+      } catch (err) {
+        console.warn('[OAuthCallback] could not inspect existing token for refresh preservation:', err);
+      }
+    }
+
+    if (!finalRefreshToken) {
+      finalRefreshToken = result.refreshToken || result.accessToken;
+    }
+
     // Store a JSON credential so refresh tokens, bearer tokens, and extra
     // fields (Jira cloud_id) all travel together. Older raw-token rows keep
     // working — the token resolver handles both shapes.
     const credential = JSON.stringify({
       access_token: result.accessToken,
-      refresh_token: result.refreshToken || result.accessToken,
+      refresh_token: finalRefreshToken,
       refreshable: result.refreshable,
       ...(result.extra ?? {}),
     });
