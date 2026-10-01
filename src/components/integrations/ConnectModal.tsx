@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { supabase } from '@/lib/supabase';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { queryClient } from '@/lib/queryClient';
 import { queryKeys } from '@/lib/queryKeys';
 import { AccountProvider } from '@/types';
@@ -75,18 +76,19 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
         });
 
         if (fnError) {
-          // FunctionsHttpError means Edge Function replied; RelayError/FetchError means we never reached it
-          const isNetworkError =
-            fnError.name === 'FunctionsRelayError' ||
-            fnError.name === 'FetchError' ||
-            fnError.message?.toLowerCase().includes('failed to fetch') ||
-            fnError.message?.toLowerCase().includes('networkerror');
-          if (isNetworkError) {
+          // The Edge Function replied with a real error body (e.g. provider keys not
+          // configured). Surface ITS message — never the generic "non-2xx status code"
+          // wrapper that supabase-js puts on FunctionsHttpError.message.
+          if (fnError instanceof FunctionsHttpError) {
+            const detail = await fnError.context.json().catch(() => null);
             throw new Error(
-              'Cannot reach the server. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your deployment environment variables, then redeploy.'
+              detail?.message || detail?.error || `${provider.name} connection failed on the server.`
             );
           }
-          throw new Error(fnError.message || 'Failed to initialize OAuth connection');
+          // Otherwise we never got a reply from the function at all (network/DNS/env).
+          throw new Error(
+            'Cannot reach the server. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your deployment environment variables, then redeploy.'
+          );
         }
 
         if (!data?.url) {
