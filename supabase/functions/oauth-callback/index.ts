@@ -1,205 +1,481 @@
 /**
- * oauth-callback: verifies the signed HMAC state, exchanges the auth code at
- * the provider, captures the scopes actually granted, encrypts and stores the
- * token, upserts the connected account, and awaits an immediate first sync
- * before redirecting the user back to the app with the outcome.
+ * oauth-callback: the single shared redirect URI for every OAuth provider
+ * (no query string — the provider is recovered from the signed state).
+ *
+ * It verifies the signed state, runs the provider's REAL documented token
+ * exchange, captures the scopes actually granted, encrypts and stores the
+ * credential, upserts the connected account, and awaits a bounded first sync
+ * before redirecting back to the app.
+ *
+ * Every failure path produces a specific message that reaches the app banner —
+ * never a bare "non-2xx status code".
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { encryptToken } from '../_shared/crypto.ts';
+import { verifyState } from '../_shared/state.ts';
+import { providerName, sharedCallbackUrl } from '../_shared/providers.ts';
 
-// ---------------------------------------------------------------------------
-// Signed-state verification (HMAC-SHA256, expiring)
-// ---------------------------------------------------------------------------
-async function verifyState(signedState: string, secretKey: string): Promise<{ userId: string; provider: string } | null> {
-  try {
-    const [encodedData, sigHex] = signedState.split('.');
-    if (!encodedData || !sigHex) return null;
+// Providers that have a real sync function deployed today. Others connect and
+// store credentials without an immediate first sync (no error banner).
+const SYNC_IMPLEMENTED = new Set(['google', 'github', 'notion', 'todoist', 'slack', 'linear']);
 
-    const encoder = new TextEncoder();
-    const data = atob(encodedData);
-    const key = await crypto.subtle.importKey('raw', encoder.encode(secretKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-    const sigBytes = new Uint8Array(sigHex.match(/.{1,2}/g)!.map((b) => parseInt(b, 16)));
-    const isValid = await crypto.subtle.verify('HMAC', key, sigBytes, encoder.encode(data));
-    if (!isValid) return null;
-
-    const payload = JSON.parse(data);
-    if (!payload.exp || payload.exp < Date.now()) {
-      console.warn('[oauth-callback] state expired');
-      return null;
-    }
-    return { userId: payload.userId, provider: payload.provider };
-  } catch (e) {
-    console.error('[oauth-callback] state verification exception:', e);
-    return null;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Per-provider token exchange configuration
-// ---------------------------------------------------------------------------
 interface ExchangeResult {
   accessToken: string;
   refreshToken: string;
   grantedScopes: string[];
   email: string;
+  /** True when the provider issues short-lived tokens + a refresh token. */
+  refreshable: boolean;
+  /** Extra credential fields persisted alongside the tokens (e.g. Jira cloudId). */
+  extra?: Record<string, string>;
+}
+
+function basicAuth(id: string, secret: string): string {
+  return `Basic ${btoa(`${id}:${secret}`)}`;
+}
+
+async function readJson(res: Response): Promise<Record<string, any>> {
+  return await res.json().catch(() => ({}));
 }
 
 const exchanges: Record<string, (code: string, redirectUri: string) => Promise<ExchangeResult>> = {
   google: async (code, redirectUri) => {
-    const clientId = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
     const res = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri, grant_type: 'authorization_code' }),
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
+        code,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error_description || data.error);
-    console.log(`[oauth-callback] google granted scopes: ${data.scope || '(none returned)'}`);
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Google token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Google returned no access_token.');
 
     let email = 'google-user@sync';
-    if (data.access_token) {
-      const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      });
-      if (userRes.ok) {
-        const u = await userRes.json();
-        if (u.email) email = u.email;
-      }
-    }
-    return {
-      accessToken: data.access_token ?? '',
-      refreshToken: data.refresh_token ?? data.access_token ?? '',
-      grantedScopes: (data.scope ?? '').split(' ').filter(Boolean),
-      email,
-    };
-  },
-
-  microsoft: async (code, redirectUri) => {
-    const clientId = Deno.env.get('MICROSOFT_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('MICROSOFT_CLIENT_SECRET') ?? '';
-    const res = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri, grant_type: 'authorization_code' }),
+    const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error_description || data.error);
-    console.log(`[oauth-callback] microsoft granted scopes: ${data.scope || '(none returned)'}`);
-
-    let email = 'microsoft-user@sync';
-    if (data.access_token) {
-      const userRes = await fetch('https://graph.microsoft.com/v1.0/me', {
-        headers: { Authorization: `Bearer ${data.access_token}` },
-      });
-      if (userRes.ok) {
-        const u = await userRes.json();
-        email = u.mail || u.userPrincipalName || email;
-      }
+    if (userRes.ok) {
+      const u = await readJson(userRes);
+      if (u.email) email = u.email;
     }
     return {
-      accessToken: data.access_token ?? '',
-      refreshToken: data.refresh_token ?? data.access_token ?? '',
-      grantedScopes: (data.scope ?? '').split(' ').filter(Boolean),
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
       email,
+      refreshable: true,
     };
   },
 
   github: async (code, redirectUri) => {
-    const clientId = Deno.env.get('GITHUB_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('GITHUB_CLIENT_SECRET') ?? '';
     const res = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri }),
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GITHUB_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('GITHUB_CLIENT_SECRET') ?? '',
+        code,
+        redirect_uri: redirectUri,
+      }),
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error_description || data.error);
-    console.log(`[oauth-callback] github granted scopes: ${data.scope || '(none returned)'}`);
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `GitHub token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('GitHub returned no access_token.');
 
     let email = 'github-user@sync';
-    if (data.access_token) {
-      const userRes = await fetch('https://api.github.com/user', {
-        headers: { Authorization: `Bearer ${data.access_token}`, 'User-Agent': 'UnifyHub-Sync-App' },
-      });
-      if (userRes.ok) {
-        const u = await userRes.json();
-        email = u.email || `${u.login}@github.com`;
-      }
+    const userRes = await fetch('https://api.github.com/user', {
+      headers: { Authorization: `Bearer ${data.access_token}`, 'User-Agent': 'UnifyHub-Sync-App' },
+    });
+    if (userRes.ok) {
+      const u = await readJson(userRes);
+      email = u.email || `${u.login}@github.com`;
     }
-    // GitHub tokens are long-lived bearers.
-    return { accessToken: data.access_token ?? '', refreshToken: data.access_token ?? '', grantedScopes: (data.scope ?? '').split(',').filter(Boolean), email };
+    // GitHub OAuth tokens are long-lived bearer tokens.
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.access_token,
+      grantedScopes: String(data.scope ?? '').split(',').filter(Boolean),
+      email,
+      refreshable: false,
+    };
   },
 
   notion: async (code, redirectUri) => {
-    const clientId = Deno.env.get('NOTION_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('NOTION_CLIENT_SECRET') ?? '';
+    // Notion exchange uses HTTP Basic auth (client id : secret) + JSON body.
     const res = await fetch('https://api.notion.com/v1/oauth/token', {
       method: 'POST',
-      headers: { Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`, 'Content-Type': 'application/json' },
+      headers: {
+        Authorization: basicAuth(Deno.env.get('NOTION_CLIENT_ID') ?? '', Deno.env.get('NOTION_CLIENT_SECRET') ?? ''),
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28',
+      },
       body: JSON.stringify({ grant_type: 'authorization_code', code, redirect_uri: redirectUri }),
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error_description || data.error);
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Notion token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Notion returned no access_token.');
+    // Notion returns the workspace, not a user email, and no scope list.
     return {
-      accessToken: data.access_token ?? '',
-      refreshToken: data.access_token ?? '',
-      grantedScopes: (data.token_type ? [] : []),
+      accessToken: data.access_token,
+      refreshToken: data.access_token,
+      grantedScopes: [],
       email: data.workspace_name ? `${data.workspace_name}@notion` : 'workspace@notion',
+      refreshable: false,
     };
   },
 
   todoist: async (code, redirectUri) => {
-    const clientId = Deno.env.get('TODOIST_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('TODOIST_CLIENT_SECRET') ?? '';
     const res = await fetch('https://todoist.com/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri }),
+      body: new URLSearchParams({
+        client_id: Deno.env.get('TODOIST_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('TODOIST_CLIENT_SECRET') ?? '',
+        code,
+        redirect_uri: redirectUri,
+      }),
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    return { accessToken: data.access_token ?? '', refreshToken: data.access_token ?? '', grantedScopes: [], email: 'user@todoist' };
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error || `Todoist token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Todoist returned no access_token.');
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.access_token,
+      grantedScopes: [],
+      email: 'user@todoist',
+      refreshable: false,
+    };
   },
 
   slack: async (code, redirectUri) => {
-    const clientId = Deno.env.get('SLACK_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('SLACK_CLIENT_SECRET') ?? '';
     const res = await fetch('https://slack.com/api/oauth.v2.access', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri }),
+      body: new URLSearchParams({
+        client_id: Deno.env.get('SLACK_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('SLACK_CLIENT_SECRET') ?? '',
+        code,
+        redirect_uri: redirectUri,
+      }),
     });
-    const data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Slack OAuth exchange failed');
-    console.log(`[oauth-callback] slack granted user scopes: ${data.authed_user?.scope || '(none)'}`);
-    const token = data.authed_user?.access_token || data.access_token || '';
+    const data = await readJson(res);
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `Slack OAuth exchange failed (HTTP ${res.status})`);
+    }
+    // With user_scope, the user token lives at authed_user.access_token.
+    const token = data.authed_user?.access_token || '';
+    if (!token) throw new Error('Slack returned no user access token. Ensure user_scope is requested.');
     return {
       accessToken: token,
       refreshToken: token,
-      grantedScopes: (data.authed_user?.scope ?? '').split(',').filter(Boolean),
+      grantedScopes: String(data.authed_user?.scope ?? '').split(',').filter(Boolean),
       email: data.team?.name ? `${data.team.name}@slack` : 'user@slack',
+      refreshable: false,
     };
   },
 
   linear: async (code, redirectUri) => {
-    const clientId = Deno.env.get('LINEAR_CLIENT_ID') ?? '';
-    const clientSecret = Deno.env.get('LINEAR_CLIENT_SECRET') ?? '';
     const res = await fetch('https://api.linear.app/oauth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri, grant_type: 'authorization_code' }),
+      body: new URLSearchParams({
+        client_id: Deno.env.get('LINEAR_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('LINEAR_CLIENT_SECRET') ?? '',
+        code,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code',
+      }),
     });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error_description || data.error);
-    return { accessToken: data.access_token ?? '', refreshToken: data.access_token ?? '', grantedScopes: (data.scope ?? '').split(' ').filter(Boolean), email: 'team@linear' };
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Linear token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Linear returned no access_token.');
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.access_token,
+      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
+      email: 'team@linear',
+      refreshable: false,
+    };
+  },
+
+  jira: async (code, redirectUri) => {
+    const res = await fetch('https://auth.atlassian.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'authorization_code',
+        client_id: Deno.env.get('JIRA_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('JIRA_CLIENT_SECRET') ?? '',
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Jira token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Jira returned no access_token.');
+
+    // Jira 3LO: resolve the cloudId of the first accessible site.
+    let cloudId = '';
+    let email = 'jira-user@sync';
+    const resourcesRes = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {
+      headers: { Authorization: `Bearer ${data.access_token}`, Accept: 'application/json' },
+    });
+    if (resourcesRes.ok) {
+      const resources = await readJson(resourcesRes);
+      if (Array.isArray(resources) && resources.length > 0) {
+        cloudId = String(resources[0].id || '');
+        email = String(resources[0].url || '').replace(/^https?:\/\//, '') || email;
+      }
+    }
+    if (!cloudId) {
+      throw new Error('Jira authorized but no accessible Atlassian site was returned. Grant access to at least one Jira site.');
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
+      email,
+      refreshable: true,
+      extra: { cloud_id: cloudId },
+    };
+  },
+
+  asana: async (code, redirectUri) => {
+    const res = await fetch('https://app.asana.com/-/oauth_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: Deno.env.get('ASANA_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('ASANA_CLIENT_SECRET') ?? '',
+        redirect_uri: redirectUri,
+        code,
+      }),
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Asana token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Asana returned no access_token.');
+
+    let email = 'user@asana';
+    const meRes = await fetch('https://app.asana.com/api/1.0/users/me', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await readJson(meRes);
+      if (me.data?.email) email = me.data.email;
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: [],
+      email,
+      refreshable: Boolean(data.refresh_token),
+    };
+  },
+
+  clickup: async (code, redirectUri) => {
+    const res = await fetch(`https://api.clickup.com/api/v2/oauth/token?${new URLSearchParams({
+      client_id: Deno.env.get('CLICKUP_CLIENT_ID') ?? '',
+      client_secret: Deno.env.get('CLICKUP_CLIENT_SECRET') ?? '',
+      code,
+      redirect_uri: redirectUri,
+    })}`, { method: 'POST' });
+    const data = await readJson(res);
+    if (!res.ok || data.err) throw new Error(data.err || `ClickUp token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('ClickUp returned no access_token.');
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.access_token,
+      grantedScopes: [],
+      email: 'user@clickup',
+      refreshable: false,
+    };
+  },
+
+  dropbox: async (code, redirectUri) => {
+    const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        client_id: Deno.env.get('DROPBOX_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('DROPBOX_CLIENT_SECRET') ?? '',
+      }),
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Dropbox token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Dropbox returned no access_token.');
+    if (!data.refresh_token) {
+      throw new Error('Dropbox returned no refresh_token. Ensure token_access_type=offline is set on the authorize URL.');
+    }
+
+    let email = 'user@dropbox';
+    const meRes = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await readJson(meRes);
+      if (me.email) email = me.email;
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      grantedScopes: [],
+      email,
+      refreshable: true,
+    };
+  },
+
+  box: async (code, redirectUri) => {
+    const res = await fetch('https://api.box.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id: Deno.env.get('BOX_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('BOX_CLIENT_SECRET') ?? '',
+        redirect_uri: redirectUri,
+      }),
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Box token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Box returned no access_token.');
+
+    let email = 'user@box';
+    const meRes = await fetch('https://api.box.com/2.0/users/me', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await readJson(meRes);
+      if (me.login) email = me.login;
+    }
+    // Box access tokens are short-lived; refresh rotates the refresh token.
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: [],
+      email,
+      refreshable: Boolean(data.refresh_token),
+    };
+  },
+
+  zoom: async (code, redirectUri) => {
+    // Zoom exchange authenticates with HTTP Basic (client id : secret).
+    const res = await fetch(`https://zoom.us/oauth/token?${new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: redirectUri,
+    })}`, {
+      method: 'POST',
+      headers: {
+        Authorization: basicAuth(Deno.env.get('ZOOM_CLIENT_ID') ?? '', Deno.env.get('ZOOM_CLIENT_SECRET') ?? ''),
+      },
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.reason || data.error || `Zoom token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Zoom returned no access_token.');
+
+    let email = 'user@zoom';
+    const meRes = await fetch('https://api.zoom.us/v2/users/me', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await readJson(meRes);
+      if (me.email) email = me.email;
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
+      email,
+      refreshable: Boolean(data.refresh_token),
+    };
+  },
+
+  gitlab: async (code, redirectUri) => {
+    const res = await fetch('https://gitlab.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: Deno.env.get('GITLAB_CLIENT_ID') ?? '',
+        client_secret: Deno.env.get('GITLAB_CLIENT_SECRET') ?? '',
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+      }),
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `GitLab token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('GitLab returned no access_token.');
+
+    let email = 'user@gitlab';
+    const meRes = await fetch('https://gitlab.com/api/v4/user', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await readJson(meRes);
+      if (me.email) email = me.email;
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
+      email,
+      refreshable: Boolean(data.refresh_token),
+    };
+  },
+
+  bitbucket: async (code) => {
+    // Bitbucket/Atlassian exchanges with HTTP Basic and no redirect_uri.
+    const res = await fetch('https://bitbucket.org/site/oauth2/access_token', {
+      method: 'POST',
+      headers: {
+        Authorization: basicAuth(Deno.env.get('BITBUCKET_CLIENT_ID') ?? '', Deno.env.get('BITBUCKET_CLIENT_SECRET') ?? ''),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ grant_type: 'authorization_code', code }),
+    });
+    const data = await readJson(res);
+    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Bitbucket token endpoint returned HTTP ${res.status}`);
+    if (!data.access_token) throw new Error('Bitbucket returned no access_token.');
+
+    let email = 'user@bitbucket';
+    const meRes = await fetch('https://api.bitbucket.org/2.0/user', {
+      headers: { Authorization: `Bearer ${data.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await readJson(meRes);
+      if (me.display_name) email = `${me.display_name}@bitbucket`;
+    }
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? '',
+      grantedScopes: [],
+      email,
+      refreshable: true,
+    };
   },
 };
 
 serve(async (req: Request) => {
   const url = new URL(req.url);
   const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173';
+  const fail = (message: string, provider?: string) => {
+    console.error(`[oauth-callback] ${provider ?? ''} error: ${message}`);
+    const params = new URLSearchParams({ status: 'error', message });
+    if (provider) params.set('provider', provider);
+    return Response.redirect(`${appUrl}/integrations?${params.toString()}`, 302);
+  };
 
   try {
     const code = url.searchParams.get('code');
@@ -207,47 +483,62 @@ serve(async (req: Request) => {
     const errorParam = url.searchParams.get('error');
     const errorDesc = url.searchParams.get('error_description');
 
+    const verified = stateParam ? await verifyState(stateParam) : null;
+    const provider = verified?.provider ?? '';
+    const providerLabel = provider ? providerName(provider) : 'This provider';
+
     if (errorParam) {
-      const msg = errorDesc || errorParam;
-      console.error('[oauth-callback] provider error:', msg);
-      return Response.redirect(`${appUrl}/integrations?status=error&message=${encodeURIComponent(msg)}`, 302);
+      return fail(`${providerLabel} authorization was declined: ${errorDesc || errorParam}`, provider || undefined);
     }
-    if (!code || !stateParam) {
-      return Response.redirect(`${appUrl}/integrations?status=error&message=Missing+code+or+state`, 302);
+    if (!stateParam || !verified) {
+      return fail('Invalid or expired authorization state. Start the connection again from the Integrations page.');
     }
-
-    const encryptionKey = Deno.env.get('TOKEN_ENCRYPTION_KEY') || 'unifyhub-default-secret-key-32b!';
-    const verified = await verifyState(stateParam, encryptionKey);
-
-    // Fallback: plain userId state (backwards compatibility).
-    const userId = verified?.userId || stateParam;
-    const provider = verified?.provider || url.searchParams.get('provider') || 'google';
+    if (!code) {
+      return fail(`No authorization code was returned by ${providerLabel}.`, provider);
+    }
 
     const exchange = exchanges[provider];
     if (!exchange) {
-      return Response.redirect(`${appUrl}/integrations?status=error&message=${encodeURIComponent(`Unsupported provider: ${provider}`)}`, 302);
+      return fail(`${providerLabel} is not a supported OAuth provider.`, provider);
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    if (!supabaseUrl || !serviceRoleKey) {
+      return fail('Server is missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY, so credentials cannot be saved.', provider);
+    }
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const redirectUri = `${supabaseUrl}/functions/v1/oauth-callback?provider=${provider}`;
 
-    const result = await exchange(code, redirectUri);
-    if (!result.accessToken && !result.refreshToken) {
-      throw new Error('Failed to obtain token from provider');
+    let result: ExchangeResult;
+    try {
+      result = await exchange(code, sharedCallbackUrl());
+    } catch (err) {
+      return fail(err instanceof Error ? err.message : String(err), provider);
     }
 
-    const encryptedRefreshToken = await encryptToken(result.refreshToken || result.accessToken);
+    if (!result.accessToken && !result.refreshToken) {
+      return fail(`${providerLabel} returned no usable token.`, provider);
+    }
+
+    // Store a JSON credential so refresh tokens, bearer tokens, and extra
+    // fields (Jira cloud_id) all travel together. Older raw-token rows keep
+    // working — the token resolver handles both shapes.
+    const credential = JSON.stringify({
+      access_token: result.accessToken,
+      refresh_token: result.refreshToken || result.accessToken,
+      refreshable: result.refreshable,
+      ...(result.extra ?? {}),
+    });
+    const encryptedRefreshToken = await encryptToken(credential);
 
     const { data: accountRow, error: upsertError } = await supabase
       .from('connected_accounts')
       .upsert(
         {
-          user_id: userId,
+          user_id: verified.userId,
           provider,
           email: result.email,
-          label: `${provider.charAt(0).toUpperCase() + provider.slice(1)} (${result.email})`,
+          label: `${providerLabel} (${result.email})`,
           encrypted_refresh_token: encryptedRefreshToken,
           granted_scopes: result.grantedScopes,
           status: 'connected',
@@ -259,14 +550,12 @@ serve(async (req: Request) => {
       .single();
 
     if (upsertError) {
-      console.error('[oauth-callback] failed to save connected account:', upsertError);
-      throw new Error(`Could not persist account: ${upsertError.message}`);
+      return fail(`Could not save the ${providerLabel} account: ${upsertError.message}`, provider);
     }
 
-    // Immediate first sync: awaited (bounded) so items exist on redirect.
     let syncedItems = 0;
     let syncError: string | null = null;
-    if (accountRow?.id) {
+    if (accountRow?.id && SYNC_IMPLEMENTED.has(provider)) {
       try {
         const syncRes = await Promise.race([
           fetch(`${supabaseUrl}/functions/v1/sync-provider`, {
@@ -278,11 +567,10 @@ serve(async (req: Request) => {
         ]);
         const syncData = await syncRes.json().catch(() => ({}));
         if (!syncRes.ok) {
-          syncError = syncData.error || `Sync function returned HTTP ${syncRes.status}`;
-          console.error('[oauth-callback] first sync failed:', syncError);
+          syncError = syncData.error || `Sync returned HTTP ${syncRes.status}`;
+          console.error(`[oauth-callback] first sync failed: ${syncError}`);
         } else {
           syncedItems = syncData.totalUpserted ?? 0;
-          console.log(`[oauth-callback] first sync upserted ${syncedItems} items for ${provider}`);
         }
       } catch (e) {
         syncError = e instanceof Error ? e.message : String(e);
@@ -290,19 +578,10 @@ serve(async (req: Request) => {
       }
     }
 
-    const params = new URLSearchParams({
-      status: 'connected',
-      provider,
-      synced: String(syncedItems),
-    });
+    const params = new URLSearchParams({ status: 'connected', provider, synced: String(syncedItems) });
     if (syncError) params.set('sync_error', syncError.slice(0, 300));
-
     return Response.redirect(`${appUrl}/integrations?${params.toString()}`, 302);
   } catch (err) {
-    console.error('[oauth-callback] fatal:', err);
-    return Response.redirect(
-      `${appUrl}/integrations?status=error&message=${encodeURIComponent((err as Error).message)}`,
-      302
-    );
+    return fail(err instanceof Error ? err.message : String(err));
   }
 });
