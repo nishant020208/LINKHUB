@@ -23,7 +23,9 @@ interface EnvConfig {
 
 const rawSupabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const rawAppUrl = import.meta.env.VITE_APP_URL || 'http://localhost:5173';
+// Normalize the app URL: a trailing slash would produce broken redirects like
+// `https://app//auth/callback`, so strip it once here.
+const rawAppUrl = (import.meta.env.VITE_APP_URL || 'http://localhost:5173').replace(/\/+$/, '');
 const rawGoogleSiteVerification = import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || '';
 
 // Validates whether Supabase credentials look real vs placeholders
