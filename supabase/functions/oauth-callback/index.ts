@@ -469,7 +469,8 @@ const exchanges: Record<string, (code: string, redirectUri: string) => Promise<E
 
 serve(async (req: Request) => {
   const url = new URL(req.url);
-  const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173';
+  // Strip a trailing slash so redirects never become `https://app//integrations`.
+  const appUrl = (Deno.env.get('APP_URL') || 'http://localhost:5173').replace(/\/+$/, '');
   const fail = (message: string, provider?: string) => {
     console.error(`[oauth-callback] ${provider ?? ''} error: ${message}`);
     const params = new URLSearchParams({ status: 'error', message });
