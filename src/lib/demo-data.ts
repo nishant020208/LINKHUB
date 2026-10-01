@@ -16,10 +16,10 @@ export const DEMO_ACCOUNTS: ConnectedAccount[] = [
   {
     id: 'acc-2',
     user_id: 'demo-user-1',
-    provider: 'microsoft',
+    provider: 'google',
     email: 'alex.chen@cornell.edu',
-    label: 'Cornell Outlook',
-    color: '#3b82f6', // blue
+    label: 'Cornell Google Workspace',
+    color: '#4285F4', // Google blue
     status: 'connected',
     last_synced_at: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
     sync_enabled_types: ['email', 'event', 'deadline', 'task'],
@@ -40,10 +40,10 @@ export const DEMO_ACCOUNTS: ConnectedAccount[] = [
   {
     id: 'acc-4',
     user_id: 'demo-user-1',
-    provider: 'canvas',
-    email: 'achen42@canvas.cornell.edu',
-    label: 'Cornell Canvas LMS',
-    color: '#f59e0b', // amber
+    provider: 'moodle',
+    email: 'achen42@moodle.cornell.edu',
+    label: 'Cornell Moodle LMS',
+    color: '#F98012', // Moodle orange
     status: 'connected',
     last_synced_at: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
     sync_enabled_types: ['deadline', 'task', 'file'],
@@ -81,8 +81,8 @@ export const DEMO_ITEMS: Item[] = [
     due_at: subHours(2),
     priority_score: 95,
     is_done: false,
-    source_id: 'canvas-assn-4410-03',
-    url: 'https://canvas.cornell.edu/courses/31821/assignments/10928',
+    source_id: 'moodle-assn-4410-03',
+    url: 'https://moodle.cornell.edu/mod/assign/view.php?id=10928',
     metadata: {
       course_name: 'CS 4410 - Operating Systems',
       urgent_keywords: ['submit', 'lab', 'virtual memory'],
@@ -102,8 +102,8 @@ export const DEMO_ITEMS: Item[] = [
     due_at: addHours(3.5),
     priority_score: 88,
     is_done: false,
-    source_id: 'canvas-assn-4300-midterm',
-    url: 'https://canvas.cornell.edu/courses/29104/assignments/8817',
+    source_id: 'moodle-assn-4300-midterm',
+    url: 'https://moodle.cornell.edu/mod/assign/view.php?id=8817',
     metadata: {
       course_name: 'INFO 4300 - Info Arch',
       urgent_keywords: ['midterm', 'evaluation', 'deadline'],
@@ -143,8 +143,8 @@ export const DEMO_ITEMS: Item[] = [
     due_at: addDays(2),
     priority_score: 72,
     is_done: false,
-    source_id: 'canvas-math-ps7',
-    url: 'https://canvas.cornell.edu/courses/30112/assignments/9912',
+    source_id: 'moodle-math-ps7',
+    url: 'https://moodle.cornell.edu/mod/assign/view.php?id=9912',
     metadata: {
       course_name: 'MATH 2940 - Linear Algebra',
     },
@@ -161,7 +161,7 @@ export const DEMO_ITEMS: Item[] = [
     due_at: addDays(4),
     priority_score: 65,
     is_done: false,
-    source_id: 'outlook-capstone-m2',
+    source_id: 'gcal-capstone-m2',
     metadata: {
       course_name: 'ECE 4920 - Senior Design',
     },
@@ -239,7 +239,7 @@ export const DEMO_ITEMS: Item[] = [
     priority_score: 92,
     is_done: false,
     source_id: 'email-corn-prof-exam',
-    url: 'https://outlook.office.com/mail/id/194821',
+    url: 'https://mail.google.com/mail/u/1/#inbox/194821',
     metadata: {
       sender: 'mvr@cs.cornell.edu',
       urgent_keywords: ['midterm', 'rescheduled', 'exam'],
@@ -323,8 +323,8 @@ export const DEMO_ITEMS: Item[] = [
     description: 'Final component system specifications and spacing matrix.',
     priority_score: 68,
     is_done: false,
-    source_id: 'onedrive-file-figma',
-    url: 'https://cornell-my.sharepoint.com/personal/achen42/info4300.fig',
+    source_id: 'drive-file-figma',
+    url: 'https://drive.google.com/file/d/447120099/view',
     metadata: {
       pinned: true,
       file_type: 'FIG',
