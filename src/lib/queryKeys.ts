@@ -8,4 +8,5 @@ export const queryKeys = {
   items: ['items'] as const,
   syncLogs: ['sync_logs'] as const,
   userSettings: ['user_settings'] as const,
+  providerStatus: ['provider_status'] as const,
 } as const;
