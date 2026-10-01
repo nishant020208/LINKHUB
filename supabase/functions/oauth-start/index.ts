@@ -182,7 +182,7 @@ serve(async (req: Request) => {
 
       case 'trello': {
         // Trello returns its token in the URL fragment; the app captures it.
-        const appUrl = Deno.env.get('APP_URL') || 'http://localhost:5173';
+        const appUrl = (Deno.env.get('APP_URL') || 'http://localhost:5173').replace(/\/+$/, '');
         authUrl = `https://trello.com/1/authorize?${paramsFor({
           key: Deno.env.get('TRELLO_API_KEY')!,
           name: 'UnifyHub',
