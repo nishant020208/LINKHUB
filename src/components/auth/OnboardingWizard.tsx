@@ -15,7 +15,7 @@ export const OnboardingWizard: React.FC = () => {
   const { isOnboardingOpen, setOnboardingOpen, completeOnboarding } = useAuthStore();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedRole, setSelectedRole] = useState<'student' | 'pro' | 'hybrid'>('student');
-  const [selectedAccounts, setSelectedAccounts] = useState<string[]>(['google', 'microsoft']);
+  const [selectedAccounts, setSelectedAccounts] = useState<string[]>(['google', 'github']);
 
   if (!isOnboardingOpen || typeof document === 'undefined') return null;
 
@@ -109,7 +109,7 @@ export const OnboardingWizard: React.FC = () => {
                 <div>
                   <h5 className="font-heading font-bold text-sm text-foreground">Professional</h5>
                   <p className="text-[11px] text-muted-foreground mt-1 leading-snug">
-                    Meetings, GitHub issues, Outlook & client emails.
+                    Meetings, GitHub issues, Slack & client emails.
                   </p>
                 </div>
               </button>
@@ -152,9 +152,9 @@ export const OnboardingWizard: React.FC = () => {
             <div className="space-y-2.5">
               {[
                 { key: 'google', name: 'Google Workspace & Classroom', desc: 'Gmail, Calendar, Drive, and Classroom assignments' },
-                { key: 'microsoft', name: 'Microsoft 365 & Outlook', desc: 'University Outlook mail, Calendar, and Teams meetings' },
-                { key: 'canvas', name: 'Canvas / Moodle LMS', desc: 'Course assignments, due dates, and grade notices' },
                 { key: 'github', name: 'GitHub & Developer Tools', desc: 'Assigned issues, PR reviews, and milestones' },
+                { key: 'notion', name: 'Notion', desc: 'Databases, project tasks, and deadlines' },
+                { key: 'todoist', name: 'Todoist', desc: 'Tasks, priorities, and recurring reminders' },
               ].map((provider) => {
                 const isSelected = selectedAccounts.includes(provider.key);
 
@@ -217,7 +217,7 @@ export const OnboardingWizard: React.FC = () => {
               <div className="p-3 rounded-xl bg-card/40 border border-border/40 flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-amber-400" />
-                  College & Courses (Canvas + University Outlook)
+                  College & Courses (Google Classroom + Moodle)
                 </span>
                 <span className="text-muted-foreground">Enabled</span>
               </div>
