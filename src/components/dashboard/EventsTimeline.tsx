@@ -17,7 +17,6 @@ export const EventsTimeline: React.FC = () => {
     new Set(
       accounts.map((a) => {
         if (a.provider === 'google') return `Google Calendar (${a.email})`;
-        if (a.provider === 'microsoft') return `Outlook Calendar (${a.email})`;
         return a.label || a.provider;
       })
     )
@@ -26,7 +25,7 @@ export const EventsTimeline: React.FC = () => {
   const subtitleText =
     calendarProviders.length > 0
       ? `Combined ${calendarProviders.join(', ')} schedule`
-      : 'Connect Google Calendar or Outlook to view your schedule';
+      : 'Connect a calendar provider to view your schedule';
 
   return (
     <Card variant="bento" className="space-y-4">
@@ -71,7 +70,7 @@ export const EventsTimeline: React.FC = () => {
               const isVideoCall =
                 event.url?.includes('zoom.us') ||
                 event.url?.includes('meet.google') ||
-                event.url?.includes('teams.microsoft');
+                event.url?.includes('teams.microsoft.com');
 
               return (
                 <div key={event.id} className="relative group">
@@ -128,7 +127,7 @@ export const EventsTimeline: React.FC = () => {
             <Calendar className="w-6 h-6 text-muted-foreground mx-auto" />
             <p className="text-foreground font-semibold">No scheduled events today</p>
             <p className="text-[11px] text-muted-foreground">
-              Your Google Calendar and Microsoft Outlook events will sync and display here.
+              Your connected calendar events will sync and display here.
             </p>
           </div>
         )}
