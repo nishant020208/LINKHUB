@@ -2,16 +2,13 @@ export type ItemType = 'email' | 'event' | 'deadline' | 'task' | 'file';
 
 export type AccountProvider =
   | 'google'
-  | 'microsoft'
   | 'github'
   | 'notion'
   | 'todoist'
   | 'slack'
   | 'linear'
   | 'jira'
-  | 'ical'
   | 'moodle'
-  | 'canvas'
   | 'dropbox'
   | 'box'
   | 'zoom'
@@ -93,8 +90,8 @@ export interface Workspace {
 export interface ProviderAdapter {
   key: AccountProvider;
   name: string;
-  category: 'google' | 'microsoft' | 'academic' | 'developer' | 'productivity' | 'custom';
-  authType: 'oauth' | 'token' | 'url' | 'credentials';
+  category: 'google' | 'academic' | 'developer' | 'productivity' | 'custom';
+  authType: 'oauth' | 'token' | 'credentials';
   requiredScopes?: string[];
   description: string;
   icon: string;
