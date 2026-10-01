@@ -58,11 +58,8 @@ export function getProviderBadgeStyle(provider: string): { bg: string; text: str
   switch (provider) {
     case 'google':
       return { bg: 'bg-status-connected/10', text: 'text-status-connected', border: 'border-status-connected/30' };
-    case 'microsoft':
-      return { bg: 'bg-status-syncing/10', text: 'text-status-syncing', border: 'border-status-syncing/30' };
     case 'github':
       return { bg: 'bg-muted', text: 'text-foreground', border: 'border-border/30' };
-    case 'canvas':
     case 'moodle':
       return { bg: 'bg-status-warning/10', text: 'text-status-warning', border: 'border-status-warning/30' };
     case 'notion':
