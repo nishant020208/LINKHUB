@@ -97,9 +97,11 @@ export function useSyncData() {
     mutationFn: async (accountId?: string) => {
       setSyncState(true);
 
+      // Paused accounts (including retired providers) are intentionally not synced.
+      const allAccounts = accountsQuery.data ?? [];
       const accountsToSync = accountId
-        ? accountsQuery.data?.filter((a) => a.id === accountId) ?? []
-        : accountsQuery.data ?? [];
+        ? allAccounts.filter((a) => a.id === accountId)
+        : allAccounts.filter((a) => a.status !== 'paused');
 
       if (accountsToSync.length === 0) {
         throw new Error('No connected accounts available to sync.');
