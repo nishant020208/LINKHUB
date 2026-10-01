@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import type { AccountProvider } from '@/types';
 
 /**
@@ -25,17 +26,22 @@ export async function startProviderOAuth(provider: AccountProvider): Promise<voi
   });
 
   if (fnError) {
-    const isNetworkError =
-      fnError.name === 'FunctionsRelayError' ||
-      fnError.name === 'FetchError' ||
-      fnError.message?.toLowerCase().includes('failed to fetch') ||
-      fnError.message?.toLowerCase().includes('networkerror');
-    if (isNetworkError) {
-      throw new Error(
-        'Cannot reach the server. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set, then redeploy.'
-      );
+    // The Edge Function replied with a real error body. Read IT — FunctionsHttpError
+    // .message is only the generic "non-2xx status code" wrapper, never the reason.
+    if (fnError instanceof FunctionsHttpError) {
+      const detail = await fnError.context.json().catch(() => null);
+      const real = detail?.message || detail?.error;
+      if (detail?.error === 'not_configured') {
+        throw new Error(
+          `${provider} OAuth keys are not configured yet. Add the client ID/secret to Supabase Edge Function secrets.`
+        );
+      }
+      throw new Error(real || `${provider} connection failed on the server.`);
     }
-    throw new Error(fnError.message || 'Failed to initialize OAuth connection');
+    // No reply from the function at all — network/DNS/env problem.
+    throw new Error(
+      'Cannot reach the server. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set, then redeploy.'
+    );
   }
 
   if (!data?.url) {
