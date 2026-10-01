@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink, AlertTriangle } from 'lucide-react';
+import { ExternalLink, AlertTriangle, RefreshCw } from 'lucide-react';
 
 /**
  * Splits the joined per-stream error summary stored on the account row
@@ -8,6 +8,8 @@ import { ExternalLink, AlertTriangle } from 'lucide-react';
  * When a segment contains a Google "enable this API" console URL (the signature
  * of the 403 accessNotConfigured / SERVICE_DISABLED failure), it is rendered as
  * a one-click Enable button for that exact API instead of raw error text.
+ * When multiple streams fail due to expired/revoked authentication, it renders
+ * a single actionable "Reconnect Account Now" banner with one-click OAuth re-auth.
  */
 
 const ENABLE_URL_RE =
@@ -48,8 +50,16 @@ export function splitAccountError(joined: string | null | undefined): StreamErro
     });
 }
 
-export const GoogleApiErrorHelp: React.FC<{ errorMessage: string | null | undefined }> = ({
+export interface GoogleApiErrorHelpProps {
+  errorMessage: string | null | undefined;
+  onReconnect?: () => void;
+  isReconnecting?: boolean;
+}
+
+export const GoogleApiErrorHelp: React.FC<GoogleApiErrorHelpProps> = ({
   errorMessage,
+  onReconnect,
+  isReconnecting = false,
 }) => {
   const parts = splitAccountError(errorMessage);
   if (parts.length === 0) return null;
@@ -57,34 +67,66 @@ export const GoogleApiErrorHelp: React.FC<{ errorMessage: string | null | undefi
   const failing = parts.filter((p) => p.message && !/^null$/i.test(p.message));
   if (failing.length === 0) return null;
 
+  const isAuthError = failing.some((p) =>
+    /expired|revoked|invalid authentication|invalid_grant|reconnect/i.test(p.message)
+  );
+
   return (
     <div className="space-y-2">
-      {failing.map((part, idx) => (
-        <div
-          key={`${part.dataType}-${idx}`}
-          className="text-xs text-status-error/90 bg-status-error/10 border border-status-error/20 p-2.5 rounded-xl space-y-2"
-        >
+      {isAuthError && (
+        <div className="text-xs text-status-error/90 bg-status-error/10 border border-status-error/30 p-3 rounded-xl space-y-2.5">
           <div className="flex items-start gap-2">
-            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-status-error" />
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-status-error" />
             <div className="min-w-0">
-              <span className="font-mono font-semibold text-status-error">{part.dataType}</span>
-              <span className="text-status-error/80"> — {part.message}</span>
+              <span className="font-semibold text-status-error">Access Token Expired or Revoked</span>
+              <p className="text-status-error/80 mt-0.5 leading-relaxed">
+                Google requires renewed authorization to synchronize your emails, calendar events, tasks, and files.
+              </p>
             </div>
           </div>
 
-          {part.enableUrl && part.apiName && (
-            <a
-              href={part.enableUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-primary/15 border border-primary/40 text-primary text-[11px] font-semibold hover:bg-primary/25 transition-colors"
+          {onReconnect && (
+            <button
+              type="button"
+              onClick={onReconnect}
+              disabled={isReconnecting}
+              className="flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-lg bg-primary/20 border border-primary/40 text-primary text-xs font-semibold hover:bg-primary/30 transition-all cursor-pointer disabled:opacity-60"
             >
-              <ExternalLink className="w-3 h-3" />
-              Enable {part.apiName} on Google Cloud
-            </a>
+              <RefreshCw className={`w-3.5 h-3.5 ${isReconnecting ? 'animate-spin' : ''}`} />
+              <span>{isReconnecting ? 'Launching Reconnection...' : 'Reconnect Google Account Now'}</span>
+            </button>
           )}
         </div>
-      ))}
+      )}
+
+      {failing
+        .filter((part) => !isAuthError || part.enableUrl)
+        .map((part, idx) => (
+          <div
+            key={`${part.dataType}-${idx}`}
+            className="text-xs text-status-error/90 bg-status-error/10 border border-status-error/20 p-2.5 rounded-xl space-y-2"
+          >
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-status-error" />
+              <div className="min-w-0">
+                <span className="font-mono font-semibold text-status-error">{part.dataType}</span>
+                <span className="text-status-error/80"> — {part.message}</span>
+              </div>
+            </div>
+
+            {part.enableUrl && part.apiName && (
+              <a
+                href={part.enableUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1.5 w-full px-2 py-1.5 rounded-lg bg-primary/15 border border-primary/40 text-primary text-[11px] font-semibold hover:bg-primary/25 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Enable {part.apiName} on Google Cloud
+              </a>
+            )}
+          </div>
+        ))}
     </div>
   );
 };
