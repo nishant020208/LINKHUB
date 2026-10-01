@@ -21,7 +21,9 @@ export interface TokenResolution {
   accessToken: string;
   error: string | null;
   needsReconnect: boolean;
-  /** Present when the provider rotated the refresh token during a refresh. */
+  /** True when a fresh access token was obtained via refresh */
+  refreshed?: boolean;
+  /** Present when a refresh token is available (either rotated or preserved) */
   newRefreshToken?: string;
   /** Extra credential fields carried from connect time (e.g. Jira cloud_id). */
   extra?: Record<string, string>;
@@ -212,19 +214,33 @@ export async function resolveAccessToken(account: AccountRow): Promise<TokenReso
   try {
     const outcome = await refreshAccessToken(account.provider, credential);
     if (!outcome) {
-      // Refreshable provider without configured secrets: reuse stored token.
-      if (bearer) {
-        console.warn(`[TokenRefresh] ${account.provider} secrets missing; reusing stored token`);
-        return { ok: true, accessToken: bearer, error: null, needsReconnect: false, extra: credential.extra };
+      // Missing client secrets or unsupported provider:
+      const clientId = account.provider === 'google' ? Deno.env.get('GOOGLE_CLIENT_ID') : true;
+      const clientSecret = account.provider === 'google' ? Deno.env.get('GOOGLE_CLIENT_SECRET') : true;
+
+      if (!clientId || !clientSecret) {
+        return {
+          ok: false,
+          accessToken: '',
+          error: `Google OAuth secrets (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) are missing in Supabase Edge Functions. Reconnect after configuring secrets.`,
+          needsReconnect: true,
+        };
       }
-      return { ok: false, accessToken: '', error: `Missing OAuth client secrets for ${account.provider}`, needsReconnect: true };
+
+      return {
+        ok: false,
+        accessToken: '',
+        error: `Stored credentials for ${account.provider} have expired and require reconnection.`,
+        needsReconnect: true,
+      };
     }
     return {
       ok: true,
       accessToken: outcome.accessToken,
       error: null,
       needsReconnect: false,
-      newRefreshToken: outcome.refreshToken,
+      refreshed: true,
+      newRefreshToken: outcome.refreshToken || credential.refresh_token,
       extra: credential.extra,
     };
   } catch (err) {
@@ -234,7 +250,7 @@ export async function resolveAccessToken(account: AccountRow): Promise<TokenReso
       accessToken: '',
       error: message,
       // Explicit rejections mean the grant is dead; network blips do not.
-      needsReconnect: /rejected|invalid|revoked|expired/i.test(message),
+      needsReconnect: /rejected|invalid|revoked|expired|invalid_grant/i.test(message),
     };
   }
 }
@@ -242,8 +258,8 @@ export async function resolveAccessToken(account: AccountRow): Promise<TokenReso
 /**
  * Convenience wrapper: load the account row with the service-role client and
  * resolve a working access token. On failure, updates the account row
- * (needs_reconnect + error message) before returning. On a rotating refresh
- * token, persists the new credential.
+ * (needs_reconnect + error message) before returning. On a successful refresh,
+ * persists the new access token and refresh token back to the database.
  */
 export async function loadAccountWithToken(
   admin: ReturnType<typeof createClient>,
@@ -271,20 +287,37 @@ export async function loadAccountWithToken(
     return { account: account as AccountRow, token, errorResponse: { error: token.error, status: 'needs_reconnect' } };
   }
 
-  // Persist a rotated refresh token so the next refresh keeps working.
-  if (token.newRefreshToken) {
+  // Persist the refreshed access token and refresh token so the database retains the latest working credential
+  if (token.refreshed && token.accessToken) {
     try {
       const encrypted = await encryptToken(
         JSON.stringify({
           access_token: token.accessToken,
-          refresh_token: token.newRefreshToken,
+          refresh_token: token.newRefreshToken || '',
           refreshable: true,
           ...(token.extra ?? {}),
         })
       );
-      await admin.from('connected_accounts').update({ encrypted_refresh_token: encrypted }).eq('id', accountId);
+      await admin
+        .from('connected_accounts')
+        .update({
+          encrypted_refresh_token: encrypted,
+          status: 'connected',
+          error_message: null,
+        })
+        .eq('id', accountId);
     } catch (err) {
-      console.error('[TokenRefresh] failed to persist rotated refresh token:', err);
+      console.error('[TokenRefresh] failed to persist refreshed token:', err);
+    }
+  } else if (token.ok && (account as any).status !== 'connected') {
+    // Self-heal account status if credentials are confirmed working
+    try {
+      await admin
+        .from('connected_accounts')
+        .update({ status: 'connected', error_message: null })
+        .eq('id', accountId);
+    } catch (err) {
+      console.error('[TokenRefresh] failed to reset account status:', err);
     }
   }
 
