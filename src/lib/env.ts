@@ -14,7 +14,6 @@ interface EnvConfig {
   isConfigured: {
     supabase: boolean;
     google: boolean;
-    microsoft: boolean;
     gemini: boolean;
     github: boolean;
     notion: boolean;
@@ -42,9 +41,11 @@ export const env: EnvConfig = {
   googleSiteVerification: rawGoogleSiteVerification,
   demoFallbackEnabled: false,
   isConfigured: {
+    // Server-side OAuth secrets live in Supabase Edge Function secrets, never
+    // in the browser bundle. The real per-provider configured state is fetched
+    // at runtime from the `provider-status` Edge Function (see useProviderStatus).
     supabase: hasValidSupabase,
-    google: false, // Edge Functions handle server-side keys
-    microsoft: false,
+    google: false,
     gemini: false,
     github: false,
     notion: false,
