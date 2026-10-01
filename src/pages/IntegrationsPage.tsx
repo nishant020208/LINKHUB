@@ -16,10 +16,10 @@ import { useAppStore } from '@/store/useAppStore';
 import { useSyncData } from '@/hooks/useSyncData';
 import { queryKeys } from '@/lib/queryKeys';
 import { formatTimeAgo } from '@/lib/utils';
-import { ItemType } from '@/types';
+import { ItemType, AccountProvider, ConnectedAccount } from '@/types';
 import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
 import { useProviderStatus } from '@/hooks/useProviderStatus';
-import { connectWithCredentials } from '@/lib/oauth';
+import { connectWithCredentials, startProviderOAuth } from '@/lib/oauth';
 import { GoogleApiErrorHelp } from '@/components/integrations/GoogleApiErrorHelp';
 import { ProviderLogo } from '@/components/ui/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -206,6 +206,29 @@ export const IntegrationsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [callbackBanner, setCallbackBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [reconnectingId, setReconnectingId] = useState<string | null>(null);
+
+  const handleReconnect = async (acc: ConnectedAccount) => {
+    try {
+      setReconnectingId(acc.id);
+      const providerConfig = ALL_PROVIDERS.find((p) => p.key === acc.provider);
+      if (providerConfig?.authType === 'oauth') {
+        await startProviderOAuth(acc.provider as AccountProvider);
+      } else if (providerConfig) {
+        setSelectedProvider(providerConfig);
+        setReconnectingId(null);
+      } else {
+        await reconnectAccount(acc.id);
+        setReconnectingId(null);
+      }
+    } catch (err) {
+      setCallbackBanner({
+        type: 'error',
+        message: err instanceof Error ? err.message : `Failed to start reconnection for ${acc.label}`,
+      });
+      setReconnectingId(null);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -423,7 +446,13 @@ export const IntegrationsPage: React.FC = () => {
                   </Badge>
                 </div>
 
-                {acc.error_message && <GoogleApiErrorHelp errorMessage={acc.error_message} />}
+                {acc.error_message && (
+                  <GoogleApiErrorHelp
+                    errorMessage={acc.error_message}
+                    onReconnect={() => handleReconnect(acc)}
+                    isReconnecting={reconnectingId === acc.id}
+                  />
+                )}
 
                 {/* Per-account Data Type Sync Toggles */}
                 <div className="space-y-1.5 pt-1 border-t border-border/30">
@@ -460,9 +489,10 @@ export const IntegrationsPage: React.FC = () => {
                       <Button
                         variant="primary"
                         size="xs"
-                        onClick={() => reconnectAccount(acc.id)}
+                        disabled={reconnectingId === acc.id}
+                        onClick={() => handleReconnect(acc)}
                       >
-                        Reconnect
+                        {reconnectingId === acc.id ? 'Reconnecting...' : 'Reconnect'}
                       </Button>
                     )}
 
