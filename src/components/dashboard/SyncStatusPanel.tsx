@@ -41,12 +41,6 @@ const GOOGLE_STREAMS: StreamDef[] = [
 ];
 
 const OTHER_STREAMS: Record<string, StreamDef[]> = {
-  microsoft: [
-    { type: 'outlook_mail', name: 'Outlook Mail', service: 'Graph API', icon: <Mail className="w-3.5 h-3.5 text-status-syncing" />, provider: 'microsoft' },
-    { type: 'calendar', name: 'Outlook Calendar', service: 'Graph API', icon: <Calendar className="w-3.5 h-3.5 text-primary" />, provider: 'microsoft' },
-    { type: 'tasks', name: 'Microsoft To Do', service: 'Graph API', icon: <CheckSquare className="w-3.5 h-3.5 text-status-connected" />, provider: 'microsoft' },
-    { type: 'drive', name: 'OneDrive', service: 'Graph API', icon: <FolderGit2 className="w-3.5 h-3.5 text-status-warning" />, provider: 'microsoft' },
-  ],
   github: [
     { type: 'issues', name: 'GitHub Issues', service: 'REST v3', icon: <CheckSquare className="w-3.5 h-3.5 text-foreground" />, provider: 'github' },
     { type: 'pull_requests', name: 'Review Requests', service: 'REST v3', icon: <Link2 className="w-3.5 h-3.5 text-foreground" />, provider: 'github' },
@@ -56,7 +50,6 @@ const OTHER_STREAMS: Record<string, StreamDef[]> = {
   todoist: [{ type: 'projects', name: 'Todoist Tasks', service: 'REST v2', icon: <CheckSquare className="w-3.5 h-3.5 text-status-error" />, provider: 'todoist' }],
   slack: [{ type: 'saved_items', name: 'Slack Saved', service: 'Web API', icon: <Mail className="w-3.5 h-3.5 text-primary" />, provider: 'slack' }],
   linear: [{ type: 'issues', name: 'Linear Issues', service: 'GraphQL', icon: <CheckSquare className="w-3.5 h-3.5 text-primary" />, provider: 'linear' }],
-  ical: [{ type: 'ical_events', name: 'iCal Feeds', service: 'ICS Parse', icon: <Calendar className="w-3.5 h-3.5 text-status-connected" />, provider: 'ical' }],
 };
 
 /**
@@ -291,7 +284,7 @@ const StreamCard: React.FC<{
   const needsAuth =
     status.state === 'needs_reconnect' || (isFailed && isAuthFailure(status.error));
   const oauthCapable =
-    account && !['ical', 'imap', 'canvas', 'moodle'].includes(account.provider);
+    account && !['imap', 'moodle'].includes(account.provider);
 
   const handleCopyError = (e: React.MouseEvent) => {
     e.stopPropagation();
