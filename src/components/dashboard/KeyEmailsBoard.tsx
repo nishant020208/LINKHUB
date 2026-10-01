@@ -40,7 +40,6 @@ export const KeyEmailsBoard: React.FC = () => {
     new Set(
       accounts.map((a) => {
         if (a.provider === 'google') return `Gmail (${a.email})`;
-        if (a.provider === 'microsoft') return `Outlook (${a.email})`;
         return a.email || a.provider;
       })
     )
@@ -49,7 +48,7 @@ export const KeyEmailsBoard: React.FC = () => {
   const subtitleText =
     emailProviders.length > 0
       ? `Key notices, deadlines & travel from ${emailProviders.join(', ')}`
-      : 'Connect Gmail or Outlook to triage critical incoming emails';
+      : 'Connect an email provider to triage critical incoming emails';
 
   return (
     <Card variant="bento" className="space-y-4">
