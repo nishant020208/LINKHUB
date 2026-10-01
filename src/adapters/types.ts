@@ -2,7 +2,6 @@ import { AccountProvider, ConnectedAccount, Item } from '@/types';
 
 export type AdapterCategory =
   | 'google'
-  | 'microsoft'
   | 'calendars'
   | 'developer'
   | 'productivity'
@@ -14,7 +13,7 @@ export interface ProviderAdapter {
   key: AccountProvider;
   name: string;
   category: AdapterCategory;
-  authType: 'oauth' | 'token' | 'url' | 'credentials';
+  authType: 'oauth' | 'token' | 'credentials';
   requiredScopes?: string[];
   description: string;
   color: string;
