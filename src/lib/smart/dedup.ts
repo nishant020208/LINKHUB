@@ -1,8 +1,8 @@
 import { Item } from '@/types';
 
 /**
- * Merges duplicate items across accounts (e.g. same calendar meeting in Google & Outlook,
- * or identical assignment synced from both Canvas and an iCal link).
+ * Merges duplicate items across accounts (e.g. the same calendar meeting synced
+ * from two Google accounts, or the same assignment from Classroom and Moodle).
  */
 export function deduplicateItems(items: Item[]): Item[] {
   const seenMap = new Map<string, Item>();
