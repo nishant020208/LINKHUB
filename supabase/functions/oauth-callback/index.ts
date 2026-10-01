@@ -150,13 +150,13 @@ const exchanges: Record<string, (code: string, redirectUri: string) => Promise<E
     };
   },
 
-  todoist: async (code) => {
+  todoist: async (code, redirectUri) => {
     const clientId = Deno.env.get('TODOIST_CLIENT_ID') ?? '';
     const clientSecret = Deno.env.get('TODOIST_CLIENT_SECRET') ?? '';
     const res = await fetch('https://todoist.com/oauth/access_token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code }),
+      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, code, redirect_uri: redirectUri }),
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
