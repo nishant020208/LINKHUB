@@ -88,6 +88,7 @@ serve(async (req: Request) => {
     }
 
     const redirectUri = sharedCallbackUrl();
+    console.info(`[oauth-start] provider=${provider} redirect_uri=${redirectUri}`);
     const signedState = await signState({
       userId: user.id,
       provider,
@@ -253,9 +254,9 @@ serve(async (req: Request) => {
         break;
 
       case 'bitbucket':
-        // Bitbucket ignores redirect_uri here — the callback is set on the app.
         authUrl = `https://bitbucket.org/site/oauth2/authorize?${paramsFor({
           client_id: Deno.env.get('BITBUCKET_CLIENT_ID')!,
+          redirect_uri: redirectUri,
           response_type: 'code',
           state: signedState,
         })}`;
