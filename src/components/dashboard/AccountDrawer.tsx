@@ -4,7 +4,10 @@ import { X, RefreshCw, Pause, Play, Trash2, Sliders } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useSyncData } from '@/hooks/useSyncData';
 import { formatTimeAgo } from '@/lib/utils';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { startProviderOAuth } from '@/lib/oauth';
+import type { AccountProvider, ConnectedAccount } from '@/types';
 
 interface AccountDrawerProps {
   isOpen: boolean;
@@ -20,6 +23,19 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
     wipeAccountData,
   } = useAppStore();
   const { triggerSync } = useSyncData();
+  const navigate = useNavigate();
+  const [reconnectingId, setReconnectingId] = React.useState<string | null>(null);
+
+  const handleReconnect = async (acc: ConnectedAccount) => {
+    try {
+      setReconnectingId(acc.id);
+      await startProviderOAuth(acc.provider as AccountProvider);
+    } catch {
+      setReconnectingId(null);
+      navigate('/integrations');
+      onClose();
+    }
+  };
 
   // Close on Escape key press
   useEffect(() => {
@@ -112,6 +128,19 @@ export const AccountDrawer: React.FC<AccountDrawerProps> = ({ isOpen, onClose })
                       <p className="text-[11px] text-status-error bg-status-error/10 p-2 rounded-lg font-mono break-words leading-tight">
                         {acc.error_message}
                       </p>
+                    )}
+
+                    {hasError && (
+                      <Button
+                        variant="primary"
+                        size="xs"
+                        disabled={reconnectingId === acc.id}
+                        onClick={() => handleReconnect(acc)}
+                        className="w-full text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${reconnectingId === acc.id ? 'animate-spin' : ''}`} />
+                        <span>{reconnectingId === acc.id ? 'Reconnecting...' : 'Reconnect Account'}</span>
+                      </Button>
                     )}
 
                     <div className="flex items-center justify-between pt-2 border-t border-border/30 text-[11px] font-mono text-muted-foreground">
