@@ -337,7 +337,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
-  reconnectAccount: (accountId) => {
+  reconnectAccount: async (accountId) => {
     set((state) => ({
       accounts: state.accounts.map((acc) =>
         acc.id === accountId
@@ -350,6 +350,14 @@ export const useAppStore = create<AppState>((set, get) => ({
           : acc
       ),
     }));
+    try {
+      await supabase
+        .from('connected_accounts')
+        .update({ status: 'connected', error_message: null })
+        .eq('id', accountId);
+    } catch (err) {
+      console.warn('Could not reset account error status in Supabase:', err);
+    }
   },
 
   wipeAccountData: async (accountId) => {
