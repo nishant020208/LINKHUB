@@ -53,9 +53,7 @@ export const DeadlinesBoard: React.FC = () => {
     new Set(
       accounts.map((a) => {
         if (a.provider === 'google') return 'Google Tasks & Classroom';
-        if (a.provider === 'microsoft') return 'Outlook / To-Do';
         if (a.provider === 'github') return 'GitHub Issues';
-        if (a.provider === 'canvas') return 'Canvas LMS';
         return a.label || a.provider;
       })
     )
@@ -64,7 +62,7 @@ export const DeadlinesBoard: React.FC = () => {
   const subtitleText =
     deadlineProviders.length > 0
       ? `Aggregated across ${deadlineProviders.join(', ')}`
-      : 'Connect Google, Outlook, or Canvas to aggregate deadlines';
+      : 'Connect a task or project provider to aggregate deadlines';
 
   const handleToggleDone = (item: Item) => {
     const nextState = !item.is_done;
