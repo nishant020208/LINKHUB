@@ -1,7 +1,5 @@
 import { ProviderAdapter } from './types';
 import { googleAdapter } from './google';
-import { microsoftAdapter } from './microsoft';
-import { icalAdapter } from './ical';
 import { githubAdapter } from './github';
 import { notionAdapter } from './notion';
 import { todoistAdapter } from './todoist';
@@ -16,7 +14,6 @@ import { boxAdapter } from './box';
 import { zoomAdapter } from './zoom';
 import { gitlabAdapter } from './gitlab';
 import { bitbucketAdapter } from './bitbucket';
-import { canvasAdapter } from './canvas';
 import { moodleAdapter } from './moodle';
 import { imapAdapter } from './imap';
 
@@ -28,8 +25,6 @@ export * from './types';
  */
 export const ADAPTER_REGISTRY: ProviderAdapter[] = [
   googleAdapter,
-  microsoftAdapter,
-  icalAdapter,
   githubAdapter,
   notionAdapter,
   todoistAdapter,
@@ -44,7 +39,6 @@ export const ADAPTER_REGISTRY: ProviderAdapter[] = [
   zoomAdapter,
   gitlabAdapter,
   bitbucketAdapter,
-  canvasAdapter,
   moodleAdapter,
   imapAdapter,
 ];
