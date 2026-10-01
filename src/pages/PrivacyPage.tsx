@@ -253,19 +253,19 @@ export const PrivacyPage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Microsoft 365 */}
+            {/* Moodle LMS */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-status-syncing/10 text-status-syncing border border-status-syncing/20 flex items-center justify-center font-bold text-xs">
+                <div className="w-7 h-7 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20 flex items-center justify-center font-bold text-xs">
                   <Server className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Microsoft 365 (Outlook &amp; To Do)</h3>
-                  <span className="text-[10px] font-mono text-primary">Scopes: Mail.Read, Calendars.Read, Tasks.Read</span>
+                  <h3 className="font-heading font-semibold text-sm text-foreground">Moodle LMS</h3>
+                  <span className="text-[10px] font-mono text-primary">Read-only web-service token</span>
                 </div>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Outlook message subjects and senders (no email bodies), calendar event start/end times, and To Do task titles and due dates.</li>
+                <li><strong className="text-foreground">What we read:</strong> Enrolled course names, assignment module titles, and assignment due dates from the Moodle site you connect with your own personal token.</li>
               </ul>
             </div>
 
@@ -285,22 +285,22 @@ export const PrivacyPage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Notion, Todoist, Slack, iCal */}
+            {/* Notion, Todoist, Slack, Linear, Jira */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-accent text-accent-foreground border border-border/20 flex items-center justify-center font-bold text-xs">
                   <Layers className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Notion, Todoist, Slack, &amp; iCal</h3>
-                  <span className="text-[10px] font-mono text-primary">Read-only metadata &amp; webcal</span>
+                  <h3 className="font-heading font-semibold text-sm text-foreground">Notion, Todoist, Slack, Linear &amp; Jira</h3>
+                  <span className="text-[10px] font-mono text-primary">Read-only metadata</span>
                 </div>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
                 <li><strong className="text-foreground">Notion:</strong> Database item titles and deadline properties explicitly shared with UnifyHub.</li>
                 <li><strong className="text-foreground">Todoist:</strong> Task titles, priority flags, and due dates.</li>
                 <li><strong className="text-foreground">Slack:</strong> Direct mentions and saved-for-later messages only.</li>
-                <li><strong className="text-foreground">iCal:</strong> Timetable lecture start and end times from subscribed university calendar feeds.</li>
+                <li><strong className="text-foreground">Linear &amp; Jira:</strong> Assigned issue titles, statuses, and due dates.</li>
               </ul>
             </div>
           </div>
@@ -320,7 +320,7 @@ export const PrivacyPage: React.FC = () => {
           <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5 leading-relaxed font-mono">
             <li>UnifyHub NEVER sends emails on your behalf.</li>
             <li>UnifyHub NEVER creates, edits, or deletes calendar events.</li>
-            <li>UnifyHub NEVER alters, downloads, or deletes Google Drive or OneDrive documents.</li>
+            <li>UnifyHub NEVER alters, downloads, or deletes Google Drive or cloud-storage documents.</li>
             <li>UnifyHub NEVER submits coursework or alters grades in Google Classroom.</li>
             <li>UnifyHub NEVER posts messages, issues, or pull request comments on your behalf.</li>
           </ul>
@@ -468,16 +468,16 @@ export const PrivacyPage: React.FC = () => {
             </a>
 
             <a
-              href="https://account.live.com/consent/Manage"
+              href="https://www.notion.so/my-integrations"
               target="_blank"
               rel="noopener noreferrer"
               className="p-4 rounded-2xl glass-panel border border-border/60 hover:border-primary/50 text-xs space-y-1 transition-all group cursor-pointer"
             >
               <div className="font-semibold text-foreground flex items-center justify-between">
-                <span>Microsoft Permissions</span>
+                <span>Notion Permissions</span>
                 <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
               </div>
-              <p className="text-muted-foreground text-[11px]">Manage and revoke Microsoft 365 app consents.</p>
+              <p className="text-muted-foreground text-[11px]">Manage and revoke UnifyHub under your Notion integrations.</p>
             </a>
 
             <a
