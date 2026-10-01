@@ -18,6 +18,8 @@ import { queryKeys } from '@/lib/queryKeys';
 import { formatTimeAgo } from '@/lib/utils';
 import { ItemType } from '@/types';
 import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
+import { useProviderStatus } from '@/hooks/useProviderStatus';
+import { connectWithCredentials } from '@/lib/oauth';
 import { GoogleApiErrorHelp } from '@/components/integrations/GoogleApiErrorHelp';
 import { ProviderLogo } from '@/components/ui/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -35,27 +37,7 @@ const ALL_PROVIDERS: ProviderConnectConfig[] = [
     scopes: ['gmail.readonly', 'calendar.readonly', 'classroom.readonly', 'drive.metadata.readonly', 'tasks.readonly'],
     description: 'Sync personal & university Gmail, Google Calendar, Classroom assignments, and Drive docs.',
   },
-  // 2. Microsoft
-  {
-    key: 'microsoft',
-    name: 'Microsoft 365 & Outlook',
-    category: 'Microsoft',
-    authType: 'oauth',
-    color: '#00A4EF',
-    scopes: ['Mail.Read', 'Calendars.Read', 'Tasks.Read', 'Files.Read', 'User.Read'],
-    description: 'University & corporate Outlook mail, Microsoft Teams schedules, To Do tasks, and OneDrive files.',
-  },
-  // 3. iCal
-  {
-    key: 'ical',
-    name: 'iCal Timetable Subscription',
-    category: 'Calendars',
-    authType: 'url',
-    color: '#10B981',
-    scopes: ['webcal:// or https:// read-only stream'],
-    description: 'Direct live calendar feed from university course timetables, Apple Calendar, or Athletics.',
-  },
-  // 4. Developer & Knowledge
+  // 2. Developer & Knowledge
   {
     key: 'github',
     name: 'GitHub',
@@ -186,15 +168,6 @@ const ALL_PROVIDERS: ProviderConnectConfig[] = [
   },
   // 7. Academic LMS
   {
-    key: 'canvas',
-    name: 'Canvas LMS',
-    category: 'Academic',
-    authType: 'token',
-    color: '#E62429',
-    scopes: ['courses:read', 'assignments:read', 'announcements:read'],
-    description: 'Coursework submission deadlines, grade releases, and lecture announcements.',
-  },
-  {
     key: 'moodle',
     name: 'Moodle LMS',
     category: 'Academic',
@@ -226,6 +199,7 @@ export const IntegrationsPage: React.FC = () => {
     toggleAccountSyncType,
   } = useAppStore();
   const { triggerSync } = useSyncData();
+  const { isConfigured, statuses } = useProviderStatus();
 
   const [activeTab, setActiveTab] = useState('All');
   const [selectedProvider, setSelectedProvider] = useState<ProviderConnectConfig | null>(null);
@@ -261,14 +235,53 @@ export const IntegrationsPage: React.FC = () => {
     }
   }, [location.search, navigate]);
 
+  // Trello uses public OAuth and returns its token in the URL fragment, so it
+  // cannot reach the shared callback. Capture it here, save it via
+  // connect-credentials, then clean the URL.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash || !hash.includes('token=')) return;
+
+    let pending = false;
+    try {
+      pending = sessionStorage.getItem('unifyhub-trello-pending') === '1';
+    } catch {
+      pending = false;
+    }
+    if (!pending) return;
+
+    const token = new URLSearchParams(hash.replace(/^#/, '')).get('token');
+    try {
+      sessionStorage.removeItem('unifyhub-trello-pending');
+    } catch {
+      // ignore storage errors
+    }
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    if (!token) return;
+
+    connectWithCredentials('trello', { token })
+      .then(() => {
+        setCallbackBanner({ type: 'success', message: 'Connected Trello! Initial sync triggered.' });
+        queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
+        queryClient.invalidateQueries({ queryKey: queryKeys.items });
+        queryClient.invalidateQueries({ queryKey: queryKeys.syncLogs });
+      })
+      .catch((err: unknown) => {
+        setCallbackBanner({
+          type: 'error',
+          message: err instanceof Error ? err.message : 'Trello connection failed.',
+        });
+      });
+  }, []);
+
   const filteredProviders = ALL_PROVIDERS.filter((provider) => {
     if (activeTab === 'All') return true;
-    if (activeTab === 'Academic') return provider.category === 'Academic' || provider.key === 'ical';
-    if (activeTab === 'Productivity') return provider.category === 'Productivity' || provider.category === 'Google' || provider.category === 'Microsoft';
+    if (activeTab === 'Academic') return provider.category === 'Academic';
+    if (activeTab === 'Productivity') return provider.category === 'Productivity' || provider.category === 'Google';
     if (activeTab === 'Developer') return provider.category === 'Developer';
     if (activeTab === 'Collaboration') return provider.category === 'Collaboration' || provider.category === 'Meetings' || provider.category === 'Enterprise';
     if (activeTab === 'Storage') return provider.category === 'Storage';
-    if (activeTab === 'Email') return provider.category === 'Email' || provider.key === 'google' || provider.key === 'microsoft';
+    if (activeTab === 'Email') return provider.category === 'Email' || provider.key === 'google';
     return true;
   });
 
@@ -349,7 +362,7 @@ export const IntegrationsPage: React.FC = () => {
         <div>
           <h2 className="font-heading font-bold text-2xl text-foreground">Integrations & Accounts</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Connect all 18 academic, enterprise, and developer services with zero write permissions.
+            Connect your academic, enterprise, and developer services with read-only permissions.
           </p>
         </div>
 
@@ -511,11 +524,13 @@ export const IntegrationsPage: React.FC = () => {
           {filteredProviders.map((provider) => {
             const linkedAccounts = accounts.filter((a) => a.provider === provider.key);
             const isConnected = linkedAccounts.length > 0;
-            const supportedKeys = ['google', 'microsoft', 'github', 'notion', 'todoist', 'slack', 'linear', 'ical'];
-            const isConfigured = supportedKeys.includes(provider.key);
+            // undefined while status is loading / unavailable → optimistically
+            // allow the attempt; false means we KNOW its secrets are missing.
+            const notConfigured = isConfigured(provider.key) === false;
+            const missingSecrets = statuses[provider.key]?.missing ?? [];
 
             let status: 'Not connected' | 'Connected' | 'Syncing' | 'Needs reconnect' | 'Error' | 'Not configured';
-            if (!isConfigured) {
+            if (notConfigured) {
               status = 'Not configured';
             } else if (linkedAccounts.length === 0) {
               status = 'Not connected';
@@ -533,9 +548,9 @@ export const IntegrationsPage: React.FC = () => {
               <Card
                 key={provider.key}
                 variant="bento"
-                interactive={isConfigured}
+                interactive={!notConfigured}
                 className={`p-5 flex flex-col justify-between group ${
-                  !isConfigured ? 'opacity-75' : ''
+                  notConfigured ? 'opacity-75' : ''
                 }`}
               >
                 <div>
@@ -598,21 +613,28 @@ export const IntegrationsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="mt-5 pt-3 border-t border-border/30 flex items-center justify-between">
-                  <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1">
-                    <Lock className="w-3 h-3 text-muted-foreground/80" />
-                    Read-only
+                <div className="mt-5 pt-3 border-t border-border/30 flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-mono text-muted-foreground flex items-center gap-1 min-w-0">
+                    <Lock className="w-3 h-3 text-muted-foreground/80 shrink-0" />
+                    {notConfigured && missingSecrets.length > 0 ? (
+                      <span className="truncate" title={`Missing secrets: ${missingSecrets.join(', ')}`}>
+                        Set {missingSecrets.join(', ')}
+                      </span>
+                    ) : (
+                      'Read-only'
+                    )}
                   </span>
 
                   <Button
-                    variant={!isConfigured ? 'ghost' : isConnected ? 'secondary' : 'primary'}
+                    variant={notConfigured ? 'ghost' : isConnected ? 'secondary' : 'primary'}
                     size="xs"
-                    onClick={() => isConfigured && setSelectedProvider(provider)}
-                    disabled={!isConfigured}
+                    onClick={() => !notConfigured && setSelectedProvider(provider)}
+                    disabled={notConfigured}
+                    title={notConfigured ? `This integration isn't configured yet. Add the Supabase secret${missingSecrets.length === 1 ? '' : 's'}: ${missingSecrets.join(', ')}` : undefined}
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>
-                      {!isConfigured ? 'Not Configured' : isConnected ? 'Add Another' : 'Connect'}
+                      {notConfigured ? 'Not Configured' : isConnected ? 'Add Another' : 'Connect'}
                     </span>
                   </Button>
                 </div>
