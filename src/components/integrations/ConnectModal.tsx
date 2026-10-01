@@ -6,25 +6,22 @@ import {
   Lock,
   CheckCircle2,
   AlertTriangle,
-  Link as LinkIcon,
   ShieldCheck,
   Key,
   Globe,
   Mail,
   Loader2,
 } from 'lucide-react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { supabase } from '@/lib/supabase';
-import { FunctionsHttpError } from '@supabase/supabase-js';
 import { queryClient } from '@/lib/queryClient';
 import { queryKeys } from '@/lib/queryKeys';
+import { startProviderOAuth, connectWithCredentials } from '@/lib/oauth';
 import { AccountProvider } from '@/types';
 
 export interface ProviderConnectConfig {
   key: AccountProvider;
   name: string;
   category: string;
-  authType: 'oauth' | 'url' | 'token' | 'credentials';
+  authType: 'oauth' | 'token' | 'credentials';
   scopes: string[];
   description: string;
   color?: string;
@@ -37,10 +34,7 @@ interface ConnectModalProps {
 }
 
 export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, onClose }) => {
-  const { user } = useAuthStore();
-
   const [emailOrLabel, setEmailOrLabel] = useState('');
-  const [icalUrl, setIcalUrl] = useState('');
   const [token, setToken] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [imapHost, setImapHost] = useState('');
@@ -60,103 +54,45 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
 
     try {
       if (provider.authType === 'oauth') {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-
-        if (!accessToken) {
-          throw new Error('You must be signed in to connect accounts. Please sign in first.');
-        }
-
-        // Start OAuth flow via Edge Function
-        const { data, error: fnError } = await supabase.functions.invoke('oauth-start', {
-          body: { provider: provider.key },
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (fnError) {
-          // The Edge Function replied with a real error body (e.g. provider keys not
-          // configured). Surface ITS message — never the generic "non-2xx status code"
-          // wrapper that supabase-js puts on FunctionsHttpError.message.
-          if (fnError instanceof FunctionsHttpError) {
-            const detail = await fnError.context.json().catch(() => null);
-            throw new Error(
-              detail?.message || detail?.error || `${provider.name} connection failed on the server.`
-            );
+        // Trello returns its token in the URL fragment; flag the pending flow so
+        // the Integrations page can capture it on return.
+        if (provider.key === 'trello') {
+          try {
+            sessionStorage.setItem('unifyhub-trello-pending', '1');
+          } catch {
+            // sessionStorage can be unavailable in restricted contexts.
           }
-          // Otherwise we never got a reply from the function at all (network/DNS/env).
-          throw new Error(
-            'Cannot reach the server. Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your deployment environment variables, then redeploy.'
-          );
         }
-
-        if (!data?.url) {
-          if (data?.error === 'not_configured') {
-            throw new Error(
-              `${provider.name} OAuth keys are not yet configured. Add GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (or equivalent) to Supabase Edge Function secrets.`
-            );
-          }
-          throw new Error(data?.error || 'OAuth start function returned no redirect URL');
-        }
-
-        // Direct user to provider consent screen
-        window.location.href = data.url;
-        return;
-      }
-
-      if (provider.authType === 'url') {
-        if (!icalUrl || (!icalUrl.startsWith('http://') && !icalUrl.startsWith('https://') && !icalUrl.startsWith('webcal://'))) {
-          throw new Error('Please enter a valid iCal feed URL starting with https:// or webcal://');
-        }
-
-        if (!user) throw new Error('Please sign in to connect this calendar.');
-
-        const host = icalUrl.split('/')[2] || 'calendar.ics';
-        const { data: newAccount, error: dbError } = await supabase
-          .from('connected_accounts')
-          .insert({
-            user_id: user.id,
-            provider: 'ical',
-            email: host,
-            label: emailOrLabel || `${provider.name}`,
-            encrypted_refresh_token: icalUrl,
-            status: 'connected',
-            last_synced_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (dbError) throw dbError;
-
-        if (newAccount?.id) {
-          supabase.functions.invoke('sync-provider', {
-            body: { accountId: newAccount.id },
-          }).catch(console.warn);
-        }
-
-        queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
-        queryClient.invalidateQueries({ queryKey: queryKeys.items });
-        queryClient.invalidateQueries({ queryKey: queryKeys.syncLogs });
-        setSuccess(true);
-        setTimeout(() => {
-          setSuccess(false);
-          onClose();
-        }, 1200);
+        await startProviderOAuth(provider.key);
+        // The browser now navigates to the provider consent screen.
         return;
       }
 
       if (provider.authType === 'credentials') {
         if (!imapHost || !imapUser || !imapPassword) {
-          throw new Error('Please fill in server host, username, and password.');
+          throw new Error('Please fill in the server host, username, and app password.');
         }
+        await connectWithCredentials('imap', {
+          host: imapHost,
+          port: imapPort,
+          user: imapUser,
+          password: imapPassword,
+        });
       } else if (provider.authType === 'token') {
-        if (!token) {
-          throw new Error('Please enter your generated access token.');
+        if (!baseUrl || !token) {
+          throw new Error('Please fill in both the portal URL and your personal access token.');
         }
+        await connectWithCredentials('moodle', { baseUrl, token });
       }
 
-      throw new Error(`Connection for ${provider.name} via ${provider.authType} requires provider credentials.`);
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
+      queryClient.invalidateQueries({ queryKey: queryKeys.items });
+      queryClient.invalidateQueries({ queryKey: queryKeys.syncLogs });
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        onClose();
+      }, 1200);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to connect integration.');
     } finally {
@@ -269,40 +205,6 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
                     Connecting will request zero write permissions. Authentication happens directly with{' '}
                     <strong className="text-foreground">{provider.name}</strong>; tokens are encrypted.
                   </p>
-                </div>
-              </div>
-            )}
-
-            {provider.authType === 'url' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    iCal / Timetable Subscription URL
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="url"
-                      required
-                      value={icalUrl}
-                      onChange={(e) => setIcalUrl(e.target.value)}
-                      placeholder="https://courses.mit.edu/ical/user_token.ics or webcal://..."
-                      className="w-full text-xs font-mono px-3 py-2 pr-8 rounded-xl bg-background/80 border border-border text-foreground focus:outline-none focus:border-primary"
-                    />
-                    <LinkIcon className="w-4 h-4 text-muted-foreground absolute right-2.5 top-2.5" />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-foreground mb-1">
-                    Feed Name / Label
-                  </label>
-                  <input
-                    type="text"
-                    value={emailOrLabel}
-                    onChange={(e) => setEmailOrLabel(e.target.value)}
-                    placeholder="e.g. Fall 2026 Academic Schedule"
-                    className="w-full text-xs font-mono px-3 py-2 rounded-xl bg-background/80 border border-border text-foreground focus:outline-none focus:border-primary"
-                  />
                 </div>
               </div>
             )}
