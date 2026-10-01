@@ -184,6 +184,7 @@ serve(async (req: Request) => {
         const params = new URLSearchParams({
           client_id: clientId,
           scope: 'data:read',
+          redirect_uri: redirectUri,
           state: signedState,
         });
         authUrl = `https://todoist.com/oauth/authorize?${params.toString()}`;
