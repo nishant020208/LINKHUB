@@ -15,13 +15,11 @@ const corsHeaders = {
 
 const SYNC_FUNCTIONS: Record<string, string> = {
   google: 'google-sync',
-  microsoft: 'microsoft-sync',
   github: 'github-sync',
   notion: 'notion-sync',
   todoist: 'todoist-sync',
   slack: 'slack-sync',
   linear: 'linear-sync',
-  ical: 'ical-sync',
 };
 
 serve(async (req: Request) => {
@@ -70,9 +68,18 @@ serve(async (req: Request) => {
 
     const targetFn = SYNC_FUNCTIONS[resolvedProvider];
     if (!targetFn) {
+      // Connected but not yet syncable: report success with zero items and a
+      // specific warning. Returning a non-2xx here would surface as the generic
+      // supabase-js "Edge Function returned a non-2xx status code" message.
+      console.log(`[sync-provider] no sync implementation for provider "${resolvedProvider}"`);
       return new Response(
-        JSON.stringify({ error: `No sync function registered for provider "${resolvedProvider}"` }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          success: true,
+          totalUpserted: 0,
+          streams: [],
+          warning: `Sync for "${resolvedProvider}" is not implemented yet. The account is connected; no items were fetched.`,
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
