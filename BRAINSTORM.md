@@ -737,6 +737,187 @@ Audit findings (verified by reading every relevant file before changing anything
 
 #### Step 5: Mobile & PWA Verification
 - Bottom navigation with safe-area padding and 44px+ touch targets.
-- Responsive bento grid gracefully collapses to a single stacked column on mobile.
 
 
+---
+
+## Phase 3: Comprehensive Root Cause Diagnosis & Systematic Remediation
+
+### 1. BUG 1: EMAIL SYNC ERROR (Gmail Stream)
+#### Concrete Symptoms & Failure Points:
+- When a Google account is connected, the Sync Status Panel shows Gmail notices as "Failed" or generic API error while other streams (Calendar, Classroom) may succeed or also fail with vague messages.
+- Console error logs show cryptic 403 or truncated status messages without actionable remediation.
+
+#### Real Root Causes:
+1. **Google Cloud API Disabled (`accessNotConfigured`)**:
+   - In newly created Google Cloud OAuth projects, the **Gmail API** (`gmail.googleapis.com`) is **disabled by default**.
+   - Unlike Calendar which is frequently enabled during initial quickstarts, Gmail requires explicit activation in the Google Cloud Console.
+   - Google returns HTTP 403 with `status: PERMISSION_DENIED` and `reason: SERVICE_DISABLED` containing a project-specific activation link (`https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=...` or `https://console.cloud.google.com/apis/library/gmail.googleapis.com?project=...`).
+   - Previously, our regex `GOOGLE_ENABLE_URL_RE` only looked for `console.developers.google.com/apis/api/...`, silently failing to match `console.cloud.google.com` URLs!
+2. **Missing Granular Scope Consent**:
+   - Google OAuth consent screen displays granular checkboxes for each requested scope (`gmail.readonly`, `calendar.readonly`, etc.).
+   - If the user unchecks the Gmail permission checkbox, or if the account was connected before `https://www.googleapis.com/auth/gmail.readonly` was added to `oauth-start`, the account row's `granted_scopes` lacks `gmail`.
+   - The sync helper correctly detects this via `missingScope(ctx, 'gmail')`, but the UI did not clearly explain that the user must re-consent with the Gmail checkbox checked.
+3. **Double Error Humanization & Truncation**:
+   - In `_shared/sync-helpers.ts`, `fetchJson` called `humanizeProviderError(..., res.status, body)`.
+   - Then in `runStream`, `catch (err)` called `humanizeProviderError(..., null, errorMessage)` a second time!
+   - This second call ran with `status: null`, destroying HTTP status codes and truncating the message to 300 characters, discarding the exact Google API error details (`code`, `reason`, `extendedHelp`).
+4. **Sequential Pagination / Message Fetching**:
+   - The Gmail stream fetches 35 message IDs, then runs 35 sequential `fetchJson` calls. If any single message fails or returns a 429 rate limit or 401 token refresh mid-stream, error handling needed to isolate individual message retrieval so transient issues don't abort the entire stream.
+
+#### Systematic Fix:
+- In `_shared/sync-helpers.ts`: Parse full JSON error objects from Google API (`error.message`, `error.status`, `error.details`).
+- Expand `GOOGLE_ENABLE_URL_RE` to match all Google Cloud console URLs (`console.developers.google.com` and `console.cloud.google.com`).
+- Stop double-humanizing in `runStream`. Persist both humanized actionable text AND exact Google error details to `sync_logs.error_message`.
+- In `SyncStatusPanel.tsx`: Display the real error with collapsible details, full text copy, and dedicated buttons: "Enable on Google Cloud" (direct link), "Reconnect Account" (with scope instruction), or "Retry Stream".
+
+---
+
+### 2. BUG 2: BLANK/WHITE SCREEN WHEN SWITCHING TABS
+#### Concrete Symptoms:
+- Clicking between sidebar navigation tabs (e.g. from Dashboard to Deadlines or Calendar) occasionally renders a blank white area where page content should be.
+- A manual page reload is required to restore content.
+
+#### Real Root Causes:
+1. **Uncaught Render Errors & Missing Route-Level Error Boundaries**:
+   - React 18 completely unmounts the component tree up to the nearest Error Boundary when any component throws an error during render.
+   - Because `App.tsx` only had a single global Error Boundary at the root level (and none inside `AppShell` or around `<Outlet />`), any uncaught render exception in a page caused React to unmount the entire page content.
+2. **Defensive Data Access Flaws During Store Hydration / Cache Transitions**:
+   - In `DeadlinesPage`, `items.filter(...)` ran without guarding against `items` being `undefined` or null during query transitions.
+   - In `DeadlinesPage`, `new Date(i.due_at)` and `formatDueCountdown` did not defensively check for `isNaN(date.getTime())`, throwing or producing `NaN` representations.
+   - In `FilesPage`, `accounts.find(...)` and `items.filter(...)` lacked defensive fallbacks when store state was hydrating.
+   - In `CalendarPage`, event date parsing did not filter out invalid date strings before arithmetic sort operations.
+3. **`AnimatePresence mode="wait"` Transition Race Condition**:
+   - `AppShell.tsx` wrapped `<Outlet />` inside `<AnimatePresence mode="wait">` keyed by `location.pathname`.
+   - When switching tabs, the outgoing route plays its exit animation (0.22s). If the incoming route chunk is still downloading or if `Suspense` unmounts prematurely during exit, Framer Motion can enter an empty transition state.
+
+#### Systematic Fix:
+- Create `RouteErrorBoundary.tsx` that wraps `<Outlet />` inside `AppShell.tsx`. If an individual page encounters an unexpected error, an on-brand in-shell error card is displayed with "Retry" and "Return to Dashboard", while the Navbar, Sidebar, and other tabs remain fully functional.
+- Add `initial={false}` to `AnimatePresence` and ensure smooth exit/enter transitions.
+- Add defensive null-guards across all page components: `(items || [])`, `(accounts || [])`, and sanitize date inputs in `formatDueCountdown`.
+
+---
+
+### 3. BUG 3: APP GETS STUCK, REQUIRES MANUAL HARD REFRESH
+#### Concrete Symptoms:
+- After a new deployment or when an error occurs, hitting normal browser refresh (F5 / `location.reload()`) does NOT fix the app.
+- Users are trapped in a broken state until they perform a manual Ctrl+Shift+R or clear browser cache.
+
+#### Real Root Causes:
+1. **Service Worker Cache-First Strategy for `index.html`**:
+   - In `public/sw.js`, the fetch handler used a **Cache-First** strategy: `caches.match(event.request)`.
+   - When `/` or `/index.html` was requested, the service worker returned the cached `index.html` from `unifyhub-v1` without checking the network!
+   - Because `CACHE_NAME` was static (`unifyhub-v1`), the browser never fetched the new `index.html` produced by a new Vercel deployment.
+2. **Stale Dynamic Import Chunk 404s**:
+   - The stale cached `index.html` referenced old JavaScript chunk hashes (e.g. `/assets/DashboardPage-xyz.js`).
+   - After a new build on Vercel, those old chunk hashes no longer exist.
+   - When Vite attempts to load a route chunk via `React.lazy()`, the browser gets a 404, throwing:
+     `TypeError: Failed to fetch dynamically imported module`.
+   - Normal `window.location.reload()` simply reloaded the same stale cached `index.html`, repeating the exact same error indefinitely!
+3. **Soft Reload Does Not Clear Corrupted Cache or Query State**:
+   - The old `ErrorBoundary.tsx` had a button that only called `window.location.reload()`.
+   - This did not unregister service workers, did not clear Cache Storage, and did not clear TanStack Query's cache.
+
+#### Systematic Fix:
+1. **Network-First for HTML Navigation in `public/sw.js`**:
+   - Change `event.request.mode === 'navigate'` to **Network-First**: always fetch the freshest `index.html` from the network when online, and only fall back to cache when offline.
+   - Handle `SKIP_WAITING` and call `self.clients.claim()`.
+2. **True Hard Reset Engine (`src/lib/cacheReset.ts`)**:
+   - Implement `hardResetApp()`:
+     a) Unregister all active Service Workers via `navigator.serviceWorker.getRegistrations()`.
+     b) Wipe all entries in `window.caches` via `caches.keys()` and `caches.delete()`.
+     c) Clear TanStack `queryClient.clear()`.
+     d) Force navigation via `window.location.replace('/?__reset=' + Date.now())`.
+3. **Auto-Recovery on Dynamic Import Failure**:
+   - Listen for `vite:preloadError` on `window`: if a chunk load fails after a deploy, automatically trigger `hardResetApp()` once to seamlessly recover.
+4. **On-Brand Global Error Boundary**:
+   - Update `ErrorBoundary.tsx` to match the Electric Indigo design system, display collapsible error and stack trace details with copy functionality, and provide the "Hard Reload UnifyHub" button.
+
+---
+
+### 4. LAYOUT BUG: CONTENT RENDERING UNDER HEADER
+#### Concrete Symptoms:
+- "Linked logins monitored" and account cards render underneath the sticky header when the Account Drawer is opened.
+- Page headings and anchors are partially obscured when scrolled into view.
+
+#### Real Root Causes:
+1. **CSS Stacking Context Trap in `AppShell.tsx`**:
+   - `AppShell.tsx` wrapped the router `<main>` inside `<motion.div>` with Framer Motion properties (`initial={{ opacity: 0, y: 10 }}`).
+   - In CSS specification, applying `transform`, `filter`, or `perspective` to an element creates a **new stacking context and containing block**.
+   - As a result, any descendant with `position: fixed` (like `AccountDrawer` with `fixed inset-0 z-50`) is positioned relative to the transformed `motion.div` instead of the viewport!
+   - Furthermore, the parent container of `<main>` had `relative z-10`, while `Navbar` had `relative z-20` (with sticky `header.z-40`).
+   - Because `z-10` is lower than `z-20`, `AccountDrawer` was trapped inside a stacking context that sat physically behind the Navbar!
+2. **Missing Tokenized Header Height**:
+   - Sticky header height (64px / 4rem) was not declared as a CSS variable `--header-height`.
+   - Content lacked consistent `scroll-margin-top` tokens to prevent headings from sliding underneath the sticky header.
+
+#### Systematic Fix:
+- Declare `--header-height: 4rem;` in `src/index.css`.
+- Render `AccountDrawer` (and all other modal overlays) using **`createPortal(..., document.body)`**. Portaling to `document.body` escapes all transformed containers and stacking contexts, guaranteeing that the drawer sits at `z-50` above the entire screen.
+- Elevate `Navbar` container to `relative z-40` and set `header` height to `h-[var(--header-height)]`.
+- Apply `scroll-margin-top: calc(var(--header-height) + 1rem)` across page headings.
+
+---
+
+### 5. NEW FEATURE: THREE DISPLAY MODES (Dark / Light / Aesthetic)
+#### Design & Architecture:
+1. **Token Hierarchy in `src/index.css`**:
+   - **Dark (Default)**: Space obsidian (`#0b0e14`), high-contrast off-white (`#eef0f8`), deep graphite cards (`#121627`), electric indigo accent (`#7c6cf6`).
+   - **Light**: Warm alabaster paper (`#f7f6f2`), soft ink (`#191b26`), crisp white cards (`#ffffff`), royal indigo accent (`#6049ea`).
+   - **Aesthetic**: Deep atmospheric midnight dusk (`#090a14`), ethereal glow cards (`#111224`), vibrant neon ultraviolet accent (`#9d5cfc`), tactile depth, layered radial ultraviolet glows.
+2. **Store State (`useAppStore.ts`) & Types (`types/index.ts`)**:
+   - Expand `theme: 'dark' | 'light' | 'aesthetic'`.
+   - Persist to `localStorage.getItem('unifyhub-theme')`.
+   - Provide `setTheme` and cycling `toggleTheme`.
+   - Sync document root classes (`dark`, `light`, `aesthetic`).
+3. **UI Selectors**:
+   - In `Navbar.tsx`: 3-state icon switcher (Moon -> Sun -> Sparkles) with clear tooltip.
+   - In `SettingsPage.tsx`: Full visual radio selector with color swatches and active preview.
+4. **Ambient Glow Layer (`AestheticGlow.tsx`)**:
+   - Gentle floating gradient orbs active only in Aesthetic mode.
+   - Strict `prefers-reduced-motion` compliance.
+
+
+
+
+---
+
+## Phase 6: Full Application Architecture, Live Integration & Environment Specification
+
+### 1. Understanding Summary
+- **What is being built:** **UnifyHub** — high-density personal command station harmonizing events, deadlines, tasks, files, and AI daily briefings across Google, Microsoft, GitHub, Canvas, and 14 other services.
+- **Why it exists:** To eliminate cognitive overload and context fragmentation for individuals balancing university coursework, enterprise employment, and developer projects.
+- **Who it is for:** Multi-Context Power Users (Students + Developers + Working Professionals).
+- **Key Constraints:** 
+  1. Strict Tiered Security: The browser bundle touches only 4 public `VITE_` variables. All OAuth client secrets, refresh tokens, and encryption keys live strictly in Supabase Edge Functions & Vault.
+  2. Strict Read-Only Scopes: Zero destructive write permissions requested on external provider accounts.
+  3. Git Hygiene: No private tokens or `.env.local` committed to Git. A clean, fully-documented `.env.var` acts as the canonical template.
+- **Explicit Non-Goals:** Two-way destructive write-backs into external provider platforms; requiring all 18 providers to be live before the app functions.
+
+### 2. Validated Assumptions
+1. Frontend is hosted statically (Vercel/Vite), while backend orchestration and token encryption run on Supabase Edge Functions (Deno) backed by Supabase Postgres with RLS.
+2. AI Daily Briefings and task extraction run on Google Gemini 2.0 Flash via the `ai-briefing` edge function.
+3. Provider rollout follows a Tier 1 live foundation (Google, Microsoft, GitHub, Canvas LMS) with graceful fallback to realistic demo data for unconfigured secondary providers.
+
+### 3. Comprehensive Decision Log
+| # | Topic | Decision | Alternatives Considered | Rationale |
+|---|---|---|---|---|
+| **D-01** | **Primary Scope** | Full Architecture & Live Integration Flow | Provider Prioritization only | Delivers end-to-end sync across OAuth, DB, Gemini AI, and UI with a solid env matrix. |
+| **D-02** | **Target Persona** | Multi-Context Power User (Student + Dev + Pro) | Tech Pro only, Student only | Fits UnifyHub's core mission to harmonize disparate life streams. |
+| **D-03** | **Security Model** | Strict Tiered Security | Monolithic env file | Prevents secret leakage to browser bundle while keeping dev ergonomic. |
+| **D-04** | **Provider Rollout** | Tier 1 Live Foundation + Demo Fallback | All 18 Live mandatory | Enables immediate real usage (Google, Microsoft, GitHub, Canvas). |
+| **D-05** | **Sync Frequency** | On-demand + Hourly background + 5-min cache | Realtime webhooks | Conserves quotas while keeping data fresh. |
+| **D-06** | **Config Division** | `.env.local` (4 Vite keys) + `.env.var` (Full Template) | Single bloated file | Clean separation of concerns and safe Git tracking. |
+
+### 4. Final Environment Blueprint
+To make UnifyHub operational:
+1. **Frontend (`.env.local`):**
+   - `VITE_SUPABASE_URL`: Supabase Project API endpoint
+   - `VITE_SUPABASE_ANON_KEY`: Supabase Client Anon Key
+   - `VITE_APP_URL`: Frontend base URL (`http://localhost:5173` or production)
+   - `VITE_ENABLE_DEMO_FALLBACK`: Set to `true` to ensure unconfigured providers display rich mock data
+2. **Backend & Edge Functions (`.env.var` / Supabase Vault):**
+   - `SUPABASE_SERVICE_ROLE_KEY`: Service role secret for edge sync bypassing RLS
+   - `TOKEN_ENCRYPTION_KEY`: 32-byte AES-256-GCM hex key (`openssl rand -hex 32`)
+   - `GEMINI_API_KEY`: Google AI Studio API key
+   - Provider OAuth Credentials (`GOOGLE_CLIENT_ID`, `GITHUB_CLIENT_ID`, etc.)
