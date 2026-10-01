@@ -1,26 +1,30 @@
 /**
  * Shared token-resolution helper used by every sync function.
  *
- * Strategy per provider:
- *  - google / microsoft: true OAuth refresh_token grant against the provider's
- *    token endpoint. Falls back to reusing the stored encrypted token when no
- *    refresh secret is configured (e.g. token saved at connect time).
- *  - github / notion / todoist / linear / slack: long-lived bearer tokens;
- *    decrypt and reuse.
- *  - ical: the stored value is the feed URL, returned as `accessToken`.
+ * Credentials are stored as an encrypted JSON blob:
+ *   { access_token, refresh_token, refreshable, ...extra }
+ * Older rows that stored a raw token string still work — the resolver detects
+ * a non-JSON payload and treats it as a long-lived bearer token.
  *
- * Never throws into the caller's stream logic: failures return
- * `{ ok: false, error, needsReconnect }` so sync functions can mark the
- * account deterministically.
+ * Providers with short-lived access tokens get a real refresh_token grant
+ * against their documented endpoint (Google form body, Jira JSON body, Zoom &
+ * Bitbucket HTTP Basic, Box/Dropbox/GitLab/Asana form body). Providers with
+ * long-lived bearer tokens are decrypted and reused. Rotating refresh tokens
+ * (Box, Zoom) are re-encrypted and persisted after a refresh.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
-import { decryptToken } from './crypto.ts';
+import { decryptToken, encryptToken } from './crypto.ts';
+import { sharedCallbackUrl } from './providers.ts';
 
 export interface TokenResolution {
   ok: boolean;
   accessToken: string;
   error: string | null;
   needsReconnect: boolean;
+  /** Present when the provider rotated the refresh token during a refresh. */
+  newRefreshToken?: string;
+  /** Extra credential fields carried from connect time (e.g. Jira cloud_id). */
+  extra?: Record<string, string>;
 }
 
 interface AccountRow {
@@ -31,45 +35,159 @@ interface AccountRow {
   encrypted_refresh_token: string | null;
 }
 
-const LONG_LIVED_PROVIDERS = new Set([
-  'github',
-  'notion',
-  'todoist',
-  'linear',
-  'slack',
-  'ical',
-]);
-
-function providerEnv(provider: string): { endpoint: string; clientId: string; clientSecret: string } {
-  switch (provider) {
-    case 'google':
-      return {
-        endpoint: 'https://oauth2.googleapis.com/token',
-        clientId: Deno.env.get('GOOGLE_CLIENT_ID') ?? '',
-        clientSecret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '',
-      };
-    case 'microsoft':
-      return {
-        endpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
-        clientId: Deno.env.get('MICROSOFT_CLIENT_ID') ?? '',
-        clientSecret: Deno.env.get('MICROSOFT_CLIENT_SECRET') ?? '',
-      };
-    default:
-      return { endpoint: '', clientId: '', clientSecret: '' };
-  }
+interface Credential {
+  access_token: string;
+  refresh_token: string;
+  refreshable: boolean;
+  extra: Record<string, string>;
 }
 
-export async function resolveAccessToken(
-  account: AccountRow
-): Promise<TokenResolution> {
+function parseCredential(plain: string): Credential {
+  try {
+    const parsed = JSON.parse(plain);
+    if (parsed && typeof parsed === 'object' && (parsed.access_token || parsed.refresh_token)) {
+      return {
+        access_token: String(parsed.access_token ?? ''),
+        refresh_token: String(parsed.refresh_token ?? ''),
+        refreshable: Boolean(parsed.refreshable),
+        extra: Object.fromEntries(
+          Object.entries(parsed).filter(([k]) => !['access_token', 'refresh_token', 'refreshable'].includes(k))
+        ) as Record<string, string>,
+      };
+    }
+  } catch {
+    // Not JSON — legacy raw token.
+  }
+  return { access_token: plain, refresh_token: plain, refreshable: false, extra: {} };
+}
+
+function basicAuth(id: string, secret: string): string {
+  return `Basic ${btoa(`${id}:${secret}`)}`;
+}
+
+interface RefreshOutcome {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+/**
+ * Perform a provider's documented refresh grant. Returns null when the
+ * provider is not refreshable or its secrets are missing (caller then falls
+ * back to the stored bearer token).
+ */
+async function refreshAccessToken(provider: string, credential: Credential): Promise<RefreshOutcome | null> {
+  const refreshToken = credential.refresh_token;
+  if (!refreshToken) return null;
+
+  const form = (endpoint: string, body: Record<string, string>, headers: Record<string, string> = {}) =>
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...headers },
+      body: new URLSearchParams(body),
+    });
+
+  let res: Response | null = null;
+  switch (provider) {
+    case 'google': {
+      const clientId = Deno.env.get('GOOGLE_CLIENT_ID');
+      const clientSecret = Deno.env.get('GOOGLE_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await form('https://oauth2.googleapis.com/token', {
+        client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: 'refresh_token',
+      });
+      break;
+    }
+    case 'jira': {
+      const clientId = Deno.env.get('JIRA_CLIENT_ID');
+      const clientSecret = Deno.env.get('JIRA_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await fetch('https://auth.atlassian.com/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grant_type: 'refresh_token', client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken }),
+      });
+      break;
+    }
+    case 'asana': {
+      const clientId = Deno.env.get('ASANA_CLIENT_ID');
+      const clientSecret = Deno.env.get('ASANA_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await form('https://app.asana.com/-/oauth_token', {
+        grant_type: 'refresh_token', client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken,
+      });
+      break;
+    }
+    case 'dropbox': {
+      const clientId = Deno.env.get('DROPBOX_CLIENT_ID');
+      const clientSecret = Deno.env.get('DROPBOX_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await form('https://api.dropboxapi.com/oauth2/token', {
+        grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret,
+      });
+      break;
+    }
+    case 'box': {
+      const clientId = Deno.env.get('BOX_CLIENT_ID');
+      const clientSecret = Deno.env.get('BOX_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await form('https://api.box.com/oauth2/token', {
+        grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret,
+      });
+      break;
+    }
+    case 'zoom': {
+      const clientId = Deno.env.get('ZOOM_CLIENT_ID');
+      const clientSecret = Deno.env.get('ZOOM_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await fetch(`https://zoom.us/oauth/token?${new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })}`, {
+        method: 'POST',
+        headers: { Authorization: basicAuth(clientId, clientSecret) },
+      });
+      break;
+    }
+    case 'gitlab': {
+      const clientId = Deno.env.get('GITLAB_CLIENT_ID');
+      const clientSecret = Deno.env.get('GITLAB_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await form('https://gitlab.com/oauth/token', {
+        grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret, redirect_uri: sharedCallbackUrl(),
+      });
+      break;
+    }
+    case 'bitbucket': {
+      const clientId = Deno.env.get('BITBUCKET_CLIENT_ID');
+      const clientSecret = Deno.env.get('BITBUCKET_CLIENT_SECRET');
+      if (!clientId || !clientSecret) return null;
+      res = await form(
+        'https://bitbucket.org/site/oauth2/access_token',
+        { grant_type: 'refresh_token', refresh_token: refreshToken },
+        { Authorization: basicAuth(clientId, clientSecret) }
+      );
+      break;
+    }
+    default:
+      return null;
+  }
+
+  if (!res) return null;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) {
+    const detail = data.error_description || data.error || `HTTP ${res.status}`;
+    throw new Error(`Token refresh rejected: ${detail}`);
+  }
+  if (!data.access_token) throw new Error('Token refresh returned no access_token.');
+  return { accessToken: data.access_token, refreshToken: data.refresh_token };
+}
+
+export async function resolveAccessToken(account: AccountRow): Promise<TokenResolution> {
   const encrypted = account.encrypted_refresh_token ?? '';
   if (!encrypted) {
     return { ok: false, accessToken: '', error: 'No stored credential for this account', needsReconnect: true };
   }
 
-  let plainToken: string;
+  let credential: Credential;
   try {
-    plainToken = await decryptToken(encrypted);
+    credential = parseCredential(await decryptToken(encrypted));
   } catch (err) {
     return {
       ok: false,
@@ -79,57 +197,44 @@ export async function resolveAccessToken(
     };
   }
 
-  // iCal: stored value is the feed URL itself.
-  if (account.provider === 'ical') {
-    return { ok: plainToken.startsWith('http'), accessToken: plainToken, error: plainToken.startsWith('http') ? null : 'Stored iCal URL is invalid', needsReconnect: !plainToken.startsWith('http') };
-  }
+  const bearer = credential.access_token || credential.refresh_token;
 
-  if (LONG_LIVED_PROVIDERS.has(account.provider)) {
-    return { ok: Boolean(plainToken), accessToken: plainToken, error: plainToken ? null : 'Stored token is empty', needsReconnect: !plainToken };
-  }
-
-  // True OAuth refresh for google / microsoft.
-  const { endpoint, clientId, clientSecret } = providerEnv(account.provider);
-  if (!endpoint || !clientId || !clientSecret) {
-    // Secrets not configured: reuse whatever token we stored at connect time.
-    if (plainToken) {
-      console.warn(`[TokenRefresh] ${account.provider} secrets missing; reusing stored token`);
-      return { ok: true, accessToken: plainToken, error: null, needsReconnect: false };
-    }
-    return { ok: false, accessToken: '', error: `Missing OAuth client secrets for ${account.provider}`, needsReconnect: true };
+  if (!credential.refreshable) {
+    return {
+      ok: Boolean(bearer),
+      accessToken: bearer,
+      error: bearer ? null : 'Stored token is empty',
+      needsReconnect: !bearer,
+      extra: credential.extra,
+    };
   }
 
   try {
-    const res = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: plainToken,
-        grant_type: 'refresh_token',
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      const detail = data.error_description || data.error || `HTTP ${res.status}`;
-      console.error(`[TokenRefresh] ${account.provider} refresh failed: ${detail}`);
-      return {
-        ok: false,
-        accessToken: '',
-        error: `Token refresh rejected: ${detail}`,
-        needsReconnect: res.status === 400 || res.status === 401,
-      };
+    const outcome = await refreshAccessToken(account.provider, credential);
+    if (!outcome) {
+      // Refreshable provider without configured secrets: reuse stored token.
+      if (bearer) {
+        console.warn(`[TokenRefresh] ${account.provider} secrets missing; reusing stored token`);
+        return { ok: true, accessToken: bearer, error: null, needsReconnect: false, extra: credential.extra };
+      }
+      return { ok: false, accessToken: '', error: `Missing OAuth client secrets for ${account.provider}`, needsReconnect: true };
     }
-
-    return { ok: true, accessToken: data.access_token as string, error: null, needsReconnect: false };
+    return {
+      ok: true,
+      accessToken: outcome.accessToken,
+      error: null,
+      needsReconnect: false,
+      newRefreshToken: outcome.refreshToken,
+      extra: credential.extra,
+    };
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     return {
       ok: false,
       accessToken: '',
-      error: `Token refresh network error: ${err instanceof Error ? err.message : String(err)}`,
-      needsReconnect: false,
+      error: message,
+      // Explicit rejections mean the grant is dead; network blips do not.
+      needsReconnect: /rejected|invalid|revoked|expired/i.test(message),
     };
   }
 }
@@ -137,7 +242,8 @@ export async function resolveAccessToken(
 /**
  * Convenience wrapper: load the account row with the service-role client and
  * resolve a working access token. On failure, updates the account row
- * (needs_reconnect + error message) before returning.
+ * (needs_reconnect + error message) before returning. On a rotating refresh
+ * token, persists the new credential.
  */
 export async function loadAccountWithToken(
   admin: ReturnType<typeof createClient>,
@@ -163,6 +269,23 @@ export async function loadAccountWithToken(
       })
       .eq('id', accountId);
     return { account: account as AccountRow, token, errorResponse: { error: token.error, status: 'needs_reconnect' } };
+  }
+
+  // Persist a rotated refresh token so the next refresh keeps working.
+  if (token.newRefreshToken) {
+    try {
+      const encrypted = await encryptToken(
+        JSON.stringify({
+          access_token: token.accessToken,
+          refresh_token: token.newRefreshToken,
+          refreshable: true,
+          ...(token.extra ?? {}),
+        })
+      );
+      await admin.from('connected_accounts').update({ encrypted_refresh_token: encrypted }).eq('id', accountId);
+    } catch (err) {
+      console.error('[TokenRefresh] failed to persist rotated refresh token:', err);
+    }
   }
 
   return { account: account as AccountRow, token };
