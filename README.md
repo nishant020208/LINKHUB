@@ -46,11 +46,11 @@ UnifyHub solves context fragmentation by consolidating events, deadlines, tasks,
       └─────────────────┘          └─────────────────┘         └─────────────────┘
                                             │
                      ┌──────────────────────┴──────────────────────┐
-                     │ 18 Uniform Provider Adapters (Read-Only)    │
-                     │ Google, Microsoft, iCal, GitHub, Notion,    │
-                     │ Todoist, Slack, Linear, Jira, Trello,       │
-                     │ Asana, ClickUp, Dropbox, Box, Zoom, GitLab, │
-                     │ Bitbucket, Canvas LMS, Moodle, IMAP (TLS)   │
+                     │ 17 Uniform Provider Adapters (Read-Only)    │
+                     │ Google, GitHub, Notion, Todoist, Slack,     │
+                     │ Linear, Jira, Trello, Asana, ClickUp,       │
+                     │ Dropbox, Box, Zoom, GitLab, Bitbucket,      │
+                     │ Moodle LMS, Custom IMAP (TLS)               │
                      └─────────────────────────────────────────────┘
 ```
 
@@ -99,13 +99,11 @@ UnifyHub solves context fragmentation by consolidating events, deadlines, tasks,
 
 ---
 
-## 18 Connected Provider Adapters
+## 17 Connected Provider Adapters
 
 | Provider | Category | Auth Protocol | Supported Data Types |
 | :--- | :--- | :--- | :--- |
 | **Google** | Google | OAuth 2.0 | Gmail, Google Calendar, Tasks, Classroom, Drive |
-| **Microsoft** | Microsoft | OAuth 2.0 | Outlook, Calendar, To Do, OneDrive, Teams |
-| **iCal** | Calendars | Webcal / URL | Live course timetables, Apple Calendar, Athletics |
 | **GitHub** | Developer | OAuth 2.0 | Assigned PRs, Issue mentions, Review requests |
 | **Notion** | Productivity | OAuth 2.0 | Database pages, Project deadlines |
 | **Todoist** | Productivity | OAuth 2.0 | Tasks, Due dates, Checklists |
@@ -120,7 +118,6 @@ UnifyHub solves context fragmentation by consolidating events, deadlines, tasks,
 | **Zoom** | Meetings | OAuth 2.0 | Lecture join URLs, Video conferences |
 | **GitLab** | Developer | OAuth 2.0 | Merge requests, Pipeline milestones |
 | **Bitbucket** | Developer | OAuth 2.0 | Pull requests, Code reviews |
-| **Canvas LMS** | Academic | API Token | Assignment submissions, Course syllabus, Grades |
 | **Moodle LMS** | Academic | Web Token | Quizzes, Academic assignments, Portal announcements |
 | **Custom IMAP** | Email | TLS (Port 993) | Legacy university webmail (with security banner) |
 
