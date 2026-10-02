@@ -33,7 +33,63 @@ export interface ConnectedAccount {
   error_message?: string | null;
   granted_scopes?: string[];
   sync_enabled_types?: ItemType[];
+  storage_used_bytes?: number;
+  items_total_count?: number;
+  items_full_synced_count?: number;
+  items_skipped_count?: number;
+  skip_reasons?: Record<string, number>;
   created_at: string;
+}
+
+export interface ItemContent {
+  id: string;
+  item_id: string;
+  user_id: string;
+  account_id: string;
+  body_text?: string | null;
+  body_html?: string | null;
+  body_markdown?: string | null;
+  structured_content?: Record<string, unknown>;
+  sync_status: 'synced' | 'partial' | 'skipped' | 'too_large' | 'error';
+  skip_reason?: string | null;
+  content_size_bytes: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ItemAttachment {
+  id: string;
+  item_id: string;
+  user_id: string;
+  account_id: string;
+  name: string;
+  mime_type?: string | null;
+  size_bytes: number;
+  storage_path?: string | null;
+  external_url?: string | null;
+  is_inline: boolean;
+  content_id?: string | null;
+  created_at: string;
+}
+
+export interface ItemComment {
+  id: string;
+  item_id: string;
+  user_id: string;
+  account_id: string;
+  author_name?: string | null;
+  author_avatar?: string | null;
+  body: string;
+  body_html?: string | null;
+  source_id?: string | null;
+  created_at: string;
+}
+
+export interface UserSettings {
+  user_id: string;
+  storage_used_bytes: number;
+  storage_limit_bytes: number;
+  data_retention_days: number;
 }
 
 export interface Item {
@@ -56,6 +112,10 @@ export interface Item {
     sender?: string;
     course_name?: string;
     location?: string;
+    repository?: string;
+    project?: string;
+    labels?: string[];
+    comments_count?: number;
     file_type?: string;
     file_size_formatted?: string;
     pinned?: boolean;
@@ -71,6 +131,7 @@ export interface Item {
       due_date?: string;
       merchant?: string;
     };
+    [key: string]: unknown;
   };
   created_at: string;
   updated_at: string;
