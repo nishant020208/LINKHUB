@@ -117,7 +117,23 @@ serve(async (req: Request) => {
       }
     }
 
-    // Delete the account row; ON DELETE CASCADE clears items + sync_logs.
+    // Clean up stored binary files from Supabase Storage for this account
+    try {
+      const storagePrefix = `${account.user_id}/${account.id}`;
+      const { data: fileList } = await admin.storage
+        .from('unifyhub-content')
+        .list(storagePrefix, { limit: 1000 });
+
+      if (fileList && fileList.length > 0) {
+        const pathsToDelete = fileList.map((f: any) => `${storagePrefix}/${f.name}`);
+        await admin.storage.from('unifyhub-content').remove(pathsToDelete);
+        console.log(`[disconnect-account] deleted ${pathsToDelete.length} storage files for account ${accountId}`);
+      }
+    } catch (storageErr) {
+      console.warn('[disconnect-account] error clearing account storage:', storageErr);
+    }
+
+    // Delete the account row; ON DELETE CASCADE clears items, contents, attachments, comments, sync_logs.
     const { error: deleteError } = await admin
       .from('connected_accounts')
       .delete()
@@ -127,6 +143,21 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({ error: `Failed to delete account: ${deleteError.message}` }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Recalculate and update the user's total storage usage in user_settings
+    try {
+      const { data: remainingAccounts } = await admin
+        .from('connected_accounts')
+        .select('storage_used_bytes')
+        .eq('user_id', user.id);
+      const totalUsed = (remainingAccounts ?? []).reduce((acc: number, row: any) => acc + (Number(row.storage_used_bytes) || 0), 0);
+      await admin
+        .from('user_settings')
+        .update({ storage_used_bytes: totalUsed })
+        .eq('user_id', user.id);
+    } catch (recalcErr) {
+      console.warn('[disconnect-account] could not recalculate user storage:', recalcErr);
     }
 
     return new Response(JSON.stringify({ success: true, revoked, deleted: true }), {
