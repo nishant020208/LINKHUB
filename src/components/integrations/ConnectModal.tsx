@@ -54,15 +54,6 @@ export const ConnectModal: React.FC<ConnectModalProps> = ({ provider, isOpen, on
 
     try {
       if (provider.authType === 'oauth') {
-        // Trello returns its token in the URL fragment; flag the pending flow so
-        // the Integrations page can capture it on return.
-        if (provider.key === 'trello') {
-          try {
-            sessionStorage.setItem('unifyhub-trello-pending', '1');
-          } catch {
-            // sessionStorage can be unavailable in restricted contexts.
-          }
-        }
         await startProviderOAuth(provider.key);
         // The browser now navigates to the provider consent screen.
         return;
