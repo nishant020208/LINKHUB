@@ -16,9 +16,21 @@ import { decryptToken, encryptToken } from '../_shared/crypto.ts';
 import { verifyState } from '../_shared/state.ts';
 import { providerName, sharedCallbackUrl } from '../_shared/providers.ts';
 
-// Providers that have a real sync function deployed today. Others connect and
-// store credentials without an immediate first sync (no error banner).
-const SYNC_IMPLEMENTED = new Set(['google', 'github', 'notion', 'todoist', 'slack', 'linear']);
+// Providers that have a real sync function deployed today.
+const SYNC_IMPLEMENTED = new Set([
+  'google',
+  'github',
+  'notion',
+  'todoist',
+  'slack',
+  'linear',
+  'jira',
+  'trello',
+  'asana',
+  'clickup',
+  'dropbox',
+  'box',
+]);
 
 interface ExchangeResult {
   accessToken: string;
