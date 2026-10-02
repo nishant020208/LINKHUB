@@ -34,15 +34,9 @@ export const PROVIDER_SPECS: Record<string, ProviderSpec> = {
   slack: { name: 'Slack', auth: 'oauth', env: ['SLACK_CLIENT_ID', 'SLACK_CLIENT_SECRET'], refreshable: false },
   linear: { name: 'Linear', auth: 'oauth', env: ['LINEAR_CLIENT_ID', 'LINEAR_CLIENT_SECRET'], refreshable: false },
   jira: { name: 'Jira', auth: 'oauth', env: ['JIRA_CLIENT_ID', 'JIRA_CLIENT_SECRET'], refreshable: true },
-  // Trello issues its token in the URL fragment (public OAuth) — no secret.
-  trello: { name: 'Trello', auth: 'oauth', env: ['TRELLO_API_KEY'], refreshable: false },
   asana: { name: 'Asana', auth: 'oauth', env: ['ASANA_CLIENT_ID', 'ASANA_CLIENT_SECRET'], refreshable: true },
-  clickup: { name: 'ClickUp', auth: 'oauth', env: ['CLICKUP_CLIENT_ID', 'CLICKUP_CLIENT_SECRET'], refreshable: true },
+  clickup: { name: 'ClickUp', auth: 'oauth', env: ['CLICKUP_CLIENT_ID', 'CLICKUP_CLIENT_SECRET'], refreshable: false },
   dropbox: { name: 'Dropbox', auth: 'oauth', env: ['DROPBOX_CLIENT_ID', 'DROPBOX_CLIENT_SECRET'], refreshable: true },
-  box: { name: 'Box', auth: 'oauth', env: ['BOX_CLIENT_ID', 'BOX_CLIENT_SECRET'], refreshable: true },
-  zoom: { name: 'Zoom', auth: 'oauth', env: ['ZOOM_CLIENT_ID', 'ZOOM_CLIENT_SECRET'], refreshable: true },
-  gitlab: { name: 'GitLab', auth: 'oauth', env: ['GITLAB_CLIENT_ID', 'GITLAB_CLIENT_SECRET'], refreshable: true },
-  bitbucket: { name: 'Bitbucket', auth: 'oauth', env: ['BITBUCKET_CLIENT_ID', 'BITBUCKET_CLIENT_SECRET'], refreshable: true },
   // Not OAuth: user supplies a portal URL + personal token / IMAP credentials.
   moodle: { name: 'Moodle LMS', auth: 'token', env: [], refreshable: false },
   imap: { name: 'Custom IMAP', auth: 'credentials', env: [], refreshable: false },
