@@ -36,6 +36,7 @@ interface AppState {
   isCommandPaletteOpen: boolean;
   isQuickAddOpen: boolean;
   isNotificationModalOpen: boolean;
+  activeItemId: string | null;
 
   // Domain data
   accounts: ConnectedAccount[];
@@ -57,6 +58,7 @@ interface AppState {
   setCommandPaletteOpen: (open: boolean) => void;
   setQuickAddOpen: (open: boolean) => void;
   setNotificationModalOpen: (open: boolean) => void;
+  setActiveItemId: (id: string | null) => void;
   updateNotificationPreferences: (prefs: {
     channels?: Partial<NotificationPreferences['channels']>;
     targets?: Partial<NotificationPreferences['targets']>;
@@ -158,6 +160,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   isCommandPaletteOpen: false,
   isQuickAddOpen: false,
   isNotificationModalOpen: false,
+  activeItemId: null,
 
   accounts: [],
   items: [],
@@ -167,6 +170,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   lastSyncedAt: new Date().toISOString(),
   notificationPreferences: DEFAULT_NOTIFICATION_PREFS,
 
+  setActiveItemId: (id) => set({ activeItemId: id }),
   setNotificationModalOpen: (open) => set({ isNotificationModalOpen: open }),
   updateNotificationPreferences: (prefs) =>
     set((state) => ({
