@@ -1,8 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon, Sparkles, Bell, Clock, Link as LinkIcon, User as UserIcon, Check } from 'lucide-react';
+import { Sun, Moon, Sparkles, Bell, Clock, Link as LinkIcon, User as UserIcon, Check, Smartphone } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useInstallPrompt } from '@/hooks/useInstallPrompt';
+import { InstallButton, InstallInstructions } from '@/components/pwa/InstallPrompt';
 import { Card, CardHeader, CardBody } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,6 +19,9 @@ export const SettingsPage: React.FC = () => {
   const { theme, setTheme, notificationPreferences, updateNotificationPreferences, accounts, lastSyncedAt } =
     useAppStore();
   const user = useAuthStore((s) => s.user);
+  // Own instance with the first-visit auto-prompt disabled: the PwaManager owns
+  // that, so opening Settings must never make the tutorial appear on its own.
+  const install = useInstallPrompt(false);
 
   return (
     <div className="space-y-6">
@@ -137,6 +142,35 @@ export const SettingsPage: React.FC = () => {
             <LinkIcon className="w-3.5 h-3.5" />
             Manage integrations
           </Button>
+        </CardBody>
+      </Card>
+
+      {/* Install / App Experience */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-primary" />
+            <h3 className="font-display font-semibold text-sm">Install UnifyHub</h3>
+          </div>
+        </CardHeader>
+        <CardBody className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Add UnifyHub to your home screen for a full-screen, app-like launch with an offline
+            copy of your shell. No app store account required.
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <InstallButton install={install} />
+            {install.isStandalone && (
+              <span className="text-[11px] font-mono text-muted-foreground">
+                Running as an installed app
+              </span>
+            )}
+          </div>
+          <InstallInstructions
+            isOpen={install.isInstructionsOpen}
+            onClose={install.closeInstructions}
+            platform={install.platform}
+          />
         </CardBody>
       </Card>
 
