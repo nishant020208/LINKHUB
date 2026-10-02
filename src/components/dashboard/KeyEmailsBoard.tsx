@@ -16,7 +16,7 @@ import { useLiveAnnouncer } from '@/components/ui/live-announcer';
 import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
 export const KeyEmailsBoard: React.FC = () => {
-  const { items, accounts, addItem } = useAppStore();
+  const { items, accounts, addItem, setActiveItemId } = useAppStore();
   const { announce } = useLiveAnnouncer();
 
   const emails = items.filter((item) => item.type === 'email');
@@ -75,7 +75,8 @@ export const KeyEmailsBoard: React.FC = () => {
               return (
                 <div
                   key={email.id}
-                  className="p-3.5 rounded-2xl bg-card/60 border border-border/50 hover:border-border transition-all space-y-2 group"
+                  onClick={() => setActiveItemId(email.id)}
+                  className="p-3.5 rounded-2xl bg-card/60 border border-border/50 hover:border-primary/40 hover:bg-card/90 transition-all space-y-2 group cursor-pointer"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
