@@ -5,6 +5,8 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { Toaster } from '@/components/ui/toast';
+import { PwaManager } from '@/components/pwa/PwaManager';
+import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { AestheticGlow } from '@/components/common/AestheticGlow';
 import { useAppStore } from '@/store/useAppStore';
@@ -67,6 +69,10 @@ export const AppShell: React.FC = () => {
         <Navbar />
       </div>
 
+      {/* Connectivity status sits in the flow directly under the chrome, so it
+          reads as a status strip instead of covering page content. */}
+      <OfflineBanner />
+
       <div className="flex-1 relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 flex gap-6">
         <Sidebar />
 
@@ -119,6 +125,7 @@ export const AppShell: React.FC = () => {
         </Suspense>
       )}
 
+      <PwaManager />
       <Toaster />
     </div>
   );
