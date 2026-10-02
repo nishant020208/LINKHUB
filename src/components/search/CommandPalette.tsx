@@ -129,7 +129,7 @@ export const CommandPalette: React.FC = () => {
         subtitle: item.description || item.metadata?.course_name || '',
         icon,
         action: () => {
-          if (item.url) window.open(item.url, '_blank');
+          useAppStore.getState().setActiveItemId(item.id);
         },
       };
     });
