@@ -6,15 +6,11 @@ import {
   Lock,
   Trash2,
   AlertTriangle,
-  Eye,
   CheckCircle,
   Download,
   Mail,
   ExternalLink,
   Layers,
-  FileCheck2,
-  Calendar,
-  GraduationCap,
   HardDrive,
   ListTodo,
   Github,
@@ -24,6 +20,9 @@ import {
   Server,
   Database,
   UserCheck,
+  FileText,
+  Clock,
+  Key,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
@@ -44,7 +43,7 @@ export const PrivacyPage: React.FC = () => {
 
   const handleExportData = () => {
     const exportBundle = {
-      export_version: '1.0.0',
+      export_version: '2.0.0',
       exported_at: new Date().toISOString(),
       account_summary: {
         total_accounts: accounts.length,
@@ -54,6 +53,8 @@ export const PrivacyPage: React.FC = () => {
           email: a.email,
           label: a.label,
           status: a.status,
+          storage_used_bytes: a.storage_used_bytes || 0,
+          items_full_synced_count: a.items_full_synced_count || 0,
           created_at: a.created_at,
         })),
       },
@@ -65,7 +66,7 @@ export const PrivacyPage: React.FC = () => {
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(exportBundle, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `unifyhub-data-export-${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute('download', `unifyhub-full-export-${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -111,7 +112,7 @@ export const PrivacyPage: React.FC = () => {
               className="p-2 rounded-xl border border-border/50 bg-card/60 hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4 text-primary" />}
             </button>
           </div>
         </div>
@@ -124,20 +125,20 @@ export const PrivacyPage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-medium bg-status-connected/10 text-status-connected border border-status-connected/20">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Official Privacy Policy &amp; Data Transparency</span>
+              <span>Full-Content Deep Sync &amp; Privacy Transparency</span>
             </div>
 
             <div className="text-xs font-mono text-muted-foreground">
-              Last Updated: <span className="text-foreground font-semibold">September 30, 2026</span>
+              Last Updated: <span className="text-foreground font-semibold">March 2026</span>
             </div>
           </div>
 
           <h1 className="font-heading font-black text-3xl sm:text-4xl text-foreground tracking-tight">
-            How UnifyHub Collects, Uses, and Protects Your Data
+            How UnifyHub Collects, Stores, and Protects Your Full Content
           </h1>
 
           <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
-            UnifyHub is a unified personal productivity command center built for students and knowledge workers. Our architecture is <strong>read-only by default</strong>, stores <strong>metadata only</strong>, encrypts credentials at rest, and provides verifiable user-controlled data deletion.
+            UnifyHub is a personal command station for students and professionals. To deliver unified full-text search, cross-platform date detection, rich in-app previews, and comment feeds, UnifyHub synchronizes <strong>full text content, email bodies, file contents (under 10MB), comments, and attachments</strong>. Every byte of stored data is encrypted at rest, strictly isolated by PostgreSQL Row-Level Security, and completely wiped the moment you disconnect an account.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-3 text-xs font-mono text-muted-foreground">
@@ -150,357 +151,265 @@ export const PrivacyPage: React.FC = () => {
         {wipeSuccess && (
           <div className="p-4 rounded-2xl bg-status-connected/10 border border-status-connected/30 text-status-connected text-xs flex items-center gap-2">
             <CheckCircle className="w-4 h-4 shrink-0" />
-            <span>All your synchronized items and credentials have been permanently deleted.</span>
+            <span>All your synchronized content, comments, attachments, and storage files have been permanently wiped.</span>
           </div>
         )}
 
-        {/* Section 1: Exactly What Data UnifyHub Reads Per Supported Provider */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <Layers className="w-5 h-5 text-primary" />
-            <h2 className="font-heading font-bold text-xl text-foreground">
-              1. What Data UnifyHub Reads (Provider-by-Provider Breakdown)
-            </h2>
-          </div>
-
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            UnifyHub connects to external third-party services exclusively through official OAuth 2.0 or secure token APIs. Below is the precise itemization of what data is collected from each provider we support:
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            {/* Google Workspace: Gmail */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-status-syncing/10 text-status-syncing border border-status-syncing/20 flex items-center justify-center font-bold text-xs">
-                  <Mail className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Google Workspace: Gmail</h3>
-                  <span className="text-[10px] font-mono text-primary">Scope: gmail.readonly</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Metadata only — message subject line, sender name and email address, timestamp received, a short snippet preview (first 100 characters), and a web link to open the message directly in Gmail.</li>
-                <li><strong className="text-status-error">What we NEVER read:</strong> UnifyHub <strong>never</strong> requests, inspects, processes, or stores full email message bodies, email threads, drafts, sent messages, or file attachments.</li>
-              </ul>
-            </div>
-
-            {/* Google Calendar */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-status-connected/10 text-status-connected border border-status-connected/20 flex items-center justify-center font-bold text-xs">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Google Calendar</h3>
-                  <span className="text-[10px] font-mono text-primary">Scope: calendar.readonly</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Event title, scheduled start and end timestamps, recurrence rules, location string, and video conference links (such as Google Meet).</li>
-                <li><strong className="text-foreground">Purpose:</strong> Display your consolidated daily timetable alongside academic and work commitments. We never create, edit, or delete calendar events.</li>
-              </ul>
-            </div>
-
-            {/* Google Classroom */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center font-bold text-xs">
-                  <GraduationCap className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Google Classroom</h3>
-                  <span className="text-[10px] font-mono text-primary">Scope: classroom.coursework.me.readonly</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Course names, assignment titles, assignment descriptions, due dates/times, and student submission status (turned in, graded, or missing).</li>
-                <li><strong className="text-foreground">Purpose:</strong> Automatically surface upcoming coursework deadlines and mark submitted tasks as complete in your agenda.</li>
-              </ul>
-            </div>
-
-            {/* Google Drive */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-status-syncing/10 text-status-syncing border border-status-syncing/20 flex items-center justify-center font-bold text-xs">
-                  <HardDrive className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Google Drive</h3>
-                  <span className="text-[10px] font-mono text-primary">Scope: drive.metadata.readonly</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> File metadata only — file name, file MIME type, last modified date, and web view URL for recently accessed or starred documents.</li>
-                <li><strong className="text-status-error">What we NEVER read:</strong> We <strong>never</strong> download, read, alter, or delete the contents of your Google Drive files or folders.</li>
-              </ul>
-            </div>
-
-            {/* Google Tasks */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs">
-                  <ListTodo className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Google Tasks</h3>
-                  <span className="text-[10px] font-mono text-primary">Scope: tasks.readonly</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Task list titles, task titles, task descriptions/notes, and due dates.</li>
-                <li><strong className="text-foreground">Purpose:</strong> Aggregate your Google tasks into your unified daily todo view.</li>
-              </ul>
-            </div>
-
-            {/* Moodle LMS */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-status-warning/10 text-status-warning border border-status-warning/20 flex items-center justify-center font-bold text-xs">
-                  <Server className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Moodle LMS</h3>
-                  <span className="text-[10px] font-mono text-primary">Read-only web-service token</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Enrolled course names, assignment module titles, and assignment due dates from the Moodle site you connect with your own personal token.</li>
-              </ul>
-            </div>
-
-            {/* GitHub */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs">
-                  <Github className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">GitHub</h3>
-                  <span className="text-[10px] font-mono text-primary">Scopes: read:user, repo:status, notifications</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">What we read:</strong> Pull requests assigned to you, code review requests, repository issues assigned to your handle, and notifications.</li>
-              </ul>
-            </div>
-
-            {/* Notion, Todoist, Slack, Linear, Jira */}
-            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-accent text-accent-foreground border border-border/20 flex items-center justify-center font-bold text-xs">
-                  <Layers className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-semibold text-sm text-foreground">Notion, Todoist, Slack, Linear &amp; Jira</h3>
-                  <span className="text-[10px] font-mono text-primary">Read-only metadata</span>
-                </div>
-              </div>
-              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
-                <li><strong className="text-foreground">Notion:</strong> Database item titles and deadline properties explicitly shared with UnifyHub.</li>
-                <li><strong className="text-foreground">Todoist:</strong> Task titles, priority flags, and due dates.</li>
-                <li><strong className="text-foreground">Slack:</strong> Direct mentions and saved-for-later messages only.</li>
-                <li><strong className="text-foreground">Linear &amp; Jira:</strong> Assigned issue titles, statuses, and due dates.</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 2: Strict Read-Only Policy */}
-        <section className="p-6 rounded-3xl glass-panel border border-status-connected/30 bg-status-connected/10 space-y-3">
-          <div className="flex items-center gap-2.5 text-status-connected">
-            <Lock className="w-5 h-5" />
-            <h2 className="font-heading font-bold text-lg text-status-connected">
-              2. Strict Read-Only Policy — Zero Actions on Your Behalf
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-foreground/80 leading-relaxed">
-            All OAuth permission scopes requested by UnifyHub are <strong>strictly read-only</strong>. By architectural design, our backend does not have write, edit, delete, or send permissions for any connected service:
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5 leading-relaxed font-mono">
-            <li>UnifyHub NEVER sends emails on your behalf.</li>
-            <li>UnifyHub NEVER creates, edits, or deletes calendar events.</li>
-            <li>UnifyHub NEVER alters, downloads, or deletes Google Drive or cloud-storage documents.</li>
-            <li>UnifyHub NEVER submits coursework or alters grades in Google Classroom.</li>
-            <li>UnifyHub NEVER posts messages, issues, or pull request comments on your behalf.</li>
-          </ul>
-        </section>
-
-        {/* Section 3: Google API Services User Data Policy Compliance */}
-        <section className="p-6 rounded-3xl glass-panel border border-border/60 space-y-4">
-          <div className="flex items-center gap-2.5">
-            <FileCheck2 className="w-5 h-5 text-primary" />
-            <h2 className="font-heading font-bold text-lg text-foreground">
-              3. Google API Services User Data Policy &amp; Limited Use Disclosure
-            </h2>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-card/60 border border-border/40 space-y-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            <p className="text-foreground font-semibold">
-              UnifyHub&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{' '}
-              <a
-                href="https://developers.google.com/terms/api-services-user-data-policy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline hover:text-primary/80 inline-flex items-center gap-1"
-              >
-                <span>Google API Services User Data Policy</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              , including the Limited Use requirements.
-            </p>
-
-            <ul className="space-y-2 list-disc pl-5 pt-1 text-xs">
-              <li>
-                <strong className="text-foreground">No Advertising:</strong> Google user data is NEVER used for serving advertisements, target marketing, retargeting, or data broker sales.
-              </li>
-              <li>
-                <strong className="text-foreground">No AI Model Training:</strong> Google user data is <strong>never used to train, retrain, fine-tune, or improve artificial intelligence or generalized machine learning models</strong>.
-              </li>
-              <li>
-                <strong className="text-foreground">No Human Access:</strong> No human reads your personal emails, calendar events, or documents, unless you explicitly grant written authorization for technical support debugging, or as required by law.
-              </li>
-            </ul>
-          </div>
-        </section>
-
-        {/* Section 4: Data Storage, Isolation & Encryption */}
+        {/* Section 1: Full Content Sync Architecture */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
             <Database className="w-5 h-5 text-primary" />
             <h2 className="font-heading font-bold text-xl text-foreground">
-              4. How Your Data is Stored &amp; Encrypted
+              1. Full-Content Deep Sync Architecture
+            </h2>
+          </div>
+
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            UnifyHub is built as a complete unified workspace, not a superficial metadata browser. When you connect an integration, UnifyHub downloads and stores:
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
+              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                <Mail className="w-4 h-4" />
+                <span>Full Email &amp; Message Bodies</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Full plain-text and sanitized HTML email bodies (Gmail, IMAP) and message threads (Slack) are stored in encrypted tables for rich in-app reading and search.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
+              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                <FileText className="w-4 h-4" />
+                <span>Actual File Contents (&le; 10MB)</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Files and attachments under 10MB (Drive, Dropbox, Box, Slack, GitHub, Jira, Asana, ClickUp, Trello) are stored in an encrypted private Storage bucket for instant inline preview.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
+              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
+                <Layers className="w-4 h-4" />
+                <span>Descriptions &amp; Comment Streams</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Full issue descriptions, pull request file lists, Notion block markdown, and chronological comment activity feeds are synchronized and searchable from one bar.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 2: Encryption and Access Control */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <Lock className="w-5 h-5 text-status-connected" />
+            <h2 className="font-heading font-bold text-xl text-foreground">
+              2. Encryption at Rest &amp; Strict Multi-Tenant Isolation
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
-              <div className="flex items-center gap-2 text-primary text-xs font-mono font-semibold">
-                <Eye className="w-4 h-4" />
-                <span>ROW LEVEL SECURITY (RLS)</span>
-              </div>
-              <h3 className="font-heading font-semibold text-sm text-foreground">Strict Tenant Isolation</h3>
+              <h3 className="font-heading font-semibold text-sm text-foreground flex items-center gap-2">
+                <Key className="w-4 h-4 text-primary" />
+                <span>AES-GCM-256 Text &amp; Token Encryption</span>
+              </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                All application records are stored in a dedicated Supabase PostgreSQL database protected by Row Level Security. Every database query enforces <code className="px-1.5 py-0.5 rounded bg-muted font-mono text-[11px]">auth.uid() = user_id</code>. It is architecturally impossible for one user to see or query another user&apos;s synchronized items.
+                OAuth refresh tokens, access tokens, and sensitive credential records are encrypted using AES-256-GCM prior to database insertion. Encryption keys reside in secure server-side environment variables and never touch client-side bundles or browser storage.
               </p>
             </div>
 
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-2">
-              <div className="flex items-center gap-2 text-status-syncing text-xs font-mono font-semibold">
-                <Lock className="w-4 h-4" />
-                <span>ENCRYPTION AT REST</span>
-              </div>
-              <h3 className="font-heading font-semibold text-sm text-foreground">AES-256-GCM Token Encryption</h3>
+              <h3 className="font-heading font-semibold text-sm text-foreground flex items-center gap-2">
+                <Server className="w-4 h-4 text-status-connected" />
+                <span>Row-Level Security (RLS) &amp; Storage Isolation</span>
+              </h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                OAuth refresh tokens are encrypted using AES-256-GCM before being stored in the database. The client browser only ever receives ephemeral session identifiers and never has direct access to third-party refresh secrets.
+                Every table (<code className="text-primary font-mono text-[11px]">items</code>, <code className="text-primary font-mono text-[11px]">item_contents</code>, <code className="text-primary font-mono text-[11px]">item_attachments</code>, <code className="text-primary font-mono text-[11px]">item_comments</code>) and our private Storage bucket enforce strict PostgreSQL Row-Level Security: <code className="text-primary font-mono text-[11px]">auth.uid() = user_id</code>. No user can ever access another user's files or content even if an object path or UUID is guessed.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Section 5: How Data is Used & No Data Sale */}
-        <section className="p-6 rounded-3xl glass-panel border border-border/60 space-y-3">
-          <div className="flex items-center gap-2.5">
-            <UserCheck className="w-5 h-5 text-status-connected" />
-            <h2 className="font-heading font-bold text-lg text-foreground">
-              5. How Your Data is Used — Zero Third-Party Sharing
+        {/* Section 3: Provider-by-Provider Deep Breakdown */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <Layers className="w-5 h-5 text-primary" />
+            <h2 className="font-heading font-bold text-xl text-foreground">
+              3. Data Collected Per Connected Provider
             </h2>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Your data is used solely to render your own consolidated command center (such as calculating upcoming deadlines, formatting your daily agenda, and alerting you to urgent assigned tasks).
-          </p>
-          <div className="p-4 rounded-2xl bg-card/60 border border-border/40 text-xs text-foreground space-y-2 font-medium">
-            <p>&bull; We do NOT sell, rent, monetize, or trade your data to any third party under any circumstances.</p>
-            <p>&bull; We do NOT share your data with advertisers or data brokers.</p>
-            <p>&bull; We do NOT track your browsing activity across other websites.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Google */}
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-400" />
+                <h3 className="font-heading font-semibold text-sm text-foreground">Google Workspace (Gmail, Drive, Classroom, Calendar, Tasks)</h3>
+              </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li><strong>Gmail:</strong> Full MIME message parsing, plain text and sanitized HTML bodies, and attachment downloads (&le; 10MB) via official read-only Gmail APIs.</li>
+                <li><strong>Drive:</strong> Text export for Google Docs and Sheets, direct binary downloads for files under 10MB into secure private Storage. Files over 10MB are flagged with size indicators without silent failure.</li>
+                <li><strong>Classroom &amp; Tasks:</strong> Coursework descriptions, materials, submission status, and full task notes.</li>
+                <li><strong>Calendar:</strong> Event start/end timestamps, descriptions, attendee counts, and conference meeting links.</li>
+              </ul>
+            </div>
+
+            {/* GitHub */}
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <Github className="w-4 h-4 text-primary" />
+                <h3 className="font-heading font-semibold text-sm text-foreground">GitHub</h3>
+              </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li><strong>Issues &amp; PRs:</strong> Full issue markdown bodies, pull request diffs, changed file lists, labels, and status.</li>
+                <li><strong>Comments:</strong> Full chronological comment activity feeds including user logins and timestamps.</li>
+                <li><strong>Attachments:</strong> Embedded image links and issue asset references.</li>
+              </ul>
+            </div>
+
+            {/* Notion */}
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-status-syncing" />
+                <h3 className="font-heading font-semibold text-sm text-foreground">Notion</h3>
+              </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li><strong>Block Content:</strong> Recursive block hierarchy traversal (headings, paragraphs, lists, code, quotes, callouts) structured into clean Markdown.</li>
+                <li><strong>Embedded Media:</strong> Images and file blocks referenced inside shared pages.</li>
+                <li><strong>Important Notice:</strong> Notion requires you to manually share pages or databases with the UnifyHub integration. UnifyHub only scans content explicitly shared with it.</li>
+              </ul>
+            </div>
+
+            {/* Slack */}
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-heading font-semibold text-sm text-foreground">Slack</h3>
+              </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li><strong>Messages:</strong> Full message text for saved items, reminders, and permitted channel/DM conversations.</li>
+                <li><strong>Threads:</strong> Thread reply feeds via conversations.replies.</li>
+                <li><strong>Files:</strong> Download of files and images under 10MB using your authorized user bearer token into Storage.</li>
+                <li><strong>App Review Notice:</strong> Message content scopes (<code className="text-primary font-mono text-[10px]">channels:history</code>, <code className="text-primary font-mono text-[10px]">im:history</code>, <code className="text-primary font-mono text-[10px]">files:read</code>) function in developer workspaces and require standard Slack App Directory distribution review for public enterprise workspaces.</li>
+              </ul>
+            </div>
+
+            {/* Project Tools: Todoist, Linear, Jira, Asana, ClickUp, Trello */}
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <ListTodo className="w-4 h-4 text-primary" />
+                <h3 className="font-heading font-semibold text-sm text-foreground">Todoist, Linear, Jira, Asana, ClickUp &amp; Trello</h3>
+              </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li><strong>Task Descriptions:</strong> Full Markdown / Atlassian Document Format descriptions.</li>
+                <li><strong>Comments:</strong> Task comment discussions and activity logs.</li>
+                <li><strong>Attachments:</strong> File attachments under 10MB downloaded into secure Storage for direct in-app access.</li>
+              </ul>
+            </div>
+
+            {/* Cloud Storage: Dropbox & Box */}
+            <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+              <div className="flex items-center gap-2">
+                <HardDrive className="w-4 h-4 text-status-warning" />
+                <h3 className="font-heading font-semibold text-sm text-foreground">Dropbox &amp; Box</h3>
+              </div>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+                <li><strong>File Contents:</strong> Binary downloads of documents, PDFs, images, and text files under 10MB into encrypted private Storage.</li>
+                <li><strong>Text Previews:</strong> In-app text and syntax viewing for code, markdown, and plain text documents.</li>
+                <li><strong>Oversized Handling:</strong> Files exceeding 10MB are indexed with exact size and provider links rather than being dropped silently.</li>
+              </ul>
+            </div>
           </div>
         </section>
 
-        {/* Section 6: Data Retention & Instant Account Disconnect Purge */}
+        {/* Section 4: Data Retention & User Controls */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <Trash2 className="w-5 h-5 text-status-error" />
+            <Clock className="w-5 h-5 text-status-syncing" />
             <h2 className="font-heading font-bold text-xl text-foreground">
-              6. Data Retention &amp; Automatic Disconnect Purge
+              4. Configurable Data Retention Policy
             </h2>
           </div>
 
-          <div className="p-6 rounded-3xl glass-panel border border-border/60 space-y-4 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            <p>
-              Synchronized items are retained in your account only for as long as the provider remains actively connected:
-            </p>
-            <ul className="space-y-2 list-disc pl-5">
-              <li>
-                <strong className="text-foreground">Instant Disconnect Deletion:</strong> Clicking the <strong className="text-status-error">Disconnect</strong> button for any account on the Integrations page immediately and permanently deletes its encrypted credentials from the database. A database cascading delete instantly removes all synchronized email headers, calendar events, tasks, and coursework associated with that account.
-              </li>
-              <li>
-                <strong className="text-foreground">Total Data Wipe:</strong> You can purge all data across all providers at any time using the &quot;Wipe All Data&quot; option in the Danger Zone below.
-              </li>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            Because full content synchronization involves larger storage footprints, UnifyHub provides user-configurable data retention controls directly in <Link to="/settings" className="text-primary hover:underline">Settings</Link>:
+          </p>
+
+          <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
+            <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4 leading-relaxed">
+              <li><strong>Default Retention:</strong> By default, synchronized items are preserved to maintain your complete command center search archive.</li>
+              <li><strong>Configurable Auto-Purge:</strong> Users can configure automatic deletion windows (30 days, 90 days, 180 days, or 365 days). When active, content rows and file attachments older than the selected window are automatically purged.</li>
+              <li><strong>Storage Tracker:</strong> Settings displays real-time per-account and total storage usage in megabytes, with active warnings before approaching plan caps.</li>
             </ul>
           </div>
         </section>
 
-        {/* Section 7: How to Revoke Access */}
+        {/* Section 5: Complete Wipe on Disconnect */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-            <ExternalLink className="w-5 h-5 text-status-syncing" />
+            <Trash2 className="w-5 h-5 text-status-error" />
             <h2 className="font-heading font-bold text-xl text-foreground">
-              7. How to Revoke Access at Any Time
+              5. Guaranteed Complete Wipe on Disconnect
             </h2>
           </div>
 
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            You maintain 100% control over your permissions. You can revoke UnifyHub&apos;s access either within our application or directly inside your provider&apos;s account settings:
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <a
-              href="https://myaccount.google.com/connections"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 rounded-2xl glass-panel border border-border/60 hover:border-primary/50 text-xs space-y-1 transition-all group cursor-pointer"
-            >
-              <div className="font-semibold text-foreground flex items-center justify-between">
-                <span>Google Permissions</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-muted-foreground text-[11px]">Revoke UnifyHub under Google Third-party apps &amp; services.</p>
-            </a>
-
-            <a
-              href="https://www.notion.so/my-integrations"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 rounded-2xl glass-panel border border-border/60 hover:border-primary/50 text-xs space-y-1 transition-all group cursor-pointer"
-            >
-              <div className="font-semibold text-foreground flex items-center justify-between">
-                <span>Notion Permissions</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-muted-foreground text-[11px]">Manage and revoke UnifyHub under your Notion integrations.</p>
-            </a>
-
-            <a
-              href="https://github.com/settings/applications"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-4 rounded-2xl glass-panel border border-border/60 hover:border-primary/50 text-xs space-y-1 transition-all group cursor-pointer"
-            >
-              <div className="font-semibold text-foreground flex items-center justify-between">
-                <span>GitHub Permissions</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <p className="text-muted-foreground text-[11px]">Revoke Authorized OAuth Apps in GitHub Settings.</p>
-            </a>
+          <div className="p-6 rounded-2xl border border-status-error/30 bg-status-error/10 space-y-3">
+            <h3 className="font-heading font-bold text-base text-status-error">
+              Zero Orphaned Blobs. Immediate Permanent Deletion.
+            </h3>
+            <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed">
+              When you disconnect any provider account from UnifyHub, the server-side disconnect routine executes an immediate, irreversible wipe:
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
+              <li>All database records for that account across <code className="text-foreground font-mono">items</code>, <code className="text-foreground font-mono">item_contents</code>, <code className="text-foreground font-mono">item_attachments</code>, <code className="text-foreground font-mono">item_comments</code>, and <code className="text-foreground font-mono">sync_logs</code> are deleted in a single transaction via foreign key cascade.</li>
+              <li>All physical binary files stored under <code className="text-foreground font-mono">&#123;userId&#125;/&#123;accountId&#125;/</code> in the private Storage bucket are permanently deleted via storage APIs.</li>
+              <li>OAuth refresh tokens and encrypted credentials are destroyed immediately.</li>
+              <li>No soft-delete delay, no 30-day quarantine, and no orphaned storage objects remain.</li>
+            </ul>
           </div>
         </section>
 
-        {/* Section 8: User Data Controls & Danger Zone */}
+        {/* Section 6: Google API Limited Use Disclosure */}
         <section className="space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/40">
             <ShieldCheck className="w-5 h-5 text-status-connected" />
             <h2 className="font-heading font-bold text-xl text-foreground">
-              8. User Data Tools &amp; Complete Purge
+              6. Google API Services User Data Policy Compliance
+            </h2>
+          </div>
+
+          <div className="p-6 rounded-2xl glass-panel border border-border/60 space-y-3">
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+              UnifyHub&apos;s use and transfer of information received from Google APIs to any other app will adhere to the{' '}
+              <a
+                href="https://developers.google.com/terms/api-services-user-data-policy"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary hover:underline font-medium inline-flex items-center gap-1"
+              >
+                Google API Services User Data Policy
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              , including the Limited Use requirements:
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-2 list-disc pl-4 leading-relaxed">
+              <li>Google user data is used solely to provide and improve user-facing productivity features inside your personal UnifyHub interface.</li>
+              <li>We never transfer or disclose Google user data to third parties, data brokers, or advertising platforms.</li>
+              <li>We never use Google user data to serve advertisements, personalized promotions, or retargeting campaigns.</li>
+              <li>We never use Google user data to train, fine-tune, or improve generalized machine learning or artificial intelligence models.</li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Section 7: Export and Wipe Controls */}
+        <section className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/40">
+            <UserCheck className="w-5 h-5 text-primary" />
+            <h2 className="font-heading font-bold text-xl text-foreground">
+              7. User Data Tools &amp; Complete Account Deletion
             </h2>
           </div>
 
@@ -509,10 +418,10 @@ export const PrivacyPage: React.FC = () => {
               <div>
                 <h3 className="font-heading font-semibold text-base text-foreground flex items-center gap-2">
                   <Download className="w-4 h-4 text-status-syncing" />
-                  <span>Export Your Data</span>
+                  <span>Export Your Complete Archive</span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Download a complete, machine-readable JSON archive of all your stored items, workspace settings, and integration summaries.
+                  Download a machine-readable JSON archive containing all synchronized items, metadata, workspace settings, and account details.
                 </p>
               </div>
 
@@ -529,10 +438,10 @@ export const PrivacyPage: React.FC = () => {
               <div>
                 <h3 className="font-heading font-semibold text-base text-status-error flex items-center gap-2">
                   <Trash2 className="w-4 h-4 text-status-error" />
-                  <span>Total Data Wipe</span>
+                  <span>Immediate Total Data Wipe</span>
                 </h3>
                 <p className="text-xs text-status-error/80 mt-1 leading-relaxed">
-                  Permanently delete all synchronized items, briefings, and linked accounts from both our database and your local browser session.
+                  Permanently destroy all synchronized content, stored files, comments, and connected credentials from our servers and browser storage.
                 </p>
               </div>
 
@@ -546,17 +455,17 @@ export const PrivacyPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Section 9: Real Contact Method */}
+        {/* Section 8: Contact */}
         <section className="p-6 rounded-3xl glass-panel border border-border/60 space-y-3">
           <h2 className="font-heading font-bold text-lg text-foreground flex items-center gap-2">
             <Mail className="w-4 h-4 text-primary" />
-            <span>9. Contact Information &amp; Data Rights Inquiries</span>
+            <span>8. Contact Information &amp; Data Rights Requests</span>
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            If you have questions regarding this Privacy Policy, wish to report an issue, or want to exercise your data protection rights under GDPR, CCPA, or other applicable laws, please contact the developer directly:
+            If you have questions regarding this Privacy Policy or wish to exercise statutory data protection rights under GDPR, CCPA, or applicable data privacy laws, please contact the developer directly:
           </p>
           <div className="p-4 rounded-2xl bg-card/60 border border-border/40 text-xs font-mono space-y-1">
-            <p><strong className="text-foreground">Developer:</strong> Nishant</p>
+            <p><strong className="text-foreground">Developer &amp; Data Controller:</strong> Nishant</p>
             <p><strong className="text-foreground">Direct Email:</strong> <a href="mailto:nishant020208@gmail.com" className="text-primary hover:underline">nishant020208@gmail.com</a></p>
             <p><strong className="text-foreground">Application URL:</strong> <a href="https://unifyhubz.vercel.app" className="text-primary hover:underline">https://unifyhubz.vercel.app</a></p>
           </div>
@@ -568,7 +477,7 @@ export const PrivacyPage: React.FC = () => {
         <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-status-connected" />
-            <span>UnifyHub &middot; Read-Only Architecture &middot; AES-256 Encryption &middot; Strict RLS</span>
+            <span>UnifyHub &middot; Full Content Sync &middot; AES-GCM-256 Encryption &middot; Strict RLS</span>
           </div>
           <div>&copy; {new Date().getFullYear()} UnifyHub &middot; All Rights Reserved</div>
         </div>
@@ -589,7 +498,7 @@ export const PrivacyPage: React.FC = () => {
             </div>
 
             <p className="text-xs text-muted-foreground leading-relaxed">
-              This will permanently delete all {items.length} synchronized items, {accounts.length} connected account credentials, and stored briefings from both our database and your browser. This action cannot be reversed.
+              This will permanently delete all {items.length} synchronized items, all stored email bodies, files, comments, and {accounts.length} connected account credentials from both our database and your browser. This action cannot be reversed.
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-3">
