@@ -61,6 +61,58 @@ serve(async (req: Request) => {
     const results: StreamResult[] = [];
     const auth = { Authorization: `Bearer ${ctx.accessToken}` };
 
+    const decodeBase64Url = (input: string): string => {
+      try {
+        let base64 = input.replace(/-/g, '+').replace(/_/g, '/');
+        while (base64.length % 4) base64 += '=';
+        return atob(base64);
+      } catch {
+        return '';
+      }
+    };
+
+    const parseGmailPayload = (payload: any): {
+      bodyText: string;
+      bodyHtml: string;
+      attachments: Array<{ name: string; mimeType: string; size: number; attachmentId?: string }>;
+    } => {
+      let bodyText = '';
+      let bodyHtml = '';
+      const attachments: Array<{ name: string; mimeType: string; size: number; attachmentId?: string }> = [];
+
+      const walk = (part: any) => {
+        if (!part) return;
+        const mime = String(part.mimeType || '').toLowerCase();
+        const filename = part.filename || '';
+
+        if (filename && part.body?.attachmentId) {
+          attachments.push({
+            name: filename,
+            mimeType: mime,
+            size: Number(part.body.size) || 0,
+            attachmentId: part.body.attachmentId,
+          });
+          return;
+        }
+
+        if (part.body?.data) {
+          const decoded = decodeBase64Url(part.body.data);
+          if (mime === 'text/plain' && !bodyText) {
+            bodyText = decoded;
+          } else if (mime === 'text/html' && !bodyHtml) {
+            bodyHtml = decoded;
+          }
+        }
+
+        if (Array.isArray(part.parts)) {
+          for (const sub of part.parts) walk(sub);
+        }
+      };
+
+      walk(payload);
+      return { bodyText, bodyHtml, attachments };
+    };
+
     // ---------------------------------------------------------------- CALENDAR
     results.push(await runStream(ctx, 'calendar', 'google', async (): Promise<NormalizedItem[]> => {
       if (missingScope(ctx, 'calendar')) {
@@ -76,10 +128,11 @@ serve(async (req: Request) => {
         .map((ev) => {
           const startAt = ev.start?.dateTime || ev.start?.date || null;
           const isToday = startAt && new Date(startAt).toDateString() === now.toDateString();
+          const desc = ev.description || '';
           return {
             type: 'event' as const,
             title: ev.summary || 'Scheduled Calendar Event',
-            description: ev.description || null,
+            description: desc || null,
             start_at: startAt,
             end_at: ev.end?.dateTime || ev.end?.date || null,
             url: ev.htmlLink || null,
@@ -92,6 +145,16 @@ serve(async (req: Request) => {
               hangout_link: ev.hangoutLink || null,
             },
             raw: ev,
+            fullContent: {
+              bodyText: desc,
+              structuredContent: {
+                location: ev.location || null,
+                attendees: ev.attendees || [],
+                organizer: ev.organizer || null,
+                conferenceData: ev.conferenceData || null,
+              },
+              syncStatus: 'synced',
+            },
           };
         });
     }));
@@ -137,10 +200,11 @@ serve(async (req: Request) => {
             }
           } catch { /* submission check is best-effort */ }
 
+          const desc = cw.description || '';
           items.push({
             type: 'deadline',
             title: cw.title || 'Course Assignment',
-            description: cw.description || null,
+            description: desc || null,
             due_at: dueAt,
             url: cw.alternateLink || null,
             source_id: `cw-${cw.id}`,
@@ -148,6 +212,17 @@ serve(async (req: Request) => {
             is_done: isDone,
             metadata: { course_name: course.name, course_id: course.id, max_points: cw.maxPoints, submission_type: cw.workType },
             raw: cw,
+            fullContent: {
+              bodyText: desc,
+              bodyMarkdown: desc,
+              structuredContent: {
+                materials: cw.materials || [],
+                maxPoints: cw.maxPoints || null,
+                workType: cw.workType || null,
+                associatedModifyTime: cw.updateTime || null,
+              },
+              syncStatus: 'synced',
+            },
           });
         }
       }
@@ -161,7 +236,7 @@ serve(async (req: Request) => {
       }
       const q = encodeURIComponent('newer_than:14d (is:important OR is:starred OR is:unread)');
       const listRes = await fetchJson(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=35`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${q}&maxResults=30`,
         auth,
         { provider: 'google', stream: 'gmail-list' }
       );
@@ -170,8 +245,9 @@ serve(async (req: Request) => {
 
       const items: NormalizedItem[] = [];
       for (const m of messages) {
+        // Fetch full message body and MIME structure
         const msgRes = await fetchJson(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=full`,
           auth,
           { provider: 'google', stream: 'gmail-message' }
         );
@@ -181,27 +257,73 @@ serve(async (req: Request) => {
         const find = (name: string) => headers.find((h) => h.name.toLowerCase() === name)?.value;
         const subject = find('subject') || '(No Subject)';
         const from = find('from') || 'Unknown Sender';
+        const to = find('to') || '';
         const snippet: string = msg.snippet || '';
-        const combined = `${subject} ${snippet}`.toLowerCase();
+
+        const { bodyText, bodyHtml, attachments: metaAttachments } = parseGmailPayload(msg.payload);
+
+        // Fetch attachment contents for files under 10MB
+        const resolvedAttachments: any[] = [];
+        for (const att of metaAttachments.slice(0, 5)) {
+          if (att.size <= 10 * 1024 * 1024 && att.attachmentId) {
+            try {
+              const attRes = await fetchJson(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}/attachments/${att.attachmentId}`,
+                auth,
+                { provider: 'google', stream: 'gmail-att' }
+              );
+              if (attRes.ok && attRes.data?.data) {
+                // Gmail attachment data is base64url encoded
+                const base64Standard = attRes.data.data.replace(/-/g, '+').replace(/_/g, '/');
+                resolvedAttachments.push({
+                  name: att.name,
+                  mimeType: att.mimeType,
+                  sizeBytes: att.size,
+                  dataBase64: base64Standard,
+                });
+                continue;
+              }
+            } catch {
+              // Best-effort attachment download
+            }
+          }
+          // If oversized or fetch failed, preserve metadata reference
+          resolvedAttachments.push({
+            name: att.name,
+            mimeType: att.mimeType,
+            sizeBytes: att.size,
+            externalUrl: `https://mail.google.com/mail/u/0/#all/${m.id}`,
+          });
+        }
+
+        const combined = `${subject} ${snippet} ${bodyText}`.toLowerCase();
         const hasExam = /exam|midterm|quiz|syllabus/.test(combined);
         const hasBill = /invoice|receipt|bill|payment due|subscription/.test(combined);
         const hasTravel = /flight|hotel|reservation|boarding pass|itinerary/.test(combined);
         const hasAction = /action required|urgent|deadline|due by/.test(combined);
+
         items.push({
           type: hasExam || hasAction ? 'deadline' : 'email',
           title: subject,
-          description: snippet,
+          description: snippet || bodyText.slice(0, 300),
           url: `https://mail.google.com/mail/u/0/#all/${m.id}`,
           source_id: `gmail-${m.id}`,
           priority_score: hasAction ? 85 : hasExam ? 80 : hasBill ? 75 : 60,
           metadata: {
             sender: from,
+            to,
             received_at: find('date'),
             travel_data: hasTravel ? { note: 'Travel itinerary detected' } : undefined,
             bill_data: hasBill ? { note: 'Payment / invoice statement' } : undefined,
             urgent_keywords: hasAction ? ['action required'] : hasExam ? ['exam'] : undefined,
           },
           raw: { id: m.id, threadId: msg.threadId, labelIds: msg.labelIds },
+          fullContent: {
+            bodyText: bodyText || snippet,
+            bodyHtml: bodyHtml || null,
+            attachments: resolvedAttachments,
+            syncStatus: 'synced',
+          },
         });
       }
       return items;
@@ -214,19 +336,82 @@ serve(async (req: Request) => {
       }
       const q = encodeURIComponent(`trashed = false and (starred = true or modifiedTime > '${past14}')`);
       const res = await fetchJson(
-        `https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=30&fields=files(id,name,mimeType,webViewLink,modifiedTime,size)`,
+        `https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=25&fields=files(id,name,mimeType,webViewLink,modifiedTime,size,description)`,
         auth,
         { provider: 'google', stream: 'drive' }
       );
       if (!res.ok) throw new Error(res.error);
       const files: any[] = res.data.files ?? [];
-      return files.map((f) => {
+
+      const items: NormalizedItem[] = [];
+      for (const f of files) {
         let fileType = 'DOC';
-        if (f.mimeType?.includes('spreadsheet')) fileType = 'SHEET';
-        else if (f.mimeType?.includes('presentation')) fileType = 'SLIDES';
-        else if (f.mimeType?.includes('pdf')) fileType = 'PDF';
-        else if (f.mimeType?.includes('folder')) fileType = 'FOLDER';
-        return {
+        let extractedText = f.description || '';
+        const attachments: any[] = [];
+        let syncStatus: 'synced' | 'too_large' | 'skipped' = 'synced';
+        let skipReason: string | null = null;
+        const fileSize = Number(f.size) || 0;
+
+        if (f.mimeType === 'application/vnd.google-apps.document') {
+          fileType = 'DOC';
+          try {
+            const expRes = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/plain`,
+              { headers: auth }
+            );
+            if (expRes.ok) extractedText = await expRes.text();
+          } catch { /* export best effort */ }
+        } else if (f.mimeType === 'application/vnd.google-apps.spreadsheet') {
+          fileType = 'SHEET';
+          try {
+            const expRes = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${f.id}/export?mimeType=text/csv`,
+              { headers: auth }
+            );
+            if (expRes.ok) extractedText = (await expRes.text()).slice(0, 50000);
+          } catch { /* export best effort */ }
+        } else if (f.mimeType?.includes('presentation')) {
+          fileType = 'SLIDES';
+        } else if (f.mimeType?.includes('pdf')) {
+          fileType = 'PDF';
+        } else if (f.mimeType?.includes('folder')) {
+          fileType = 'FOLDER';
+        }
+
+        // Binary downloads for files under 10MB
+        if (!f.mimeType?.startsWith('application/vnd.google-apps.') && fileSize > 0) {
+          if (fileSize <= 10 * 1024 * 1024) {
+            try {
+              const fileRes = await fetch(
+                `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
+                { headers: auth }
+              );
+              if (fileRes.ok) {
+                const arrayBuf = await fileRes.arrayBuffer();
+                const bytes = new Uint8Array(arrayBuf);
+                let binaryStr = '';
+                const chunk = 8192;
+                for (let i = 0; i < bytes.length; i += chunk) {
+                  binaryStr += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunk)));
+                }
+                attachments.push({
+                  name: f.name,
+                  mimeType: f.mimeType,
+                  sizeBytes: fileSize,
+                  dataBase64: btoa(binaryStr),
+                  externalUrl: f.webViewLink || null,
+                });
+              }
+            } catch (dErr) {
+              console.warn('[Drive] Download error:', dErr);
+            }
+          } else {
+            syncStatus = 'too_large';
+            skipReason = `File size (${Math.round(fileSize / (1024 * 1024))} MB) exceeds 10 MB limit`;
+          }
+        }
+
+        items.push({
           type: 'file' as const,
           title: f.name || 'Cloud File',
           url: f.webViewLink || null,
@@ -235,12 +420,19 @@ serve(async (req: Request) => {
           metadata: {
             file_type: fileType,
             mime_type: f.mimeType,
-            file_size_formatted: f.size ? `${Math.round(Number(f.size) / 1024)} KB` : 'Google Doc',
+            file_size_formatted: fileSize > 0 ? `${Math.round(fileSize / 1024)} KB` : 'Google Doc',
             pinned: true,
           },
           raw: f,
-        };
-      });
+          fullContent: {
+            bodyText: extractedText || f.description || null,
+            attachments,
+            syncStatus,
+            skipReason,
+          },
+        });
+      }
+      return items;
     }));
 
     // ---------------------------------------------------------------- TASKS
@@ -265,10 +457,11 @@ serve(async (req: Request) => {
         );
         if (!tRes.ok) continue;
         for (const t of tRes.data.items ?? []) {
+          const notes = t.notes || '';
           items.push({
             type: 'task',
             title: t.title || 'Untitled Task',
-            description: t.notes || null,
+            description: notes || null,
             due_at: t.due || null,
             url: 'https://tasks.google.com',
             source_id: `gtask-${t.id}`,
@@ -276,6 +469,11 @@ serve(async (req: Request) => {
             is_done: t.status === 'completed',
             metadata: { task_list_id: list.id, task_list_title: list.title },
             raw: t,
+            fullContent: {
+              bodyText: notes,
+              bodyMarkdown: notes,
+              syncStatus: 'synced',
+            },
           });
         }
       }
