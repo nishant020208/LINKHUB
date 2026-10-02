@@ -58,6 +58,22 @@ const ISSUES_QUERY = `
         priority
         project { name }
         state { name }
+        comments(first: 20) {
+          nodes {
+            id
+            body
+            createdAt
+            user { name }
+          }
+        }
+        attachments(first: 10) {
+          nodes {
+            id
+            title
+            url
+            subtitle
+          }
+        }
       }
     }
   }
@@ -102,21 +118,49 @@ serve(async (req: Request) => {
       if (!res.ok) throw new Error(res.error);
       const issues: any[] = res.data.issues?.nodes ?? [];
 
-      return issues.map((i) => ({
-        type: i.dueDate ? 'deadline' : 'task',
-        title: `${i.identifier} ${i.title}`,
-        description: i.description ? String(i.description).slice(0, 400) : null,
-        due_at: i.dueDate ? new Date(i.dueDate).toISOString() : null,
-        url: i.url,
-        source_id: `linear-${i.id}`,
-        // Linear priority: 0 none, 1 urgent, 2 high, 3 medium, 4 low.
-        priority_score: i.priority === 1 ? 92 : i.priority === 2 ? 78 : i.priority === 3 ? 62 : 50,
-        metadata: {
-          project: i.project?.name ?? '',
-          state: i.state?.name ?? '',
-        },
-        raw: { id: i.id, identifier: i.identifier, title: i.title },
-      }));
+      return issues.map((i) => {
+        const desc = i.description || '';
+        const comments = (i.comments?.nodes || []).map((c: any) => ({
+          authorName: c.user?.name || 'Linear User',
+          body: c.body || '',
+          createdAt: c.createdAt,
+          sourceId: c.id,
+        }));
+        const attachments = (i.attachments?.nodes || []).map((a: any) => ({
+          name: a.title || 'Linear Attachment',
+          externalUrl: a.url,
+          sizeBytes: 0,
+        }));
+
+        return {
+          type: i.dueDate ? 'deadline' : 'task',
+          title: `${i.identifier} ${i.title}`,
+          description: desc ? desc.slice(0, 400) : null,
+          due_at: i.dueDate ? new Date(i.dueDate).toISOString() : null,
+          url: i.url,
+          source_id: `linear-${i.id}`,
+          // Linear priority: 0 none, 1 urgent, 2 high, 3 medium, 4 low.
+          priority_score: i.priority === 1 ? 92 : i.priority === 2 ? 78 : i.priority === 3 ? 62 : 50,
+          metadata: {
+            project: i.project?.name ?? '',
+            state: i.state?.name ?? '',
+            comments_count: comments.length,
+          },
+          raw: { id: i.id, identifier: i.identifier, title: i.title },
+          fullContent: {
+            bodyText: desc,
+            bodyMarkdown: desc,
+            comments,
+            attachments,
+            syncStatus: 'synced',
+            structuredContent: {
+              identifier: i.identifier,
+              state: i.state?.name,
+              project: i.project?.name,
+            },
+          },
+        };
+      });
     }));
 
     const summary = await finalizeAccount(admin, accountId, results);
