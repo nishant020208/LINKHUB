@@ -10,6 +10,36 @@
         {
           "key": "Content-Type",
           "value": "application/javascript; charset=utf-8"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/png"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800"
         }
       ]
     },
@@ -34,7 +64,7 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|sw.js|favicon.svg|manifest.json).*)",
+      "source": "/((?!assets/|sw.js|favicon.svg|manifest.json|icons/).*)",
       "destination": "/index.html"
     }
   ]
