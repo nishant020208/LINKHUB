@@ -21,6 +21,9 @@ const NotificationSettingsModal = lazy(() =>
 const OnboardingWizard = lazy(() =>
   import('@/components/auth/OnboardingWizard').then((m) => ({ default: m.OnboardingWizard }))
 );
+const ItemDetailModal = lazy(() =>
+  import('@/components/dashboard/ItemDetailModal').then((m) => ({ default: m.ItemDetailModal }))
+);
 
 const ModalFallback: React.FC = () => null;
 
@@ -108,6 +111,11 @@ export const AppShell: React.FC = () => {
       {isOnboardingOpen && (
         <Suspense fallback={<ModalFallback />}>
           <OnboardingWizard />
+        </Suspense>
+      )}
+      {useAppStore((s) => s.activeItemId) && (
+        <Suspense fallback={<ModalFallback />}>
+          <ItemDetailModal />
         </Suspense>
       )}
 
