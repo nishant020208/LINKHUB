@@ -19,7 +19,7 @@ import { useLiveAnnouncer } from '@/components/ui/live-announcer';
 import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
 export const DeadlinesBoard: React.FC = () => {
-  const { items, accounts, markItemDone, snoozeItem } = useAppStore();
+  const { items, accounts, markItemDone, snoozeItem, setActiveItemId } = useAppStore();
   const [snoozeItemId, setSnoozeItemId] = useState<string | null>(null);
   const [burstId, setBurstId] = useState<string | null>(null);
   const { announce } = useLiveAnnouncer();
@@ -137,7 +137,8 @@ export const DeadlinesBoard: React.FC = () => {
           </div>
 
           <h5
-            className={`font-semibold text-sm text-foreground leading-snug ${
+            onClick={() => setActiveItemId(item.id)}
+            className={`font-semibold text-sm text-foreground leading-snug cursor-pointer hover:text-primary transition-colors ${
               item.is_done ? 'line-through text-muted-foreground' : ''
             }`}
           >
@@ -145,7 +146,12 @@ export const DeadlinesBoard: React.FC = () => {
           </h5>
 
           {item.description && (
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{item.description}</p>
+            <p
+              onClick={() => setActiveItemId(item.id)}
+              className="text-xs text-muted-foreground mt-0.5 line-clamp-1 cursor-pointer hover:text-foreground transition-colors"
+            >
+              {item.description}
+            </p>
           )}
 
           <div className="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
