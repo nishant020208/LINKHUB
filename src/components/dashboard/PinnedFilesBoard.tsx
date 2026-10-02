@@ -16,7 +16,6 @@ export const PinnedFilesBoard: React.FC = () => {
       accounts.map((a) => {
         if (a.provider === 'google') return 'Google Drive & Classroom';
         if (a.provider === 'dropbox') return 'Dropbox';
-        if (a.provider === 'box') return 'Box';
         return a.label || a.provider;
       })
     )
