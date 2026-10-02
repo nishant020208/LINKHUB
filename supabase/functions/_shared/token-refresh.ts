@@ -7,14 +7,12 @@
  * a non-JSON payload and treats it as a long-lived bearer token.
  *
  * Providers with short-lived access tokens get a real refresh_token grant
- * against their documented endpoint (Google form body, Jira JSON body, Zoom &
- * Bitbucket HTTP Basic, Box/Dropbox/GitLab/Asana form body). Providers with
- * long-lived bearer tokens are decrypted and reused. Rotating refresh tokens
- * (Box, Zoom) are re-encrypted and persisted after a refresh.
+ * against their documented endpoint (Google form body, Jira JSON body,
+ * Dropbox/Asana form body). Providers with long-lived bearer tokens are
+ * decrypted and reused.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { decryptToken, encryptToken } from './crypto.ts';
-import { sharedCallbackUrl } from './providers.ts';
 
 export interface TokenResolution {
   ok: boolean;
@@ -61,10 +59,6 @@ function parseCredential(plain: string): Credential {
     // Not JSON — legacy raw token.
   }
   return { access_token: plain, refresh_token: plain, refreshable: false, extra: {} };
-}
-
-function basicAuth(id: string, secret: string): string {
-  return `Basic ${btoa(`${id}:${secret}`)}`;
 }
 
 interface RefreshOutcome {
@@ -126,45 +120,6 @@ async function refreshAccessToken(provider: string, credential: Credential): Pro
       res = await form('https://api.dropboxapi.com/oauth2/token', {
         grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret,
       });
-      break;
-    }
-    case 'box': {
-      const clientId = Deno.env.get('BOX_CLIENT_ID');
-      const clientSecret = Deno.env.get('BOX_CLIENT_SECRET');
-      if (!clientId || !clientSecret) return null;
-      res = await form('https://api.box.com/oauth2/token', {
-        grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret,
-      });
-      break;
-    }
-    case 'zoom': {
-      const clientId = Deno.env.get('ZOOM_CLIENT_ID');
-      const clientSecret = Deno.env.get('ZOOM_CLIENT_SECRET');
-      if (!clientId || !clientSecret) return null;
-      res = await fetch(`https://zoom.us/oauth/token?${new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken })}`, {
-        method: 'POST',
-        headers: { Authorization: basicAuth(clientId, clientSecret) },
-      });
-      break;
-    }
-    case 'gitlab': {
-      const clientId = Deno.env.get('GITLAB_CLIENT_ID');
-      const clientSecret = Deno.env.get('GITLAB_CLIENT_SECRET');
-      if (!clientId || !clientSecret) return null;
-      res = await form('https://gitlab.com/oauth/token', {
-        grant_type: 'refresh_token', refresh_token: refreshToken, client_id: clientId, client_secret: clientSecret, redirect_uri: sharedCallbackUrl(),
-      });
-      break;
-    }
-    case 'bitbucket': {
-      const clientId = Deno.env.get('BITBUCKET_CLIENT_ID');
-      const clientSecret = Deno.env.get('BITBUCKET_CLIENT_SECRET');
-      if (!clientId || !clientSecret) return null;
-      res = await form(
-        'https://bitbucket.org/site/oauth2/access_token',
-        { grant_type: 'refresh_token', refresh_token: refreshToken },
-        { Authorization: basicAuth(clientId, clientSecret) }
-      );
       break;
     }
     default:
