@@ -10,10 +10,6 @@
  * A provider whose secrets are missing fails immediately with a specific
  * `not_configured` message — it never reaches the provider and never produces
  * a generic "non-2xx status code".
- *
- * Trello is the documented exception: it issues its token in the URL fragment
- * (no code exchange), so its authorize URL returns to the app itself and the
- * fragment token is saved client-side via the `connect-credentials` function.
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
@@ -182,21 +178,6 @@ serve(async (req: Request) => {
         })}`;
         break;
 
-      case 'trello': {
-        // Trello returns its token in the URL fragment; the app captures it.
-        const appUrl = (Deno.env.get('APP_URL') || 'http://localhost:5173').replace(/\/+$/, '');
-        authUrl = `https://trello.com/1/authorize?${paramsFor({
-          key: Deno.env.get('TRELLO_API_KEY')!,
-          name: 'UnifyHub',
-          scope: 'read',
-          response_type: 'token',
-          expiration: 'never',
-          callback_method: 'fragment',
-          return_url: `${appUrl}/integrations`,
-        })}`;
-        break;
-      }
-
       case 'asana':
         authUrl = `https://app.asana.com/-/oauth_authorize?${paramsFor({
           client_id: Deno.env.get('ASANA_CLIENT_ID')!,
@@ -221,43 +202,6 @@ serve(async (req: Request) => {
           response_type: 'code',
           redirect_uri: redirectUri,
           token_access_type: 'offline',
-          state: signedState,
-        })}`;
-        break;
-
-      case 'box':
-        authUrl = `https://account.box.com/api/oauth2/authorize?${paramsFor({
-          client_id: Deno.env.get('BOX_CLIENT_ID')!,
-          response_type: 'code',
-          redirect_uri: redirectUri,
-          state: signedState,
-        })}`;
-        break;
-
-      case 'zoom':
-        authUrl = `https://zoom.us/oauth/authorize?${paramsFor({
-          response_type: 'code',
-          client_id: Deno.env.get('ZOOM_CLIENT_ID')!,
-          redirect_uri: redirectUri,
-          state: signedState,
-        })}`;
-        break;
-
-      case 'gitlab':
-        authUrl = `https://gitlab.com/oauth/authorize?${paramsFor({
-          client_id: Deno.env.get('GITLAB_CLIENT_ID')!,
-          redirect_uri: redirectUri,
-          response_type: 'code',
-          scope: 'read_api read_user',
-          state: signedState,
-        })}`;
-        break;
-
-      case 'bitbucket':
-        authUrl = `https://bitbucket.org/site/oauth2/authorize?${paramsFor({
-          client_id: Deno.env.get('BITBUCKET_CLIENT_ID')!,
-          redirect_uri: redirectUri,
-          response_type: 'code',
           state: signedState,
         })}`;
         break;
