@@ -20,6 +20,39 @@ export const CORS_HEADERS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+export interface FullItemAttachment {
+  name: string;
+  mimeType?: string;
+  sizeBytes: number;
+  storagePath?: string | null;
+  externalUrl?: string | null;
+  isInline?: boolean;
+  contentId?: string | null;
+  dataBase64?: string;
+  binaryData?: Uint8Array;
+}
+
+export interface FullItemComment {
+  authorName?: string;
+  authorAvatar?: string;
+  body: string;
+  bodyHtml?: string;
+  sourceId?: string;
+  createdAt?: string;
+}
+
+export interface FullItemContent {
+  bodyText?: string | null;
+  bodyHtml?: string | null;
+  bodyMarkdown?: string | null;
+  structuredContent?: Record<string, unknown> | null;
+  syncStatus?: 'synced' | 'partial' | 'skipped' | 'too_large' | 'error';
+  skipReason?: string | null;
+  contentSizeBytes?: number;
+  attachments?: FullItemAttachment[];
+  comments?: FullItemComment[];
+}
+
 export interface NormalizedItem {
   type: 'email' | 'event' | 'deadline' | 'task' | 'file';
   title: string;
@@ -33,6 +66,7 @@ export interface NormalizedItem {
   is_done?: boolean;
   metadata?: Record<string, unknown>;
   raw?: Record<string, unknown>;
+  fullContent?: FullItemContent;
 }
 
 export interface StreamResult {
@@ -81,21 +115,113 @@ function toRow(ctx: StreamContext, item: NormalizedItem): Record<string, unknown
 }
 
 /**
- * Upsert a batch of items on (account_id, source_id). Never throws.
- * Returns the exact number of rows persisted.
+ * Upsert a batch of items on (account_id, source_id).
+ * When item.fullContent is present, also persists full text content into
+ * item_contents, uploads file attachments into Supabase Storage, and saves
+ * comment threads into item_comments.
  */
 export async function upsertItems(ctx: StreamContext, items: NormalizedItem[]): Promise<number> {
   let upserted = 0;
   for (const item of items) {
     try {
       const row = toRow(ctx, item);
-      const { error } = await ctx.admin
+      const { data: itemRow, error } = await ctx.admin
         .from('items')
-        .upsert(row, { onConflict: 'account_id,source_id' });
+        .upsert(row, { onConflict: 'account_id,source_id' })
+        .select('id')
+        .single();
+
       if (error) {
         console.error(`[Upsert] failed for source_id=${item.source_id}: ${error.message}`);
-      } else {
-        upserted++;
+        continue;
+      }
+      upserted++;
+
+      // If full content is attached, persist text, comments, and storage attachments
+      if (item.fullContent && itemRow?.id) {
+        const fc = item.fullContent;
+        let totalBytes = fc.contentSizeBytes ?? 0;
+        if (!totalBytes) {
+          if (fc.bodyText) totalBytes += fc.bodyText.length;
+          if (fc.bodyHtml) totalBytes += fc.bodyHtml.length;
+          if (fc.bodyMarkdown) totalBytes += fc.bodyMarkdown.length;
+        }
+
+        // Process attachments: upload binary content to private storage bucket if available
+        if (fc.attachments && fc.attachments.length > 0) {
+          for (const att of fc.attachments) {
+            let storagePath = att.storagePath || null;
+            if ((att.binaryData || att.dataBase64) && !storagePath) {
+              try {
+                const safeName = att.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+                storagePath = `${ctx.userId}/${ctx.accountId}/${itemRow.id}/${safeName}`;
+                const fileBytes = att.binaryData || Uint8Array.from(atob(att.dataBase64!), (c) => c.charCodeAt(0));
+                const { error: uploadErr } = await ctx.admin.storage
+                  .from('unifyhub-content')
+                  .upload(storagePath, fileBytes, {
+                    contentType: att.mimeType || 'application/octet-stream',
+                    upsert: true,
+                  });
+                if (uploadErr) {
+                  console.warn(`[Storage] Failed to upload ${storagePath}: ${uploadErr.message}`);
+                  storagePath = null;
+                } else {
+                  totalBytes += fileBytes.length;
+                }
+              } catch (uErr) {
+                console.warn('[Storage] Upload error:', uErr);
+              }
+            }
+
+            await ctx.admin.from('item_attachments').insert({
+              user_id: ctx.userId,
+              account_id: ctx.accountId,
+              item_id: itemRow.id,
+              name: att.name,
+              mime_type: att.mimeType || null,
+              size_bytes: att.sizeBytes || 0,
+              storage_path: storagePath,
+              external_url: att.externalUrl || null,
+              is_inline: att.isInline || false,
+              content_id: att.contentId || null,
+            });
+          }
+        }
+
+        // Process comments
+        if (fc.comments && fc.comments.length > 0) {
+          for (const c of fc.comments) {
+            await ctx.admin.from('item_comments').insert({
+              user_id: ctx.userId,
+              account_id: ctx.accountId,
+              item_id: itemRow.id,
+              author_name: c.authorName || null,
+              author_avatar: c.authorAvatar || null,
+              body: c.body,
+              body_html: c.bodyHtml || null,
+              source_id: c.sourceId || null,
+              created_at: c.createdAt || new Date().toISOString(),
+            });
+          }
+        }
+
+        // Upsert full text content record
+        await ctx.admin.from('item_contents').upsert(
+          {
+            user_id: ctx.userId,
+            account_id: ctx.accountId,
+            item_id: itemRow.id,
+            body_text: fc.bodyText || null,
+            body_html: fc.bodyHtml || null,
+            body_markdown: fc.bodyMarkdown || null,
+            structured_content: fc.structuredContent || {},
+            sync_status: fc.syncStatus || 'synced',
+            skip_reason: fc.skipReason || null,
+            content_size_bytes: totalBytes,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'item_id' }
+        );
       }
     } catch (err) {
       console.error(`[Upsert] exception for source_id=${item.source_id}:`, err);
@@ -336,14 +462,81 @@ export async function finalizeAccount(
     .join(' | ')
     .slice(0, 2400);
 
-  await admin
-    .from('connected_accounts')
-    .update({
-      last_synced_at: new Date().toISOString(),
-      status: allFailed ? 'error' : 'connected',
-      error_message: errorSummary || null,
-    })
-    .eq('id', accountId);
+  // Aggregate account storage and full-sync metrics
+  let storageUsed = 0;
+  let totalItems = 0;
+  let fullSynced = 0;
+  let skippedItems = 0;
+  const skipReasons: Record<string, number> = {};
+
+  try {
+    const { count } = await admin.from('items').select('*', { count: 'exact', head: true }).eq('account_id', accountId);
+    totalItems = count || 0;
+
+    const { data: contents } = await admin
+      .from('item_contents')
+      .select('content_size_bytes, sync_status, skip_reason')
+      .eq('account_id', accountId);
+
+    if (contents) {
+      for (const c of contents) {
+        storageUsed += Number(c.content_size_bytes) || 0;
+        if (c.sync_status === 'synced') fullSynced++;
+        else if (c.sync_status === 'skipped' || c.sync_status === 'too_large') {
+          skippedItems++;
+          const reason = c.skip_reason || 'File or block content skipped';
+          skipReasons[reason] = (skipReasons[reason] || 0) + 1;
+        }
+      }
+    }
+
+    const { data: atts } = await admin
+      .from('item_attachments')
+      .select('size_bytes')
+      .eq('account_id', accountId);
+    if (atts) {
+      for (const a of atts) {
+        storageUsed += Number(a.size_bytes) || 0;
+      }
+    }
+
+    const { data: accRow } = await admin.from('connected_accounts').select('user_id').eq('id', accountId).single();
+    if (accRow?.user_id) {
+      await admin
+        .from('connected_accounts')
+        .update({
+          last_synced_at: new Date().toISOString(),
+          status: allFailed ? 'error' : 'connected',
+          error_message: errorSummary || null,
+          storage_used_bytes: storageUsed,
+          items_total_count: totalItems,
+          items_full_synced_count: fullSynced,
+          items_skipped_count: skippedItems,
+          skip_reasons: skipReasons,
+        })
+        .eq('id', accountId);
+
+      const { data: allUserAccs } = await admin
+        .from('connected_accounts')
+        .select('storage_used_bytes')
+        .eq('user_id', accRow.user_id);
+      const totalUserStorage = (allUserAccs || []).reduce(
+        (acc: number, r: any) => acc + (Number(r.storage_used_bytes) || 0),
+        0
+      );
+      await admin.from('user_settings').update({ storage_used_bytes: totalUserStorage }).eq('user_id', accRow.user_id);
+    }
+  } catch (mErr) {
+    console.warn('[Sync] Could not update account metrics:', mErr);
+    await admin
+      .from('connected_accounts')
+      .update({
+        last_synced_at: new Date().toISOString(),
+        status: allFailed ? 'error' : 'connected',
+        error_message: errorSummary || null,
+      })
+      .eq('id', accountId);
+  }
 
   return {
     success: !allFailed,
