@@ -1,8 +1,21 @@
 import { hardResetApp } from './lib/cacheReset';
+import { SW_UPDATE_EVENT } from './hooks/useServiceWorkerUpdate';
 
 /**
- * Register Service Worker with safe update management, and bind global
- * auto-recovery handlers for post-deployment dynamic chunk 404s.
+ * Register the service worker with prompt-then-swap update handling, and bind
+ * global auto-recovery handlers for post-deployment dynamic chunk 404s.
+ *
+ * Update policy (deliberately changed from skipWaiting-on-install):
+ *   A new worker installs and waits. It takes over only when the user accepts
+ *   the "new version available - tap to refresh" prompt, which posts
+ *   SKIP_WAITING. Silent immediate activation is what used to swap the app out
+ *   from under a running session, and conversely a never-activated worker is
+ *   what pinned users to a stale bundle until they hard-refreshed. This flow
+ *   avoids both: nothing changes mid-task, and the update is always applied.
+ *
+ * Everything here is feature-detected and non-fatal. A browser without service
+ * worker support, or a registration that fails, must never stop the app from
+ * rendering.
  */
 export function registerServiceWorker() {
   if (typeof window === 'undefined') return;
@@ -43,15 +56,15 @@ export function registerServiceWorker() {
     }
   });
 
-  // 2. Service Worker registration & updates
+  // 2. Service worker registration & update hand-off
   if ('serviceWorker' in navigator && import.meta.env.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
-          // If a new worker is waiting, activate it
+          // A worker may already be waiting from a previous visit.
           if (registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            announceUpdate();
           }
 
           registration.addEventListener('updatefound', () => {
@@ -59,25 +72,39 @@ export function registerServiceWorker() {
             if (!installingWorker) return;
 
             installingWorker.addEventListener('statechange', () => {
-              if (installingWorker.state === 'installed') {
-                if (navigator.serviceWorker.controller) {
-                  console.log('[SW] New version ready in background.');
-                  installingWorker.postMessage({ type: 'SKIP_WAITING' });
-                }
+              if (installingWorker.state !== 'installed') return;
+              if (!navigator.serviceWorker.controller) {
+                // First install: nothing to swap, it activates on its own.
+                console.log('[SW] First install complete.');
+                return;
               }
+              // An updated worker is now waiting. Tell the UI, and take over.
+              console.log('[SW] New version waiting; awaiting user confirmation.');
+              announceUpdate();
             });
+          });
+
+          // Check for a newer build when the tab regains focus, so a long-lived
+          // installed app (which is often never reloaded by hand) still picks
+          // up deploys.
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') registration.update().catch(() => {});
           });
         })
         .catch((err) => {
           console.warn('[SW] Registration non-fatal error:', err);
         });
 
-      // DO NOT call window.location.reload() on controllerchange!
-      // On mobile browsers, reloading during initial load aborts the active document
-      // and causes a blank white screen. The new worker will control subsequent requests smoothly.
+      // Do NOT reload here. The new worker takes control on its own schedule;
+      // the reload happens only when the user accepts the update prompt.
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('[SW] Service worker controller updated smoothly in background.');
+        console.log('[SW] Controller changed; new worker is now in charge.');
       });
     });
   }
+}
+
+/** Tell the UI a new build is installed and waiting. */
+function announceUpdate() {
+  window.dispatchEvent(new CustomEvent(SW_UPDATE_EVENT));
 }
