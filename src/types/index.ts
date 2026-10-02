@@ -10,11 +10,6 @@ export type AccountProvider =
   | 'jira'
   | 'moodle'
   | 'dropbox'
-  | 'box'
-  | 'zoom'
-  | 'gitlab'
-  | 'bitbucket'
-  | 'trello'
   | 'asana'
   | 'clickup'
   | 'imap';
