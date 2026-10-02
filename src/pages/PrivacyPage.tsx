@@ -185,7 +185,7 @@ export const PrivacyPage: React.FC = () => {
                 <span>Actual File Contents (&le; 10MB)</span>
               </div>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Files and attachments under 10MB (Drive, Dropbox, Box, Slack, GitHub, Jira, Asana, ClickUp, Trello) are stored in an encrypted private Storage bucket for instant inline preview.
+                Files and attachments under 10MB (Drive, Dropbox, Slack, GitHub, Jira, Asana, ClickUp) are stored in an encrypted private Storage bucket for instant inline preview.
               </p>
             </div>
 
@@ -297,11 +297,11 @@ export const PrivacyPage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Project Tools: Todoist, Linear, Jira, Asana, ClickUp, Trello */}
+            {/* Project Tools: Todoist, Linear, Jira, Asana, ClickUp */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2">
                 <ListTodo className="w-4 h-4 text-primary" />
-                <h3 className="font-heading font-semibold text-sm text-foreground">Todoist, Linear, Jira, Asana, ClickUp &amp; Trello</h3>
+                <h3 className="font-heading font-semibold text-sm text-foreground">Todoist, Linear, Jira, Asana &amp; ClickUp</h3>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
                 <li><strong>Task Descriptions:</strong> Full Markdown / Atlassian Document Format descriptions.</li>
@@ -310,11 +310,11 @@ export const PrivacyPage: React.FC = () => {
               </ul>
             </div>
 
-            {/* Cloud Storage: Dropbox & Box */}
+            {/* Cloud Storage: Dropbox */}
             <div className="p-5 rounded-2xl glass-panel border border-border/60 space-y-3">
               <div className="flex items-center gap-2">
                 <HardDrive className="w-4 h-4 text-status-warning" />
-                <h3 className="font-heading font-semibold text-sm text-foreground">Dropbox &amp; Box</h3>
+                <h3 className="font-heading font-semibold text-sm text-foreground">Dropbox</h3>
               </div>
               <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4 leading-relaxed">
                 <li><strong>File Contents:</strong> Binary downloads of documents, PDFs, images, and text files under 10MB into encrypted private Storage.</li>
