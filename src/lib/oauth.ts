@@ -66,7 +66,7 @@ export async function startProviderOAuth(provider: AccountProvider): Promise<voi
  * Returns normally on success; throws a specific Error otherwise.
  */
 export async function connectWithCredentials(
-  provider: 'moodle' | 'imap' | 'trello',
+  provider: 'moodle' | 'imap',
   credentials: Record<string, string>
 ): Promise<void> {
   const { data: sessionData } = await supabase.auth.getSession();
