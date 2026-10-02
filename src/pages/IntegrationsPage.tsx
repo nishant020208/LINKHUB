@@ -19,7 +19,7 @@ import { formatTimeAgo } from '@/lib/utils';
 import { ItemType, AccountProvider, ConnectedAccount } from '@/types';
 import { ConnectModal, ProviderConnectConfig } from '@/components/integrations/ConnectModal';
 import { useProviderStatus } from '@/hooks/useProviderStatus';
-import { connectWithCredentials, startProviderOAuth } from '@/lib/oauth';
+import { startProviderOAuth } from '@/lib/oauth';
 import { GoogleApiErrorHelp } from '@/components/integrations/GoogleApiErrorHelp';
 import { ProviderLogo } from '@/components/ui/provider-logo';
 import { Button } from '@/components/ui/button';
@@ -94,15 +94,6 @@ const ALL_PROVIDERS: ProviderConnectConfig[] = [
     description: 'Enterprise sprint tickets, bug backlogs, and agile board assignments.',
   },
   {
-    key: 'trello',
-    name: 'Trello',
-    category: 'Productivity',
-    authType: 'oauth',
-    color: '#0079BF',
-    scopes: ['read:board', 'read:card'],
-    description: 'Kanban cards, due date checklists, and board activity streams.',
-  },
-  {
     key: 'asana',
     name: 'Asana',
     category: 'Productivity',
@@ -120,7 +111,7 @@ const ALL_PROVIDERS: ProviderConnectConfig[] = [
     scopes: ['task:read', 'space:read'],
     description: 'Space tasks, sprint estimations, and custom statuses.',
   },
-  // 6. Cloud Storage & Meetings
+  // 6. Cloud Storage
   {
     key: 'dropbox',
     name: 'Dropbox',
@@ -129,42 +120,6 @@ const ALL_PROVIDERS: ProviderConnectConfig[] = [
     color: '#0061FF',
     scopes: ['files.metadata.read'],
     description: 'Recent syncs, shared project folders, and pinned research documents.',
-  },
-  {
-    key: 'box',
-    name: 'Box',
-    category: 'Storage',
-    authType: 'oauth',
-    color: '#0061D5',
-    scopes: ['root_readwrite:read'],
-    description: 'Enterprise cloud documents, institutional folders, and collaborative notes.',
-  },
-  {
-    key: 'zoom',
-    name: 'Zoom Meetings',
-    category: 'Meetings',
-    authType: 'oauth',
-    color: '#2D8CFF',
-    scopes: ['meeting:read:meeting:admin'],
-    description: 'Upcoming scheduled lectures, client video conferences, and join links.',
-  },
-  {
-    key: 'gitlab',
-    name: 'GitLab',
-    category: 'Developer',
-    authType: 'oauth',
-    color: '#FC6D26',
-    scopes: ['read_user', 'read_api'],
-    description: 'Merge requests, assigned issues, and CI/CD pipeline deadline milestones.',
-  },
-  {
-    key: 'bitbucket',
-    name: 'Bitbucket',
-    category: 'Developer',
-    authType: 'oauth',
-    color: '#0052CC',
-    scopes: ['account:read', 'repository:read'],
-    description: 'Pull requests, Jira integrated issues, and code reviews.',
   },
   // 7. Academic LMS
   {
@@ -258,51 +213,12 @@ export const IntegrationsPage: React.FC = () => {
     }
   }, [location.search, navigate]);
 
-  // Trello uses public OAuth and returns its token in the URL fragment, so it
-  // cannot reach the shared callback. Capture it here, save it via
-  // connect-credentials, then clean the URL.
-  useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash || !hash.includes('token=')) return;
-
-    let pending = false;
-    try {
-      pending = sessionStorage.getItem('unifyhub-trello-pending') === '1';
-    } catch {
-      pending = false;
-    }
-    if (!pending) return;
-
-    const token = new URLSearchParams(hash.replace(/^#/, '')).get('token');
-    try {
-      sessionStorage.removeItem('unifyhub-trello-pending');
-    } catch {
-      // ignore storage errors
-    }
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
-    if (!token) return;
-
-    connectWithCredentials('trello', { token })
-      .then(() => {
-        setCallbackBanner({ type: 'success', message: 'Connected Trello! Initial sync triggered.' });
-        queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
-        queryClient.invalidateQueries({ queryKey: queryKeys.items });
-        queryClient.invalidateQueries({ queryKey: queryKeys.syncLogs });
-      })
-      .catch((err: unknown) => {
-        setCallbackBanner({
-          type: 'error',
-          message: err instanceof Error ? err.message : 'Trello connection failed.',
-        });
-      });
-  }, []);
-
   const filteredProviders = ALL_PROVIDERS.filter((provider) => {
     if (activeTab === 'All') return true;
     if (activeTab === 'Academic') return provider.category === 'Academic';
     if (activeTab === 'Productivity') return provider.category === 'Productivity' || provider.category === 'Google';
     if (activeTab === 'Developer') return provider.category === 'Developer';
-    if (activeTab === 'Collaboration') return provider.category === 'Collaboration' || provider.category === 'Meetings' || provider.category === 'Enterprise';
+    if (activeTab === 'Collaboration') return provider.category === 'Collaboration' || provider.category === 'Enterprise';
     if (activeTab === 'Storage') return provider.category === 'Storage';
     if (activeTab === 'Email') return provider.category === 'Email' || provider.key === 'google';
     return true;
