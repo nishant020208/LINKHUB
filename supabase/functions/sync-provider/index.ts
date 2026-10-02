@@ -21,11 +21,9 @@ const SYNC_FUNCTIONS: Record<string, string> = {
   slack: 'slack-sync',
   linear: 'linear-sync',
   jira: 'jira-sync',
-  trello: 'trello-sync',
   asana: 'asana-sync',
   clickup: 'clickup-sync',
   dropbox: 'dropbox-sync',
-  box: 'box-sync',
 };
 
 serve(async (req: Request) => {
