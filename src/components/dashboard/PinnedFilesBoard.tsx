@@ -7,7 +7,7 @@ import { MetricCounter } from '@/components/ui/metric-counter';
 import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
 export const PinnedFilesBoard: React.FC = () => {
-  const { items, accounts } = useAppStore();
+  const { items, accounts, setActiveItemId } = useAppStore();
 
   const files = items.filter((item) => item.type === 'file');
 
@@ -50,11 +50,9 @@ export const PinnedFilesBoard: React.FC = () => {
               const fileType = file.metadata?.file_type || 'DOC';
 
               return (
-                <a
+                <div
                   key={file.id}
-                  href={file.url || '#'}
-                  target="_blank"
-                  rel="noreferrer"
+                  onClick={() => setActiveItemId(file.id)}
                   className="p-3.5 rounded-2xl bg-card/60 border border-border/50 hover:border-primary/50 hover:bg-card/90 transition-all flex flex-col justify-between group cursor-pointer"
                 >
                   <div>
@@ -85,12 +83,25 @@ export const PinnedFilesBoard: React.FC = () => {
 
                   <div className="mt-3 pt-2 border-t border-border/30 flex items-center justify-between text-[10px] font-mono text-muted-foreground">
                     <span>{file.metadata?.file_size_formatted || 'Cloud doc'}</span>
-                    <span className="flex items-center gap-1 group-hover:text-foreground">
-                      <span>Open</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </span>
+                    {file.url ? (
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1 hover:text-foreground p-1 rounded"
+                        title="Open in provider"
+                      >
+                        <span>Open</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    ) : (
+                      <span className="flex items-center gap-1 group-hover:text-foreground">
+                        <span>Preview</span>
+                      </span>
+                    )}
                   </div>
-                </a>
+                </div>
               );
             })}
             </div>
