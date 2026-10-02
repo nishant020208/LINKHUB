@@ -140,6 +140,9 @@ export const SettingsPage: React.FC = () => {
         </CardBody>
       </Card>
 
+      {/* Storage Usage & Data Retention Foundation */}
+      <StorageSettingsCard accounts={accounts} userId={user?.id} />
+
       {/* Notifications */}
       <Card>
         <CardHeader>
@@ -221,3 +224,167 @@ const SwitchRow: React.FC<{
     <Switch checked={checked} onChange={onChange} />
   </div>
 );
+
+const StorageSettingsCard: React.FC<{
+  accounts: ReturnType<typeof useAppStore.getState>['accounts'];
+  userId?: string;
+}> = ({ accounts, userId }) => {
+  const [retentionDays, setRetentionDays] = React.useState<number>(0);
+  const [storageUsed, setStorageUsed] = React.useState<number>(0);
+  const [storageLimit, setStorageLimit] = React.useState<number>(1073741824); // 1 GB
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!userId) return;
+    import('@/lib/supabase').then(({ supabase }) => {
+      supabase
+        .from('user_settings')
+        .select('storage_used_bytes, storage_limit_bytes, data_retention_days')
+        .eq('user_id', userId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setStorageUsed(data.storage_used_bytes || 0);
+            setStorageLimit(data.storage_limit_bytes || 1073741824);
+            setRetentionDays(data.data_retention_days || 0);
+          }
+        });
+    });
+  }, [userId]);
+
+  const handleSaveRetention = async (days: number) => {
+    setRetentionDays(days);
+    if (!userId) return;
+    setSaving(true);
+    const { supabase } = await import('@/lib/supabase');
+    await supabase
+      .from('user_settings')
+      .upsert({ user_id: userId, data_retention_days: days }, { onConflict: 'user_id' });
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const usedMB = (storageUsed / (1024 * 1024)).toFixed(1);
+  const limitMB = (storageLimit / (1024 * 1024)).toFixed(0);
+  const percent = Math.min(100, Math.round((storageUsed / storageLimit) * 100));
+  const isNearLimit = percent >= 80;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-primary/10 text-primary">
+              <Clock className="w-4 h-4" />
+            </span>
+            <h3 className="font-display font-semibold text-sm">Storage &amp; Data Retention</h3>
+          </div>
+          {isNearLimit && (
+            <Badge tone="warning">
+              Approaching storage limit ({percent}%)
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-5">
+        {/* Storage Bar */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground font-mono">
+              Full-content Storage ({usedMB} MB of {limitMB} MB)
+            </span>
+            <span className="font-mono font-semibold text-foreground">{percent}% used</span>
+          </div>
+          <div className="w-full h-2 bg-muted/60 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                isNearLimit ? 'bg-status-warning' : 'bg-primary'
+              }`}
+              style={{ width: `${Math.max(2, percent)}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Includes downloaded attachments, email bodies, file contents, and message threads stored encrypted in your private bucket.
+          </p>
+        </div>
+
+        {/* Per-account breakdown */}
+        {accounts.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-border/40">
+            <h4 className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+              Storage Usage by Provider
+            </h4>
+            <div className="space-y-2">
+              {accounts.map((acc) => {
+                const accBytes = acc.storage_used_bytes || 0;
+                const accMB = (accBytes / (1024 * 1024)).toFixed(2);
+                const fullCount = acc.items_full_synced_count ?? 0;
+                const totalCount = acc.items_total_count ?? 0;
+
+                return (
+                  <div
+                    key={acc.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-card/60 border border-border/40 text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: acc.color }}
+                      />
+                      <span className="font-medium text-foreground">{acc.label}</span>
+                    </div>
+                    <div className="flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
+                      <span>{fullCount}/{totalCount} items synced</span>
+                      <span className="font-semibold text-foreground">{accMB} MB</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Data Retention Period */}
+        <div className="space-y-3 pt-2 border-t border-border/40">
+          <div>
+            <h4 className="text-xs font-semibold text-foreground">Content Retention Window</h4>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              Configure automatic purge of synchronized email bodies, attachments, and messages. Disconnecting an account always deletes 100% of stored content immediately.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {[
+              { label: 'Keep forever', value: 0 },
+              { label: '30 days', value: 30 },
+              { label: '90 days', value: 90 },
+              { label: '180 days', value: 180 },
+              { label: '1 year', value: 365 },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSaveRetention(opt.value)}
+                disabled={saving}
+                className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-colors border cursor-pointer ${
+                  retentionDays === opt.value
+                    ? 'bg-primary text-primary-foreground border-primary font-semibold'
+                    : 'bg-card/60 border-border/60 text-muted-foreground hover:text-foreground hover:bg-card'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+            {saved && (
+              <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5" /> Saved
+              </span>
+            )}
+          </div>
+        </div>
+      </CardBody>
+    </Card>
+  );
+};
