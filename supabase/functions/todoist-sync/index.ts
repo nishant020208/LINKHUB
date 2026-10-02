@@ -63,26 +63,73 @@ serve(async (req: Request) => {
       if (!taskRes.ok) throw new Error(taskRes.error);
       const tasks: any[] = taskRes.data ?? [];
 
-      return tasks.map((t) => {
+      // Helper to fetch Todoist comments
+      const fetchTodoistComments = async (taskId: string) => {
+        try {
+          const cRes = await fetchJson(`${API}/comments?task_id=${taskId}`, auth(ctx.accessToken), { provider: 'todoist', stream: 'comments' });
+          if (!cRes.ok || !Array.isArray(cRes.data)) return { comments: [], attachments: [] };
+          const comments: any[] = [];
+          const attachments: any[] = [];
+
+          for (const c of cRes.data) {
+            comments.push({
+              body: c.content || '',
+              createdAt: c.posted_at,
+              sourceId: c.id,
+            });
+            if (c.attachment?.file_url) {
+              attachments.push({
+                name: c.attachment.file_name || 'todoist-attachment',
+                mimeType: c.attachment.file_type || 'application/octet-stream',
+                externalUrl: c.attachment.file_url,
+                sizeBytes: 0,
+              });
+            }
+          }
+          return { comments, attachments };
+        } catch {
+          return { comments: [], attachments: [] };
+        }
+      };
+
+      const items: NormalizedItem[] = [];
+      for (const t of tasks) {
         // Todoist priority is 1 (normal) .. 4 (urgent); map to our 0-100 scale.
         const p = t.priority ?? 1;
         const score = p >= 4 ? 90 : p === 3 ? 80 : p === 2 ? 68 : 55;
-        return {
+        const desc = t.description || '';
+        const { comments, attachments } = await fetchTodoistComments(t.id);
+
+        items.push({
           type: 'task' as const,
           title: t.content || 'Untitled Task',
-          description: t.description || null,
+          description: desc ? desc.slice(0, 400) : null,
           due_at: t.due?.date ? new Date(`${t.due.date}T12:00:00Z`).toISOString() : null,
           url: t.url || 'https://app.todoist.com',
           source_id: `todoist-${t.id}`,
           priority_score: score,
-          is_done: false,
+          is_done: Boolean(t.is_completed),
           metadata: {
             project: projectMap.get(t.project_id) ?? 'Inbox',
             labels: (t.labels ?? []).slice(0, 5),
+            comments_count: comments.length,
           },
           raw: { id: t.id, content: t.content, priority: t.priority },
-        };
-      });
+          fullContent: {
+            bodyText: desc,
+            bodyMarkdown: desc,
+            comments,
+            attachments,
+            syncStatus: 'synced',
+            structuredContent: {
+              priority: t.priority,
+              section_id: t.section_id,
+              parent_id: t.parent_id,
+            },
+          },
+        });
+      }
+      return items;
     }));
 
     const summary = await finalizeAccount(admin, accountId, results);
