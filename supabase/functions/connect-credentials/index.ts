@@ -3,7 +3,6 @@
  *
  *  - Moodle LMS  → portal base URL + personal web-service token
  *  - Custom IMAP → host, port, username, app password (encrypted at rest)
- *  - Trello      → access token captured from the URL fragment (public OAuth)
  *
  * These are NOT oauth-start/oauth-callback flows: there is no code exchange and
  * no provider redirect URI. The credential is encrypted with the same
@@ -21,7 +20,7 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const ALLOWED = new Set(['moodle', 'imap', 'trello']);
+const ALLOWED = new Set(['moodle', 'imap']);
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -90,14 +89,6 @@ serve(async (req: Request) => {
       email = imapUser;
       label = `IMAP (${imapUser})`;
       credential = { ...credential, access_token: password, refresh_token: password, imap_host: host, imap_port: port, imap_user: imapUser };
-    } else if (provider === 'trello') {
-      const token = String(credentials.token || '').trim();
-      if (!token) {
-        return json({ error: 'missing_credentials', message: 'Trello did not return an access token. Start the connection again from the Integrations page.' }, 400);
-      }
-      email = 'user@trello';
-      label = 'Trello';
-      credential = { ...credential, access_token: token, refresh_token: token };
     }
 
     const encryptedRefreshToken = await encryptToken(JSON.stringify(credential));
