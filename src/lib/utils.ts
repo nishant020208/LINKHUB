@@ -18,6 +18,19 @@ export function formatTimeAgo(dateString: string | null | undefined): string {
   return `${Math.floor(diffInSeconds / 86400)}d ago`;
 }
 
+export function formatDate(dateString: string | null | undefined): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export function formatDueCountdown(dueDateStr: string | null | undefined): {
   label: string;
   isOverdue: boolean;
