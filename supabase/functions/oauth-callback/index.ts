@@ -25,11 +25,9 @@ const SYNC_IMPLEMENTED = new Set([
   'slack',
   'linear',
   'jira',
-  'trello',
   'asana',
   'clickup',
   'dropbox',
-  'box',
 ]);
 
 interface ExchangeResult {
@@ -341,137 +339,6 @@ const exchanges: Record<string, (code: string, redirectUri: string) => Promise<E
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
-      grantedScopes: [],
-      email,
-      refreshable: true,
-    };
-  },
-
-  box: async (code, redirectUri) => {
-    const res = await fetch('https://api.box.com/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: Deno.env.get('BOX_CLIENT_ID') ?? '',
-        client_secret: Deno.env.get('BOX_CLIENT_SECRET') ?? '',
-        redirect_uri: redirectUri,
-      }),
-    });
-    const data = await readJson(res);
-    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Box token endpoint returned HTTP ${res.status}`);
-    if (!data.access_token) throw new Error('Box returned no access_token.');
-
-    let email = 'user@box';
-    const meRes = await fetch('https://api.box.com/2.0/users/me', {
-      headers: { Authorization: `Bearer ${data.access_token}` },
-    });
-    if (meRes.ok) {
-      const me = await readJson(meRes);
-      if (me.login) email = me.login;
-    }
-    // Box access tokens are short-lived; refresh rotates the refresh token.
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token ?? '',
-      grantedScopes: [],
-      email,
-      refreshable: Boolean(data.refresh_token),
-    };
-  },
-
-  zoom: async (code, redirectUri) => {
-    // Zoom exchange authenticates with HTTP Basic (client id : secret).
-    const res = await fetch(`https://zoom.us/oauth/token?${new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: redirectUri,
-    })}`, {
-      method: 'POST',
-      headers: {
-        Authorization: basicAuth(Deno.env.get('ZOOM_CLIENT_ID') ?? '', Deno.env.get('ZOOM_CLIENT_SECRET') ?? ''),
-      },
-    });
-    const data = await readJson(res);
-    if (!res.ok || data.error) throw new Error(data.reason || data.error || `Zoom token endpoint returned HTTP ${res.status}`);
-    if (!data.access_token) throw new Error('Zoom returned no access_token.');
-
-    let email = 'user@zoom';
-    const meRes = await fetch('https://api.zoom.us/v2/users/me', {
-      headers: { Authorization: `Bearer ${data.access_token}` },
-    });
-    if (meRes.ok) {
-      const me = await readJson(meRes);
-      if (me.email) email = me.email;
-    }
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token ?? '',
-      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
-      email,
-      refreshable: Boolean(data.refresh_token),
-    };
-  },
-
-  gitlab: async (code, redirectUri) => {
-    const res = await fetch('https://gitlab.com/oauth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_id: Deno.env.get('GITLAB_CLIENT_ID') ?? '',
-        client_secret: Deno.env.get('GITLAB_CLIENT_SECRET') ?? '',
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-      }),
-    });
-    const data = await readJson(res);
-    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `GitLab token endpoint returned HTTP ${res.status}`);
-    if (!data.access_token) throw new Error('GitLab returned no access_token.');
-
-    let email = 'user@gitlab';
-    const meRes = await fetch('https://gitlab.com/api/v4/user', {
-      headers: { Authorization: `Bearer ${data.access_token}` },
-    });
-    if (meRes.ok) {
-      const me = await readJson(meRes);
-      if (me.email) email = me.email;
-    }
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token ?? '',
-      grantedScopes: String(data.scope ?? '').split(' ').filter(Boolean),
-      email,
-      refreshable: Boolean(data.refresh_token),
-    };
-  },
-
-  bitbucket: async (code) => {
-    // Bitbucket/Atlassian exchanges with HTTP Basic and no redirect_uri.
-    const res = await fetch('https://bitbucket.org/site/oauth2/access_token', {
-      method: 'POST',
-      headers: {
-        Authorization: basicAuth(Deno.env.get('BITBUCKET_CLIENT_ID') ?? '', Deno.env.get('BITBUCKET_CLIENT_SECRET') ?? ''),
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({ grant_type: 'authorization_code', code }),
-    });
-    const data = await readJson(res);
-    if (!res.ok || data.error) throw new Error(data.error_description || data.error || `Bitbucket token endpoint returned HTTP ${res.status}`);
-    if (!data.access_token) throw new Error('Bitbucket returned no access_token.');
-
-    let email = 'user@bitbucket';
-    const meRes = await fetch('https://api.bitbucket.org/2.0/user', {
-      headers: { Authorization: `Bearer ${data.access_token}` },
-    });
-    if (meRes.ok) {
-      const me = await readJson(meRes);
-      if (me.display_name) email = `${me.display_name}@bitbucket`;
-    }
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token ?? '',
       grantedScopes: [],
       email,
       refreshable: true,
