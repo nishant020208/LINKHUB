@@ -6,14 +6,9 @@ import { todoistAdapter } from './todoist';
 import { slackAdapter } from './slack';
 import { jiraAdapter } from './jira';
 import { linearAdapter } from './linear';
-import { trelloAdapter } from './trello';
 import { asanaAdapter } from './asana';
 import { clickupAdapter } from './clickup';
 import { dropboxAdapter } from './dropbox';
-import { boxAdapter } from './box';
-import { zoomAdapter } from './zoom';
-import { gitlabAdapter } from './gitlab';
-import { bitbucketAdapter } from './bitbucket';
 import { moodleAdapter } from './moodle';
 import { imapAdapter } from './imap';
 
@@ -31,14 +26,9 @@ export const ADAPTER_REGISTRY: ProviderAdapter[] = [
   slackAdapter,
   jiraAdapter,
   linearAdapter,
-  trelloAdapter,
   asanaAdapter,
   clickupAdapter,
   dropboxAdapter,
-  boxAdapter,
-  zoomAdapter,
-  gitlabAdapter,
-  bitbucketAdapter,
   moodleAdapter,
   imapAdapter,
 ];
