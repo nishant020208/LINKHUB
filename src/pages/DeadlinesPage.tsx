@@ -87,7 +87,7 @@ export const DeadlinesPage: React.FC = () => {
         </div>
       </div>
 
-      <DeadlinesBoard />
+      <DeadlinesBoard itemsOverride={filtered} />
     </div>
   );
 };
