@@ -18,14 +18,15 @@ import { CompleteBurst } from '@/components/ui/complete-burst';
 import { useLiveAnnouncer } from '@/components/ui/live-announcer';
 import { ScrollablePanel } from '@/components/ui/scrollable-panel';
 
-export const DeadlinesBoard: React.FC = () => {
+export const DeadlinesBoard: React.FC<{ itemsOverride?: Item[] }> = ({ itemsOverride }) => {
   const { items, accounts, markItemDone, snoozeItem, setActiveItemId } = useAppStore();
   const [snoozeItemId, setSnoozeItemId] = useState<string | null>(null);
   const [burstId, setBurstId] = useState<string | null>(null);
   const { announce } = useLiveAnnouncer();
   const reduce = useReducedMotion();
 
-  const deadlines = items.filter(
+  const rawItems = itemsOverride ?? items;
+  const deadlines = rawItems.filter(
     (item) => item.type === 'deadline' || item.type === 'task'
   );
 
