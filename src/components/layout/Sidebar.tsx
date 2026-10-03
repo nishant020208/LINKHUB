@@ -11,6 +11,7 @@ import {
   Settings,
   Layers,
   Plus,
+  Sparkles,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { WorkspaceModal } from '@/components/workspaces/WorkspaceModal';
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/deadlines', label: 'Deadlines', icon: CheckSquare },
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
+  { to: '/digest', label: 'Weekly Digest', icon: Sparkles },
   { to: '/files', label: 'Files', icon: FolderOpen },
   { to: '/integrations', label: 'Integrations', icon: Blocks },
   { to: '/privacy', label: 'Privacy', icon: ShieldCheck },
