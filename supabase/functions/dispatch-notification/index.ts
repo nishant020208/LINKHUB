@@ -73,6 +73,7 @@ Deno.serve(async (req: Request) => {
     if (channel === "email") {
       const resendApiKey = Deno.env.get("RESEND_API_KEY");
       if (resendApiKey) {
+        const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || "UnifyHub Alerts <onboarding@resend.dev>";
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
           headers: {
@@ -80,16 +81,17 @@ Deno.serve(async (req: Request) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: "UnifyHub Alerts <notifications@unifyhub.app>",
+            from: fromEmail,
             to: [recipient],
             subject: title,
             html: `<div style="font-family: sans-serif; padding: 20px;"><h2>${title}</h2><p>${body}</p><hr/><small>Sent by UnifyHub</small></div>`,
           }),
         });
+        const resData = await res.json().catch(() => ({}));
         if (!res.ok) {
-          throw new Error(`Resend email failed with status ${res.status}`);
+          throw new Error(`Resend email failed with status ${res.status}: ${JSON.stringify(resData)}`);
         }
-        dispatchResult = { success: true, message: "Email sent via Resend" };
+        dispatchResult = { success: true, message: `Email sent via Resend (Delivery ID: ${resData.id ?? 'delivered'})` };
       }
     }
 
