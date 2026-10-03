@@ -35,9 +35,11 @@ import { PriorityNoticesList } from '@/components/dashboard/PriorityNoticesList'
 import { TriageView } from '@/components/triage/TriageView';
 import { WeeklyDigestCard } from '@/components/dashboard/WeeklyDigestCard';
 import { DeadlineConflictCard } from '@/components/deadlines/DeadlineConflictCard';
+import { ConsistencyStatCard } from '@/components/dashboard/ConsistencyStatCard';
 import { filterItemsByWorkspace } from '@/lib/workspaceFilter';
 import { detectCalendarConflicts } from '@/lib/smart/conflicts';
 import { detectDeadlineConflicts } from '@/lib/smart/deadlineConflicts';
+import { calculateConsistencyMetrics } from '@/lib/smart/consistencyMetrics';
 import { formatTimeAgo, formatDueCountdown, cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/queryKeys';
 
@@ -107,6 +109,12 @@ export const DashboardPage: React.FC = () => {
   const activeClusters = useMemo(
     () => deadlineClusters.filter((c) => !dismissedClusters.includes(c.id)),
     [deadlineClusters, dismissedClusters]
+  );
+
+  // 2c. On-time consistency and reliability tracking
+  const consistencyStats = useMemo(
+    () => calculateConsistencyMetrics(filteredItems),
+    [filteredItems]
   );
 
   // 3. Next upcoming event (from 15 min ago into future)
@@ -837,7 +845,10 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6. Dedicated Priority Notices & Inboxes Stream (List Mode) */}
+          {/* 6. Execution Reliability / On-Time Consistency Tracking */}
+          <ConsistencyStatCard stats={consistencyStats} />
+
+          {/* 7. Dedicated Priority Notices & Inboxes Stream (List Mode) */}
           <PriorityNoticesList
             items={filteredItems}
             onStartTriage={() => setDashboardMode('triage')}
