@@ -32,6 +32,9 @@ const PrivacyPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('@/pages/SettingsPage').then((m) => ({ default: m.SettingsPage }))
 );
+const WeeklyDigestPage = lazy(() =>
+  import('@/pages/WeeklyDigestPage').then((m) => ({ default: m.WeeklyDigestPage }))
+);
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })));
 const AuthCallbackPage = lazy(() =>
   import('@/pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage }))
@@ -135,6 +138,14 @@ export const App: React.FC = () => {
                     element={
                       <Suspense fallback={<RouteFallback />}>
                         <SettingsPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="digest"
+                    element={
+                      <Suspense fallback={<RouteFallback />}>
+                        <WeeklyDigestPage />
                       </Suspense>
                     }
                   />
