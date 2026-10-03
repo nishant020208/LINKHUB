@@ -1,37 +1,153 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Plus, CheckSquare } from 'lucide-react';
+import { X, Plus, CheckSquare, Loader2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/useAppStore';
-import { ItemType } from '@/types';
+import { useToastStore } from '@/components/ui/toast';
+import { supabase } from '@/lib/supabase';
+import { env } from '@/lib/env';
+import { queryKeys } from '@/lib/queryKeys';
+import { ItemType, Item } from '@/types';
 
 export const QuickAddModal: React.FC = () => {
+  const queryClient = useQueryClient();
   const { isQuickAddOpen, setQuickAddOpen, accounts, addItem } = useAppStore();
+  const toast = useToastStore((s) => s.toast);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [accountId, setAccountId] = useState(accounts[0]?.id || '');
   const [type, setType] = useState<ItemType>('deadline');
   const [dueDate, setDueDate] = useState('');
   const [priorityScore, setPriorityScore] = useState(80);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isQuickAddOpen) return null;
   if (typeof document === 'undefined') return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || isSubmitting) return;
 
-    addItem({
-      title: title.trim(),
-      description: description.trim(),
-      account_id: accountId || accounts[0]?.id,
-      type,
-      due_at: dueDate ? new Date(dueDate).toISOString() : new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-      priority_score: priorityScore,
-    });
+    setIsSubmitting(true);
+    try {
+      const finalTitle = title.trim();
+      const finalDesc = description.trim();
+      const finalDue = dueDate
+        ? new Date(dueDate).toISOString()
+        : new Date(Date.now() + 24 * 3600 * 1000).toISOString();
 
-    setTitle('');
-    setDescription('');
-    setQuickAddOpen(false);
+      let targetAccountId = accountId || (accounts.length > 0 ? accounts[0].id : '');
+
+      if (env.isConfigured.supabase) {
+        const { data: userData } = await supabase.auth.getUser();
+        const user = userData?.user;
+
+        if (user) {
+          // If no linked account exists or targetAccountId is empty, ensure personal account exists
+          if (!targetAccountId) {
+            const { data: existingAcc } = await supabase
+              .from('connected_accounts')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('provider', 'personal')
+              .maybeSingle();
+
+            if (existingAcc?.id) {
+              targetAccountId = existingAcc.id;
+            } else {
+              const { data: createdAcc, error: createAccErr } = await supabase
+                .from('connected_accounts')
+                .insert({
+                  user_id: user.id,
+                  provider: 'personal',
+                  email: user.email || 'personal@unifyhub.local',
+                  label: 'Personal Tasks',
+                  color: '#e8a54b',
+                  status: 'connected',
+                })
+                .select('id')
+                .single();
+
+              if (createAccErr) {
+                console.warn('Could not auto-create personal connected_account:', createAccErr.message);
+              } else if (createdAcc?.id) {
+                targetAccountId = createdAcc.id;
+                queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
+              }
+            }
+          }
+
+          if (targetAccountId) {
+            const { data: insertedItem, error: insertErr } = await supabase
+              .from('items')
+              .insert({
+                user_id: user.id,
+                account_id: targetAccountId,
+                type,
+                title: finalTitle,
+                description: finalDesc || null,
+                due_at: finalDue,
+                priority_score: priorityScore,
+                source_id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                is_done: false,
+                metadata: { created_manually: true },
+              })
+              .select()
+              .single();
+
+            if (insertErr) {
+              throw new Error(insertErr.message);
+            }
+
+            if (insertedItem) {
+              addItem(insertedItem as Item);
+              queryClient.invalidateQueries({ queryKey: queryKeys.items });
+            }
+          }
+        } else {
+          // Local offline fallback
+          addItem({
+            title: finalTitle,
+            description: finalDesc,
+            account_id: targetAccountId || 'acc-1',
+            type,
+            due_at: finalDue,
+            priority_score: priorityScore,
+          });
+        }
+      } else {
+        // Supabase not configured: local store only
+        addItem({
+          title: finalTitle,
+          description: finalDesc,
+          account_id: targetAccountId || 'acc-1',
+          type,
+          due_at: finalDue,
+          priority_score: priorityScore,
+        });
+      }
+
+      toast({
+        kind: 'success',
+        title: 'Item Created',
+        message: `Saved "${finalTitle}" to your active list.`,
+      });
+
+      setTitle('');
+      setDescription('');
+      setDueDate('');
+      setQuickAddOpen(false);
+    } catch (err) {
+      console.error('Failed to create item:', err);
+      toast({
+        kind: 'error',
+        title: 'Could not create item',
+        message: err instanceof Error ? err.message : 'Please check your connection and try again.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return createPortal(
@@ -43,8 +159,9 @@ export const QuickAddModal: React.FC = () => {
             <h3 className="font-display font-bold text-lg text-foreground">Create Deadline or Task</h3>
           </div>
           <button
+            type="button"
             onClick={() => setQuickAddOpen(false)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -82,6 +199,9 @@ export const QuickAddModal: React.FC = () => {
                 onChange={(e) => setAccountId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-card/60 border border-border text-foreground text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               >
+                {accounts.length === 0 && (
+                  <option value="">Personal Tasks (Built-in)</option>
+                )}
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
                     {acc.label} ({acc.email})
@@ -134,16 +254,27 @@ export const QuickAddModal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setQuickAddOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+                disabled={isSubmitting}
+                className="px-4 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-xs hover:bg-primary/90 transition-all flex items-center gap-1.5 cursor-pointer"
+                disabled={isSubmitting}
+                className="px-5 py-2 rounded-xl bg-primary text-primary-foreground font-medium text-xs hover:bg-primary/90 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Save Item</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Save Item</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
