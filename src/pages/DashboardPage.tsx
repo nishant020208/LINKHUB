@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   ArrowRight,
@@ -17,6 +17,8 @@ import {
   CheckSquare,
   Check,
   Blocks,
+  Sparkles,
+  LayoutList,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSyncData } from '@/hooks/useSyncData';
@@ -29,12 +31,16 @@ import { Badge } from '@/components/ui/badge';
 import { MetricCounter } from '@/components/ui/metric-counter';
 import { BoardSkeleton } from '@/components/ui/skeleton';
 import { QuickAddModal } from '@/components/dashboard/QuickAddModal';
+import { TriageView } from '@/components/triage/TriageView';
 import { filterItemsByWorkspace } from '@/lib/workspaceFilter';
 import { detectCalendarConflicts } from '@/lib/smart/conflicts';
 import { formatTimeAgo, formatDueCountdown, cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/queryKeys';
 
+type DashboardMode = 'list' | 'triage';
+
 export const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isLoading, isSyncing, triggerSync } = useSyncData();
   const {
@@ -49,6 +55,30 @@ export const DashboardPage: React.FC = () => {
   } = useAppStore();
   const { user } = useAuthStore();
   const toast = useToastStore((s) => s.toast);
+
+  // Persistent Dashboard View Mode (List vs Triage)
+  const [dashboardMode, setDashboardModeState] = useState<DashboardMode>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = window.localStorage.getItem('unifyhub-dashboard-mode');
+        if (saved === 'list' || saved === 'triage') return saved;
+      } catch {
+        // Local storage restricted
+      }
+    }
+    return 'list';
+  });
+
+  const setDashboardMode = (mode: DashboardMode) => {
+    setDashboardModeState(mode);
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem('unifyhub-dashboard-mode', mode);
+      } catch {
+        // Fallback
+      }
+    }
+  };
 
   const [timeRemaining, setTimeRemaining] = useState<string>('');
 
@@ -202,7 +232,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-5 sm:space-y-6">
       {/* 1. Greeting & Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1 border-b border-border/40">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-border/40">
         <div>
           <span className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
             Command Station &middot;{' '}
@@ -218,6 +248,41 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
+          {/* List vs Triage Mode Segmented Control */}
+          <div className="flex items-center p-1 rounded-2xl bg-card border border-border/50">
+            <button
+              type="button"
+              onClick={() => setDashboardMode('list')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer',
+                dashboardMode === 'list'
+                  ? 'bg-secondary text-secondary-foreground font-semibold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              <span>List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDashboardMode('triage')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer',
+                dashboardMode === 'triage'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Triage</span>
+              {priorityNotices.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-primary-foreground/20 font-mono">
+                  {priorityNotices.length}
+                </span>
+              )}
+            </button>
+          </div>
+
           {/* Workspace Tabs */}
           <div className="flex items-center p-1 rounded-2xl bg-card border border-border/50">
             {workspaces.map((ws) => {
@@ -248,7 +313,8 @@ export const DashboardPage: React.FC = () => {
             className="gap-1.5 shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Deadline / Task</span>
+            <span className="hidden sm:inline">Add Deadline / Task</span>
+            <span className="sm:hidden">Add</span>
           </Button>
         </div>
       </div>
@@ -264,7 +330,16 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {!isLoading && (
+      {!isLoading && dashboardMode === 'triage' && (
+        /* TRIAGE MODE VIEW */
+        <TriageView
+          filteredItems={filteredItems}
+          onExitTriage={() => setDashboardMode('list')}
+        />
+      )}
+
+      {!isLoading && dashboardMode === 'list' && (
+        /* LIST / OVERVIEW MODE VIEW */
         <>
           {/* 2. Compact Sync Status Strip */}
           <Card variant="bento" className="p-3 sm:p-4">
@@ -297,7 +372,7 @@ export const DashboardPage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground">
-                    Google, Microsoft, GitHub, and academic calendars up to date
+                    Google, GitHub, Slack, Notion, and academic timetables synchronized
                   </p>
                 </div>
               </div>
@@ -313,12 +388,13 @@ export const DashboardPage: React.FC = () => {
                   <RefreshCw className={cn('w-3.5 h-3.5', isSyncing && 'animate-spin')} />
                   <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
                 </Button>
-                <Link
-                  to="/integrations"
-                  className="text-xs font-mono text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg hover:bg-muted/50 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => navigate('/integrations')}
+                  className="text-xs font-mono text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   Manage &rarr;
-                </Link>
+                </button>
               </div>
             </div>
           </Card>
@@ -330,12 +406,13 @@ export const DashboardPage: React.FC = () => {
                 <AlertTriangle className="w-4 h-4 shrink-0 text-status-warning" />
                 <span>Schedule Conflict: Overlapping events detected across linked calendars.</span>
               </div>
-              <Link
-                to="/calendar"
-                className="text-xs font-semibold underline underline-offset-2 hover:opacity-80"
+              <button
+                type="button"
+                onClick={() => navigate('/calendar')}
+                className="text-xs font-semibold underline underline-offset-2 hover:opacity-80 cursor-pointer"
               >
                 Resolve in Calendar &rarr;
-              </Link>
+              </button>
             </div>
           )}
 
@@ -359,7 +436,18 @@ export const DashboardPage: React.FC = () => {
           {/* 4. Duo Prominent Cards: Next Up & Most Urgent Deadline */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Card A: Next Up Event */}
-            <Card variant="bento" interactive tilt className="p-5 flex flex-col justify-between group">
+            <Card
+              variant="bento"
+              interactive
+              tilt
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/calendar')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') navigate('/calendar');
+              }}
+              className="p-5 flex flex-col justify-between group cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground uppercase tracking-widest">
@@ -394,6 +482,7 @@ export const DashboardPage: React.FC = () => {
                           href={nextEvent.url}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-lg hover:bg-muted/60"
                           title="Open event link"
                         >
@@ -434,18 +523,26 @@ export const DashboardPage: React.FC = () => {
                 ) : (
                   <span className="text-[11px] font-mono text-muted-foreground">Schedule Clear</span>
                 )}
-                <Link
-                  to="/calendar"
-                  className="text-xs text-muted-foreground hover:text-foreground font-mono flex items-center gap-1"
-                >
+                <span className="text-xs text-muted-foreground group-hover:text-foreground font-mono flex items-center gap-1">
                   <span>View Calendar</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </span>
               </div>
             </Card>
 
             {/* Card B: Most Urgent Deadline */}
-            <Card variant="bento" interactive tilt className="p-5 flex flex-col justify-between group">
+            <Card
+              variant="bento"
+              interactive
+              tilt
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/deadlines')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') navigate('/deadlines');
+              }}
+              className="p-5 flex flex-col justify-between group cursor-pointer focus-visible:ring-2 focus-visible:ring-primary"
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2 text-xs font-mono font-medium text-muted-foreground uppercase tracking-widest">
@@ -492,6 +589,7 @@ export const DashboardPage: React.FC = () => {
                           href={urgentDeadline.url}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="p-1 text-muted-foreground hover:text-foreground shrink-0 rounded-lg hover:bg-muted/60"
                           title="Open assignment link"
                         >
@@ -525,13 +623,10 @@ export const DashboardPage: React.FC = () => {
                 ) : (
                   <span className="text-[11px] font-mono text-muted-foreground">Queue Zero</span>
                 )}
-                <Link
-                  to="/deadlines"
-                  className="text-xs text-muted-foreground hover:text-foreground font-mono flex items-center gap-1"
-                >
+                <span className="text-xs text-muted-foreground group-hover:text-foreground font-mono flex items-center gap-1">
                   <span>All Deadlines</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </span>
               </div>
             </Card>
           </div>
@@ -539,7 +634,15 @@ export const DashboardPage: React.FC = () => {
           {/* 5. Four Summary Stat Tiles */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Tile 1: Deadlines Queue */}
-            <Link to="/deadlines" className="block group">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/deadlines')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') navigate('/deadlines');
+              }}
+              className="block group h-full cursor-pointer"
+            >
               <Card variant="bento" interactive tilt className="p-4 sm:p-5 h-full flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -567,16 +670,24 @@ export const DashboardPage: React.FC = () => {
                       'All on schedule'
                     )}
                   </span>
-                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform">
+                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform font-semibold">
                     <span>Queue</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </Card>
-            </Link>
+            </div>
 
             {/* Tile 2: Events Today */}
-            <Link to="/calendar" className="block group">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/calendar')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') navigate('/calendar');
+              }}
+              className="block group h-full cursor-pointer"
+            >
               <Card variant="bento" interactive tilt className="p-4 sm:p-5 h-full flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -600,16 +711,24 @@ export const DashboardPage: React.FC = () => {
                       ? `${remainingEventsCount} upcoming`
                       : 'None remaining today'}
                   </span>
-                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform">
+                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform font-semibold">
                     <span>Calendar</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </Card>
-            </Link>
+            </div>
 
             {/* Tile 3: Pinned Files */}
-            <Link to="/files" className="block group">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate('/files')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') navigate('/files');
+              }}
+              className="block group h-full cursor-pointer"
+            >
               <Card variant="bento" interactive tilt className="p-4 sm:p-5 h-full flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
@@ -631,44 +750,60 @@ export const DashboardPage: React.FC = () => {
                   <span className="text-muted-foreground font-mono text-[11px]">
                     Active cloud files
                   </span>
-                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform">
+                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform font-semibold">
                     <span>Files</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </Card>
-            </Link>
+            </div>
 
-            {/* Tile 4: Priority Notices */}
-            <Link to="/integrations" className="block group">
-              <Card variant="bento" interactive tilt className="p-4 sm:p-5 h-full flex flex-col justify-between">
+            {/* Tile 4: Priority Notices & Triage Launch */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setDashboardMode('triage')}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') setDashboardMode('triage');
+              }}
+              className="block group h-full cursor-pointer"
+            >
+              <Card
+                variant="bento"
+                interactive
+                tilt
+                className="p-4 sm:p-5 h-full flex flex-col justify-between border-status-connected/30 hover:border-status-connected/60"
+              >
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground font-medium">
                       Priority Notices
                     </span>
-                    <div className="w-7 h-7 rounded-xl bg-status-connected/10 text-status-connected flex items-center justify-center">
+                    <div className="w-7 h-7 rounded-xl bg-status-connected/15 text-status-connected flex items-center justify-center">
                       <Mail className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-3 flex items-baseline justify-between">
                     <MetricCounter
                       value={priorityNotices.length}
                       className="text-3xl sm:text-4xl font-display font-extrabold text-foreground group-hover:text-status-connected transition-colors"
                     />
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-status-connected/10 text-status-connected border border-status-connected/25 font-semibold">
+                      Triage
+                    </span>
                   </div>
                 </div>
                 <div className="mt-3 pt-2.5 border-t border-border/40 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground font-mono text-[11px]">
-                    Priority stream items
+                    {priorityNotices.length} to process
                   </span>
-                  <span className="font-mono text-primary flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform">
-                    <span>Manage</span>
+                  <span className="font-mono text-status-connected flex items-center gap-1 text-[11px] group-hover:translate-x-0.5 transition-transform font-semibold">
+                    <span>Start Triage</span>
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </Card>
-            </Link>
+            </div>
           </div>
 
           {/* 6. Onboarding Card when 0 accounts linked */}
@@ -689,12 +824,14 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               <div className="pt-2">
-                <Link to="/integrations">
-                  <Button variant="primary" size="md" className="gap-2 cursor-pointer">
-                    <span>Connect Account in Integrations</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => navigate('/integrations')}
+                  className="px-5 py-2.5 rounded-2xl bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-all inline-flex items-center gap-2 cursor-pointer shadow-md shadow-primary/20"
+                >
+                  <span>Connect Account in Integrations</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </Card>
           )}
