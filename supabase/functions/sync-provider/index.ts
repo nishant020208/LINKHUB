@@ -24,22 +24,52 @@ const SYNC_FUNCTIONS: Record<string, string> = {
   asana: 'asana-sync',
   clickup: 'clickup-sync',
   dropbox: 'dropbox-sync',
+  moodle: 'moodle-sync',
+  imap: 'imap-sync',
 };
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { accountId, provider } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { accountId, provider, all } = body;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    if (all) {
+      console.log('[sync-provider] running sync for all active connected accounts');
+      const res = await fetch(`${supabaseUrl}/rest/v1/connected_accounts?status=eq.connected&select=id,provider`, {
+        headers: { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` },
+      });
+      const accounts = await res.json().catch(() => []);
+      const results = [];
+      for (const acc of (Array.isArray(accounts) ? accounts : [])) {
+        const targetFn = SYNC_FUNCTIONS[acc.provider];
+        if (!targetFn) continue;
+        try {
+          const fnRes = await fetch(`${supabaseUrl}/functions/v1/${targetFn}`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${serviceRoleKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accountId: acc.id }),
+          });
+          const payload = await fnRes.json().catch(() => ({}));
+          results.push({ accountId: acc.id, provider: acc.provider, success: fnRes.ok, payload });
+        } catch (e) {
+          results.push({ accountId: acc.id, provider: acc.provider, success: false, error: String(e) });
+        }
+      }
+      return new Response(JSON.stringify({ success: true, processed: results.length, results }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!accountId) {
       return new Response(JSON.stringify({ error: 'accountId is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
     // Resolve the provider from the account row when not supplied.
     let resolvedProvider = provider as string | undefined;
