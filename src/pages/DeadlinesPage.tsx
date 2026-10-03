@@ -4,6 +4,8 @@ import { useSyncData } from '@/hooks/useSyncData';
 import { useAppStore } from '@/store/useAppStore';
 import { BoardSkeleton } from '@/components/ui/skeleton';
 import { DeadlinesBoard } from '@/components/dashboard/DeadlinesBoard';
+import { DeadlineConflictCard } from '@/components/deadlines/DeadlineConflictCard';
+import { detectDeadlineConflicts } from '@/lib/smart/deadlineConflicts';
 import { formatDueCountdown } from '@/lib/utils';
 import { Item } from '@/types';
 
@@ -44,6 +46,11 @@ export const DeadlinesPage: React.FC = () => {
   const next = open
     .filter((i) => i.due_at && !isNaN(new Date(i.due_at).getTime()))
     .sort((a, b) => new Date(a.due_at!).getTime() - new Date(b.due_at!).getTime())[0];
+
+  const deadlineClusters = React.useMemo(
+    () => detectDeadlineConflicts(filtered, accounts),
+    [filtered, accounts]
+  );
 
   if (isLoading) {
     return (
@@ -86,6 +93,14 @@ export const DeadlinesPage: React.FC = () => {
           })}
         </div>
       </div>
+
+      {deadlineClusters.length > 0 && (
+        <div className="space-y-3">
+          {deadlineClusters.map((cluster) => (
+            <DeadlineConflictCard key={cluster.id} cluster={cluster} />
+          ))}
+        </div>
+      )}
 
       <DeadlinesBoard itemsOverride={filtered} />
     </div>
