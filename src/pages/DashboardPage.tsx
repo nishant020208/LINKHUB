@@ -33,6 +33,7 @@ import { BoardSkeleton } from '@/components/ui/skeleton';
 import { QuickAddModal } from '@/components/dashboard/QuickAddModal';
 import { PriorityNoticesList } from '@/components/dashboard/PriorityNoticesList';
 import { TriageView } from '@/components/triage/TriageView';
+import { WeeklyDigestCard } from '@/components/dashboard/WeeklyDigestCard';
 import { filterItemsByWorkspace } from '@/lib/workspaceFilter';
 import { detectCalendarConflicts } from '@/lib/smart/conflicts';
 import { formatTimeAgo, formatDueCountdown, cn } from '@/lib/utils';
@@ -433,6 +434,9 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Weekly Executive Digest Synthesis */}
+          <WeeklyDigestCard />
 
           {/* 4. Duo Prominent Cards: Next Up & Most Urgent Deadline */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
