@@ -39,8 +39,8 @@ export function useSyncData() {
       }
       return (data || []) as ConnectedAccount[];
     },
-    staleTime: 1000 * 30,
-    refetchInterval: 1000 * 60,
+    staleTime: 1000 * 60 * 2,
+    refetchOnWindowFocus: true,
   });
 
   // 2. Unified items
@@ -59,8 +59,8 @@ export function useSyncData() {
       }
       return (data || []) as Item[];
     },
-    staleTime: 1000 * 20,
-    refetchInterval: 1000 * 45,
+    staleTime: 1000 * 60 * 2,
+    refetchOnWindowFocus: true,
   });
 
   // 3. Per-stream sync logs
@@ -79,7 +79,8 @@ export function useSyncData() {
       }
       return (data || []) as SyncLogEntry[];
     },
-    staleTime: 1000 * 15,
+    staleTime: 1000 * 60,
+    refetchOnWindowFocus: true,
   });
 
   // Mirror server state into the Zustand store for the widgets
