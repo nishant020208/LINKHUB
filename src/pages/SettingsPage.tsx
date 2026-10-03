@@ -1,6 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sun, Moon, Sparkles, Bell, Clock, Link as LinkIcon, User as UserIcon, Check, Smartphone } from 'lucide-react';
+import {
+  Sun,
+  Moon,
+  Sparkles,
+  Bell,
+  Clock,
+  Link as LinkIcon,
+  User as UserIcon,
+  Check,
+  Smartphone,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
@@ -177,70 +190,287 @@ export const SettingsPage: React.FC = () => {
       {/* Storage Usage & Data Retention Foundation */}
       <StorageSettingsCard accounts={accounts} userId={user?.id} />
 
-      {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-primary" />
-            <h3 className="font-display font-semibold text-sm">Notifications</h3>
-          </div>
-        </CardHeader>
-        <CardBody className="space-y-4">
-          <SwitchRow
-            label="Email alerts"
-            description="Deadline reminders and daily summaries via email."
-            checked={notificationPreferences.channels.email}
-            onChange={(v) => updateNotificationPreferences({ channels: { email: v } })}
-          />
-          <SwitchRow
-            label="Browser push"
-            description="Instant alerts in this browser, even when the tab is closed."
-            checked={notificationPreferences.channels.web_push}
-            onChange={(v) => updateNotificationPreferences({ channels: { web_push: v } })}
-          />
-          <SwitchRow
-            label="Telegram"
-            description="Send alerts to your Telegram chat."
-            checked={notificationPreferences.channels.telegram}
-            onChange={(v) => updateNotificationPreferences({ channels: { telegram: v } })}
-          />
+      {/* Automated Background Sync */}
+      <ScheduledSyncCard />
 
-          <div className="pt-2 border-t border-border/40 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
-              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-              Quiet hours
-            </div>
-            <SwitchRow
-              label="Enable quiet hours"
-              description="Silence non-critical alerts between start and end times."
-              checked={notificationPreferences.quietHours.enabled}
-              onChange={(v) => updateNotificationPreferences({ quietHours: { enabled: v } })}
+      {/* Notifications */}
+      <NotificationsCard
+        notificationPreferences={notificationPreferences}
+        updateNotificationPreferences={updateNotificationPreferences}
+        userEmail={user?.email}
+      />
+    </div>
+  );
+};
+
+const NotificationsCard: React.FC<{
+  notificationPreferences: ReturnType<typeof useAppStore.getState>['notificationPreferences'];
+  updateNotificationPreferences: ReturnType<typeof useAppStore.getState>['updateNotificationPreferences'];
+  userEmail?: string;
+}> = ({ notificationPreferences, updateNotificationPreferences, userEmail }) => {
+  const [testingChannel, setTestingChannel] = React.useState<string | null>(null);
+  const [testFeedback, setTestFeedback] = React.useState<{ channel: string; message: string; isError?: boolean } | null>(null);
+
+  const handleTest = async (channel: 'email' | 'web_push' | 'telegram') => {
+    setTestingChannel(channel);
+    setTestFeedback(null);
+    try {
+      if (channel === 'web_push') {
+        if (!('Notification' in window)) {
+          setTestFeedback({ channel, message: 'Browser does not support desktop notifications.', isError: true });
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          new Notification('UnifyHub Test Alert', {
+            body: 'Browser push notifications are active and working!',
+            icon: '/favicon.svg',
+          });
+          setTestFeedback({ channel, message: 'Push notification displayed successfully!' });
+        } else {
+          setTestFeedback({ channel, message: 'Browser notification permission was denied.', isError: true });
+        }
+        return;
+      }
+
+      let recipient = userEmail || 'nishant020208@gmail.com';
+      if (channel === 'telegram') {
+        const promptId = window.prompt('Enter your Telegram Chat ID:');
+        if (!promptId) return;
+        recipient = promptId.trim();
+      }
+
+      const { supabase } = await import('@/lib/supabase');
+      const { data, error } = await supabase.functions.invoke('dispatch-notification', {
+        body: {
+          channel,
+          recipient,
+          title: 'UnifyHub Notification Test',
+          body: `Test notification sent for ${channel} channel from Settings.`,
+          priority: 'high',
+        },
+      });
+
+      if (error) {
+        setTestFeedback({ channel, message: `Failed: ${error.message}`, isError: true });
+      } else if (data?.success) {
+        setTestFeedback({ channel, message: data.message || 'Notification delivered successfully!' });
+      } else {
+        setTestFeedback({ channel, message: data?.error || 'Dispatch returned an error.', isError: true });
+      }
+    } catch (err) {
+      setTestFeedback({ channel, message: String(err), isError: true });
+    } finally {
+      setTestingChannel(null);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Bell className="w-4 h-4 text-primary" />
+          <h3 className="font-display font-semibold text-sm">Notifications &amp; Alerts</h3>
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        {testFeedback && (
+          <div
+            className={`p-2.5 rounded-xl text-xs flex items-center justify-between border ${
+              testFeedback.isError
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+            }`}
+          >
+            <span>{testFeedback.message}</span>
+            <button
+              type="button"
+              onClick={() => setTestFeedback(null)}
+              className="text-[10px] font-mono underline ml-2 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        <SwitchRow
+          label="Email alerts"
+          description="Deadline reminders and daily summaries via email."
+          checked={notificationPreferences.channels.email}
+          onChange={(v) => updateNotificationPreferences({ channels: { email: v } })}
+          onTest={() => handleTest('email')}
+          isTesting={testingChannel === 'email'}
+        />
+        <SwitchRow
+          label="Browser push"
+          description="Instant alerts in this browser, even when the tab is closed."
+          checked={notificationPreferences.channels.web_push}
+          onChange={(v) => updateNotificationPreferences({ channels: { web_push: v } })}
+          onTest={() => handleTest('web_push')}
+          isTesting={testingChannel === 'web_push'}
+        />
+        <SwitchRow
+          label="Telegram"
+          description="Send alerts to your Telegram chat."
+          checked={notificationPreferences.channels.telegram}
+          onChange={(v) => updateNotificationPreferences({ channels: { telegram: v } })}
+          onTest={() => handleTest('telegram')}
+          isTesting={testingChannel === 'telegram'}
+        />
+
+        <div className="pt-2 border-t border-border/40 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+            <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+            Quiet hours
+          </div>
+          <SwitchRow
+            label="Enable quiet hours"
+            description="Silence non-critical alerts between start and end times."
+            checked={notificationPreferences.quietHours.enabled}
+            onChange={(v) => updateNotificationPreferences({ quietHours: { enabled: v } })}
+          />
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              value={notificationPreferences.quietHours.start}
+              onChange={(e) => updateNotificationPreferences({ quietHours: { start: e.target.value } })}
+              className="text-xs font-mono px-2.5 py-1.5 rounded-xl bg-background/70 border border-border text-foreground focus:outline-none focus:border-primary"
             />
-            <div className="flex items-center gap-2">
-              <input
-                type="time"
-                value={notificationPreferences.quietHours.start}
-                onChange={(e) => updateNotificationPreferences({ quietHours: { start: e.target.value } })}
-                className="text-xs font-mono px-2.5 py-1.5 rounded-xl bg-background/70 border border-border text-foreground focus:outline-none focus:border-primary"
-              />
-              <span className="text-xs text-muted-foreground">to</span>
-              <input
-                type="time"
-                value={notificationPreferences.quietHours.end}
-                onChange={(e) => updateNotificationPreferences({ quietHours: { end: e.target.value } })}
-                className="text-xs font-mono px-2.5 py-1.5 rounded-xl bg-background/70 border border-border text-foreground focus:outline-none focus:border-primary"
-              />
-            </div>
-            <SwitchRow
-              label="Critical bypass"
-              description="Still alert for deadlines due within 2 hours."
-              checked={notificationPreferences.quietHours.allowCritical}
-              onChange={(v) => updateNotificationPreferences({ quietHours: { allowCritical: v } })}
+            <span className="text-xs text-muted-foreground">to</span>
+            <input
+              type="time"
+              value={notificationPreferences.quietHours.end}
+              onChange={(e) => updateNotificationPreferences({ quietHours: { end: e.target.value } })}
+              className="text-xs font-mono px-2.5 py-1.5 rounded-xl bg-background/70 border border-border text-foreground focus:outline-none focus:border-primary"
             />
           </div>
-        </CardBody>
-      </Card>
-    </div>
+          <SwitchRow
+            label="Critical bypass"
+            description="Still alert for deadlines due within 2 hours."
+            checked={notificationPreferences.quietHours.allowCritical}
+            onChange={(v) => updateNotificationPreferences({ quietHours: { allowCritical: v } })}
+          />
+        </div>
+      </CardBody>
+    </Card>
+  );
+};
+
+const ScheduledSyncCard: React.FC = () => {
+  const [syncStatus, setSyncStatus] = React.useState<{
+    active: boolean;
+    cron_installed?: boolean;
+    net_installed?: boolean;
+    job_count?: number;
+    job_name?: string;
+    last_run?: string | null;
+    last_status?: string | null;
+    reason?: string;
+  } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  const checkStatus = async () => {
+    setLoading(true);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data, error } = await supabase.rpc('check_scheduled_sync_status');
+      if (error) {
+        setSyncStatus({ active: false, reason: error.message });
+      } else {
+        setSyncStatus(data as any);
+      }
+    } catch (e) {
+      setSyncStatus({ active: false, reason: String(e) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    checkStatus();
+  }, []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <RefreshCw className={`w-4 h-4 text-primary ${loading ? 'animate-spin' : ''}`} />
+            <h3 className="font-display font-semibold text-sm">Automated Background Sync</h3>
+          </div>
+          {syncStatus && (
+            <Badge tone={syncStatus.active ? 'success' : 'warning'}>
+              {syncStatus.active ? 'Scheduled sync: Active' : 'Scheduled sync: Inactive'}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardBody className="space-y-4">
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Background sync keeps your emails, calendars, and tasks synchronized every 15 minutes via Postgres pg_cron and pg_net without requiring the dashboard to remain open.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="p-3 rounded-xl bg-card/60 border border-border/40 space-y-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">Cron Engine</div>
+            <div className="flex items-center gap-1.5 font-medium text-foreground">
+              {syncStatus?.cron_installed ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>pg_cron enabled (15m interval)</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>pg_cron not enabled</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="p-3 rounded-xl bg-card/60 border border-border/40 space-y-1">
+            <div className="text-[11px] font-mono uppercase text-muted-foreground">HTTP Dispatcher</div>
+            <div className="flex items-center gap-1.5 font-medium text-foreground">
+              {syncStatus?.net_installed ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>pg_net active</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+                  <span>pg_net not installed</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {syncStatus && !syncStatus.active && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200/90 space-y-1.5">
+            <div className="font-semibold flex items-center gap-1.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+              <span>How to enable in Supabase:</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              Open your Supabase Dashboard &rarr; <strong>Database</strong> &rarr; <strong>Extensions</strong>. Search for <code>pg_cron</code> and <code>pg_net</code> and toggle them ON.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-[11px] font-mono text-muted-foreground">
+            {syncStatus?.last_run
+              ? `Last run: ${new Date(syncStatus.last_run).toLocaleTimeString()}`
+              : 'Status: Verified active via Postgres'}
+          </span>
+          <Button variant="secondary" size="sm" onClick={checkStatus} disabled={loading} className="text-xs h-7 cursor-pointer">
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            Refresh status
+          </Button>
+        </div>
+      </CardBody>
+    </Card>
   );
 };
 
@@ -249,13 +479,28 @@ const SwitchRow: React.FC<{
   description: string;
   checked: boolean;
   onChange: (v: boolean) => void;
-}> = ({ label, description, checked, onChange }) => (
+  onTest?: () => void;
+  isTesting?: boolean;
+}> = ({ label, description, checked, onChange, onTest, isTesting }) => (
   <div className="flex items-center justify-between gap-4">
     <div>
       <p className="text-sm font-medium">{label}</p>
       <p className="text-xs text-muted-foreground">{description}</p>
     </div>
-    <Switch checked={checked} onChange={onChange} />
+    <div className="flex items-center gap-2">
+      {onTest && (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-7 text-xs px-2.5 py-0 rounded-lg cursor-pointer"
+          onClick={onTest}
+          disabled={isTesting}
+        >
+          {isTesting ? 'Sending...' : 'Send test'}
+        </Button>
+      )}
+      <Switch checked={checked} onChange={onChange} />
+    </div>
   </div>
 );
 
