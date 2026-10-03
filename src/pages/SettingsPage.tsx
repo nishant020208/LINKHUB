@@ -24,15 +24,18 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { formatTimeAgo } from '@/lib/utils';
+import { ConsistencyStatCard } from '@/components/dashboard/ConsistencyStatCard';
+import { calculateConsistencyMetrics } from '@/lib/smart/consistencyMetrics';
 
 /**
  * Settings — theme, notifications & quiet hours, and account overview.
  */
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { theme, setTheme, notificationPreferences, updateNotificationPreferences, accounts, lastSyncedAt } =
+  const { theme, setTheme, notificationPreferences, updateNotificationPreferences, accounts, items, lastSyncedAt } =
     useAppStore();
   const user = useAuthStore((s) => s.user);
+  const consistencyStats = React.useMemo(() => calculateConsistencyMetrics(items), [items]);
   // Own instance with the first-visit auto-prompt disabled: the PwaManager owns
   // that, so opening Settings must never make the tutorial appear on its own.
   const install = useInstallPrompt(false);
@@ -187,6 +190,9 @@ export const SettingsPage: React.FC = () => {
           />
         </CardBody>
       </Card>
+
+      {/* Execution Reliability & Consistency Telemetry */}
+      <ConsistencyStatCard stats={consistencyStats} />
 
       {/* Storage Usage & Data Retention Foundation */}
       <StorageSettingsCard accounts={accounts} userId={user?.id} />
