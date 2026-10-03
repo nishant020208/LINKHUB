@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence, useMotionValue, useTransform, useReducedMotion, PanInfo } from 'framer-motion';
+import {
+  motion,
+  AnimatePresence,
+  useMotionValue,
+  useTransform,
+  useReducedMotion,
+  PanInfo,
+  animate,
+} from 'framer-motion';
 import {
   Star,
   X,
@@ -49,8 +57,9 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
   const [filter, setFilter] = useState<TriageFilter>('all');
   const [history, setHistory] = useState<TriageHistoryEntry[]>([]);
   const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
-  // Filter items that are uncompleted and not explicitly triaged as non-important
+  // Filter items that are uncompleted and not explicitly triaged in this session
   const triageQueue = useMemo(() => {
     return filteredItems.filter((item) => {
       if (item.is_done) return false;
@@ -85,9 +94,16 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
 
   // Motion values for touch & drag physics
   const x = useMotionValue(0);
-  const rotate = useTransform(x, [-240, 240], [-18, 18]);
-  const rightOverlayOpacity = useTransform(x, [30, 130], [0, 1]);
-  const leftOverlayOpacity = useTransform(x, [-130, -30], [1, 0]);
+  const rotate = useTransform(x, [-200, 200], [-14, 14]);
+  const rightOverlayOpacity = useTransform(x, [20, 90], [0, 0.95]);
+  const leftOverlayOpacity = useTransform(x, [-90, -20], [0.95, 0]);
+
+  // ALWAYS guarantee card is centered when mounted or current item changes
+  useEffect(() => {
+    x.set(0);
+    setExitDirection(null);
+    setIsAnimating(false);
+  }, [currentItem?.id, x]);
 
   // Safe haptic feedback trigger
   const triggerHaptic = useCallback(() => {
@@ -104,9 +120,6 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
   const handleTriageCommit = useCallback(
     async (direction: 'important' | 'not_important') => {
       if (!currentItem) return;
-
-      triggerHaptic();
-      setExitDirection(direction === 'important' ? 'right' : 'left');
 
       const previousPriority = currentItem.priority_score ?? 50;
       const previousMetadata = { ...(currentItem.metadata || {}) };
@@ -163,26 +176,65 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
           console.warn('Failed to update triaged item in database:', err);
         }
       }
-
-      // Reset swipe position
-      x.set(0);
     },
-    [currentItem, queryClient, triggerHaptic, x]
+    [currentItem, queryClient]
   );
 
-  // Handle Drag End with swipe threshold
-  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const threshold = 90;
-    if (info.offset.x > threshold || info.velocity.x > 450) {
-      handleTriageCommit('important');
-    } else if (info.offset.x < -threshold || info.velocity.x < -450) {
-      handleTriageCommit('not_important');
+  // Trigger triage programmatically with smooth outward animation
+  const handleTriggerTriage = useCallback(
+    async (direction: 'important' | 'not_important') => {
+      if (isAnimating || !currentItem) return;
+      setIsAnimating(true);
+      triggerHaptic();
+      setExitDirection(direction === 'important' ? 'right' : 'left');
+
+      if (!reduce) {
+        await animate(x, direction === 'important' ? 450 : -450, {
+          duration: 0.22,
+          ease: [0.32, 0, 0.67, 0],
+        });
+      }
+
+      await handleTriageCommit(direction);
+      x.set(0);
+      setIsAnimating(false);
+    },
+    [isAnimating, currentItem, triggerHaptic, reduce, x, handleTriageCommit]
+  );
+
+  // Handle Drag End: swipe out or bounce back to dead center
+  const handleDragEnd = async (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (isAnimating) return;
+    const threshold = 80;
+    const velocityThreshold = 350;
+
+    if (info.offset.x > threshold || info.velocity.x > velocityThreshold) {
+      // Swiped right -> Important
+      setIsAnimating(true);
+      triggerHaptic();
+      setExitDirection('right');
+      await animate(x, 450, { duration: 0.22, ease: [0.32, 0, 0.67, 0] });
+      await handleTriageCommit('important');
+      x.set(0);
+      setIsAnimating(false);
+    } else if (info.offset.x < -threshold || info.velocity.x < -velocityThreshold) {
+      // Swiped left -> Not Important
+      setIsAnimating(true);
+      triggerHaptic();
+      setExitDirection('left');
+      await animate(x, -450, { duration: 0.22, ease: [0.32, 0, 0.67, 0] });
+      await handleTriageCommit('not_important');
+      x.set(0);
+      setIsAnimating(false);
+    } else {
+      // Released without sufficient swipe distance -> strictly spring back to center!
+      animate(x, 0, { type: 'spring', stiffness: 550, damping: 28 });
     }
   };
 
   // Undo last action
   const handleUndo = async () => {
-    if (history.length === 0) return;
+    if (history.length === 0 || isAnimating) return;
 
     const [lastAction, ...remainingHistory] = history;
     setHistory(remainingHistory);
@@ -231,10 +283,10 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
 
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        handleTriageCommit('important');
+        handleTriggerTriage('important');
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        handleTriageCommit('not_important');
+        handleTriggerTriage('not_important');
       } else if (e.key === 'z' || (e.key === 'z' && (e.ctrlKey || e.metaKey))) {
         e.preventDefault();
         handleUndo();
@@ -243,7 +295,7 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTriageCommit, handleUndo]);
+  }, [handleTriggerTriage, handleUndo]);
 
   const typeIcon = (type: ItemType) => {
     switch (type) {
@@ -375,27 +427,28 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
             )}
 
             {/* Top Interactive Card */}
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence mode="wait">
               <motion.div
                 key={currentItem.id}
                 style={reduce ? undefined : { x, rotate, zIndex: 10 }}
-                drag={reduce ? false : 'x'}
+                drag={reduce || isAnimating ? false : 'x'}
                 dragConstraints={{ left: 0, right: 0 }}
-                dragElastic={0.9}
+                dragElastic={0.7}
+                dragTransition={{ bounceStiffness: 600, bounceDamping: 25 }}
                 onDragEnd={handleDragEnd}
-                initial={reduce ? { opacity: 0 } : { scale: 0.95, y: 15, opacity: 0 }}
-                animate={{ scale: 1, y: 0, opacity: 1 }}
+                initial={reduce ? { opacity: 0 } : { scale: 0.96, y: 12, opacity: 0, x: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1, x: 0 }}
                 exit={
                   reduce
                     ? { opacity: 0 }
                     : {
-                        x: exitDirection === 'right' ? 450 : -450,
-                        rotate: exitDirection === 'right' ? 25 : -25,
+                        x: exitDirection === 'right' ? 500 : -500,
+                        rotate: exitDirection === 'right' ? 20 : -20,
                         opacity: 0,
-                        transition: { duration: 0.25 },
+                        transition: { duration: 0.2 },
                       }
                 }
-                transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 className="absolute inset-0 rounded-3xl border border-border/70 bg-card/90 backdrop-blur-2xl shadow-2xl p-5 sm:p-7 flex flex-col justify-between cursor-grab active:cursor-grabbing select-none overflow-hidden"
               >
                 {/* Visual commit feedback overlays */}
@@ -517,8 +570,9 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
           <Button
             variant="secondary"
             size="md"
-            onClick={() => handleTriageCommit('not_important')}
-            className="flex-1 py-3 border-status-error/30 hover:bg-status-error/10 hover:text-status-error hover:border-status-error/50 font-mono text-xs gap-2 cursor-pointer transition-all"
+            onClick={() => handleTriggerTriage('not_important')}
+            disabled={isAnimating}
+            className="flex-1 py-3 border-status-error/30 hover:bg-status-error/10 hover:text-status-error hover:border-status-error/50 font-mono text-xs gap-2 cursor-pointer transition-all disabled:opacity-50"
             title="Mark as not important (or press Left Arrow)"
           >
             <X className="w-4 h-4 text-status-error" />
@@ -533,7 +587,7 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
             variant="ghost"
             size="sm"
             onClick={handleUndo}
-            disabled={history.length === 0}
+            disabled={history.length === 0 || isAnimating}
             className="px-3 min-h-[44px] rounded-2xl text-muted-foreground hover:text-foreground cursor-pointer disabled:opacity-40"
             title="Undo last swipe (Z)"
           >
@@ -544,8 +598,9 @@ export const TriageView: React.FC<TriageViewProps> = ({ filteredItems, onExitTri
           <Button
             variant="primary"
             size="md"
-            onClick={() => handleTriageCommit('important')}
-            className="flex-1 py-3 bg-status-connected hover:bg-status-connected/90 text-black font-semibold font-mono text-xs gap-2 cursor-pointer shadow-md shadow-status-connected/20 transition-all"
+            onClick={() => handleTriggerTriage('important')}
+            disabled={isAnimating}
+            className="flex-1 py-3 bg-status-connected hover:bg-status-connected/90 text-black font-semibold font-mono text-xs gap-2 cursor-pointer shadow-md shadow-status-connected/20 transition-all disabled:opacity-50"
             title="Mark as important (or press Right Arrow)"
           >
             <Star className="w-4 h-4 fill-current" />
