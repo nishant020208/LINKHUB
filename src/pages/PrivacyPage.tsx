@@ -41,7 +41,36 @@ export const PrivacyPage: React.FC = () => {
     setTimeout(() => setWipeSuccess(false), 5000);
   };
 
-  const handleExportData = () => {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      if (user?.id) {
+        const { supabase } = await import('@/lib/supabase');
+        const { data, error } = await supabase.functions.invoke('export-user-data', {
+          body: { user_id: user.id },
+        });
+        if (!error && data) {
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const downloadAnchor = document.createElement('a');
+          downloadAnchor.setAttribute('href', url);
+          downloadAnchor.setAttribute('download', `unifyhub-backup-${new Date().toISOString().split('T')[0]}.json`);
+          document.body.appendChild(downloadAnchor);
+          downloadAnchor.click();
+          downloadAnchor.remove();
+          URL.revokeObjectURL(url);
+          setExporting(false);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Backend export fallback:', err);
+    } finally {
+      setExporting(false);
+    }
+
     const exportBundle = {
       export_version: '2.0.0',
       exported_at: new Date().toISOString(),
@@ -427,10 +456,11 @@ export const PrivacyPage: React.FC = () => {
 
               <button
                 onClick={handleExportData}
-                className="w-fit px-4 py-2 rounded-xl bg-card border border-border/70 hover:bg-muted text-xs font-mono text-foreground flex items-center gap-2 transition-colors cursor-pointer"
+                disabled={exporting}
+                className="w-fit px-4 py-2 rounded-xl bg-card border border-border/70 hover:bg-muted text-xs font-mono text-foreground flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
               >
-                <Download className="w-3.5 h-3.5 text-status-syncing" />
-                <span>Download JSON Backup</span>
+                <Download className={`w-3.5 h-3.5 text-status-syncing ${exporting ? 'animate-bounce' : ''}`} />
+                <span>{exporting ? 'Generating export...' : 'Download JSON Backup'}</span>
               </button>
             </div>
 
