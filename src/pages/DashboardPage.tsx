@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { MetricCounter } from '@/components/ui/metric-counter';
 import { BoardSkeleton } from '@/components/ui/skeleton';
 import { QuickAddModal } from '@/components/dashboard/QuickAddModal';
+import { PriorityNoticesList } from '@/components/dashboard/PriorityNoticesList';
 import { TriageView } from '@/components/triage/TriageView';
 import { filterItemsByWorkspace } from '@/lib/workspaceFilter';
 import { detectCalendarConflicts } from '@/lib/smart/conflicts';
@@ -806,7 +807,13 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 6. Onboarding Card when 0 accounts linked */}
+          {/* 6. Dedicated Priority Notices & Inboxes Stream (List Mode) */}
+          <PriorityNoticesList
+            items={filteredItems}
+            onStartTriage={() => setDashboardMode('triage')}
+          />
+
+          {/* 7. Onboarding Card when 0 accounts linked */}
           {accounts.length === 0 && (
             <Card variant="bento" className="p-8 sm:p-12 text-center max-w-2xl mx-auto space-y-6">
               <div className="w-16 h-16 rounded-3xl bg-primary/10 text-primary border border-primary/25 flex items-center justify-center mx-auto shadow-sm">
