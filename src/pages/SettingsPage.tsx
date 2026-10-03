@@ -13,6 +13,7 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertTriangle,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -513,6 +514,38 @@ const StorageSettingsCard: React.FC<{
   const [storageLimit, setStorageLimit] = React.useState<number>(1073741824); // 1 GB
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const [exporting, setExporting] = React.useState(false);
+  const [exportFeedback, setExportFeedback] = React.useState<string | null>(null);
+
+  const handleExportData = async () => {
+    setExporting(true);
+    setExportFeedback(null);
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data, error } = await supabase.functions.invoke('export-user-data', {
+        body: userId ? { user_id: userId } : {},
+      });
+      if (error) {
+        setExportFeedback(`Export failed: ${error.message}`);
+      } else if (data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `unifyhub-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setExportFeedback('Export downloaded successfully!');
+        setTimeout(() => setExportFeedback(null), 4000);
+      }
+    } catch (err) {
+      setExportFeedback(`Export error: ${String(err)}`);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!userId) return;
@@ -662,6 +695,34 @@ const StorageSettingsCard: React.FC<{
               </span>
             )}
           </div>
+        </div>
+
+        {/* Data Export & Backup */}
+        <div className="space-y-3 pt-3 border-t border-border/40">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Download className="w-3.5 h-3.5 text-primary" />
+                <span>Export Personal Data Archive</span>
+              </h4>
+              <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                Download a complete, portable JSON backup of your synchronized items, accounts metadata, settings, and digests.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleExportData}
+              disabled={exporting}
+              className="text-xs h-8 cursor-pointer shrink-0 gap-1.5"
+            >
+              <Download className={`w-3.5 h-3.5 ${exporting ? 'animate-bounce' : ''}`} />
+              <span>{exporting ? 'Generating export...' : 'Export my data'}</span>
+            </Button>
+          </div>
+          {exportFeedback && (
+            <p className="text-[11px] font-mono text-emerald-400">{exportFeedback}</p>
+          )}
         </div>
       </CardBody>
     </Card>
