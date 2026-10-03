@@ -16,13 +16,20 @@ import {
   ArrowRight,
   Layers,
   X,
+  Sparkles,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '@/store/useAppStore';
+import { useToastStore } from '@/components/ui/toast';
 import { useSyncData } from '@/hooks/useSyncData';
 import { useNavigate } from 'react-router-dom';
+import { parseNaturalLanguageInput } from '@/lib/smart/quickAddParser';
+import { createQuickAddItem } from '@/lib/smart/quickAddService';
+import { formatDate } from '@/lib/utils';
 
 export const CommandPalette: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const reduce = useReducedMotion();
   const {
     isCommandPaletteOpen,
@@ -138,14 +145,57 @@ export const CommandPalette: React.FC = () => {
 
     if (!q) return all.slice(0, 12);
 
-    return all.filter((entry) => {
+    const matches = all.filter((entry) => {
       return (
         entry.title.toLowerCase().includes(q) ||
         (entry as { subtitle?: string }).subtitle?.toLowerCase().includes(q) ||
         entry.category.toLowerCase().includes(q)
       );
-    }).slice(0, 16);
-  }, [items, workspaces, query, theme, navigate, setActiveWorkspace, triggerSync, toggleTheme, setQuickAddOpen]);
+    });
+
+    // If query has at least 2 characters, provide instant Natural Language Quick-Add option
+    if (query.trim().length >= 2) {
+      const parsed = parseNaturalLanguageInput(query);
+      const dateLabel = parsed.dueDate ? ` · Due ${formatDate(parsed.dueDate.toISOString())}` : '';
+
+      const nlOption = {
+        id: 'act-nl-create',
+        category: 'Quick-Add via Natural Language',
+        title: `Add ${parsed.type.toUpperCase()}: "${parsed.cleanTitle}"${dateLabel}`,
+        subtitle: 'Press Enter to create with detected deadline and course tag',
+        icon: <Sparkles className="w-4 h-4 text-primary" />,
+        action: async () => {
+          try {
+            await createQuickAddItem({
+              title: parsed.cleanTitle,
+              type: parsed.type,
+              dueDate: parsed.dueDate,
+              priorityScore: parsed.priorityScore,
+              courseName: parsed.courseName,
+              accounts: useAppStore.getState().accounts,
+              queryClient,
+              addItemToStore: (newItem) => useAppStore.getState().addItem(newItem),
+            });
+            useToastStore.getState().toast({
+              kind: 'success',
+              title: 'Item Created',
+              message: `Saved "${parsed.cleanTitle}" to active items.`,
+            });
+          } catch (err: unknown) {
+            useToastStore.getState().toast({
+              kind: 'error',
+              title: 'Error creating item',
+              message: err instanceof Error ? err.message : 'Failed to save item',
+            });
+          }
+        },
+      };
+
+      return [nlOption, ...matches.slice(0, 15)];
+    }
+
+    return matches.slice(0, 16);
+  }, [items, workspaces, query, theme, navigate, setActiveWorkspace, triggerSync, toggleTheme, setQuickAddOpen, queryClient]);
 
   const handleSelect = (idx: number) => {
     const entry = results[idx];
