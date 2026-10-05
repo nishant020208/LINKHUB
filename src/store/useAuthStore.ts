@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
 import { env } from '@/lib/env';
+import { queryClient } from '@/lib/queryClient';
+import { useAppStore } from '@/store/useAppStore';
 
 export interface UserProfile {
   id: string;
@@ -158,6 +160,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err) {
       console.warn('Sign out warning:', err);
     } finally {
+      queryClient.clear();
+      useAppStore.setState({
+        items: [],
+        accounts: [],
+        briefing: null,
+        activeItemId: null,
+        searchQuery: '',
+      });
       set({ user: null, isLoading: false, isOnboardingOpen: false });
     }
   },
