@@ -1,76 +1,61 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * Install-prompt plumbing for both platforms.
- *
- * The two platforms need genuinely different handling:
- *
- *   - Android/Chrome fires `beforeinstallprompt`, which we capture and defer so
- *     the app can render its own styled install button instead of relying on
- *     whatever moment the browser's own mini-infobar decides to appear.
- *   - iOS Safari has no install API at all. The only path is Share ->
- *     "Add to Home Screen", so the app has to teach the user where to tap.
- *     Chrome/Firefox/Edge on iOS must be excluded: they wrap WebKit and cannot
- *     add anything to the home screen, so showing instructions there would be
- *     a dead end.
+ * Install-prompt plumbing for iOS, Chromium (Android & Desktop Chrome/Edge),
+ * and unsupported desktop browsers.
  */
 
-/** `BeforeInstallPromptEvent` is not in the DOM lib yet, so type the useful parts. */
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
   readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
   prompt(): Promise<void>;
 }
 
-export type InstallPlatform = 'ios' | 'android' | 'unsupported';
+export type InstallPlatform = 'ios' | 'chromium' | 'unsupported_desktop' | 'unsupported';
 
 export type InstallState = {
-  /** True when running from the home screen (standalone display mode). */
   isStandalone: boolean;
-  /** True when the platform has a working install path we can drive. */
   canInstall: boolean;
-  /** Which platform-specific experience to show. */
   platform: InstallPlatform;
-  /** Android/Chrome: a captured `beforeinstallprompt` waiting to be used. */
   deferredPrompt: BeforeInstallPromptEvent | null;
-  /** Android/Chrome: fires once the deferred prompt has been consumed. */
   promptInstall: () => Promise<'accepted' | 'dismissed' | 'unavailable'>;
-  /** The user asked to see the instructions, e.g. from Settings. */
   openInstructions: () => void;
-  /** The instructions overlay is currently open. */
   isInstructionsOpen: boolean;
   closeInstructions: () => void;
+  isBannerOpen: boolean;
+  closeBanner: () => void;
 };
 
-const DISMISSED_KEY = 'unifyhub:a2hs-dismissed';
+const DISMISSED_KEY = 'unifyhub:install-dismissed';
 const OPEN_KEY = 'unifyhub:a2hs-open';
 
 function isIosSafari(ua: string): boolean {
   const isIosDevice = /iPad|iPhone|iPod/.test(ua);
-  // iPadOS 13+ reports as "Macintosh" but is still a touch-capable iPad.
   const isIpadOs = /Macintosh/.test(ua) && typeof document !== 'undefined' && navigator.maxTouchPoints > 1;
   if (!isIosDevice && !isIpadOs) return false;
-  // Every iOS browser other than Safari is WebKit under a foreign shell and
-  // cannot install to the home screen.
   return /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|Chrome/.test(ua);
 }
 
-function isAndroid(ua: string): boolean {
-  return /Android/.test(ua);
-}
-
-function detectPlatform(): InstallPlatform {
+function detectPlatform(hasDeferredPrompt = false): InstallPlatform {
   if (typeof navigator === 'undefined') return 'unsupported';
   const ua = navigator.userAgent;
   if (isIosSafari(ua)) return 'ios';
-  if (isAndroid(ua)) return 'android';
+
+  // Chromium on Android or Desktop Chrome / Edge / Brave
+  if (hasDeferredPrompt || (/Chrome|CriOS|Edg/.test(ua) && !/iPhone|iPad|iPod/.test(ua))) {
+    return 'chromium';
+  }
+
+  // Desktop Firefox or Desktop Safari (no PWA install prompt support)
+  if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+    return 'unsupported_desktop';
+  }
+
   return 'unsupported';
 }
 
 function detectStandalone(): boolean {
   if (typeof window === 'undefined') return false;
-  // iOS exposes this as a non-standard property; Android/Chrome expose
-  // `display-mode: standalone` in the media query.
   const iosStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
   const displayStandalone =
     typeof window.matchMedia === 'function' &&
@@ -82,7 +67,6 @@ function readStored(key: string): string | null {
   try {
     return window.localStorage.getItem(key);
   } catch {
-    // Safari private mode throws on localStorage access; treat as "not stored".
     return null;
   }
 }
@@ -91,36 +75,43 @@ function writeStored(key: string, value: string): void {
   try {
     window.localStorage.setItem(key, value);
   } catch {
-    /* storage unavailable; dismissal just won't persist */
+    /* ignore storage errors */
   }
 }
 
-/**
- * @param autoPrompt Show the iOS instructions automatically on first eligible
- * visit. The caller decides; this hook only owns the dismissal bookkeeping.
- */
+function clearStored(key: string): void {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
 export function useInstallPrompt(autoPrompt = true): InstallState {
   const [isStandalone, setIsStandalone] = useState(false);
-  const [platform, setPlatform] = useState<InstallPlatform>('unsupported');
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [platform, setPlatform] = useState<InstallPlatform>('unsupported');
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+  const [isBannerOpen, setIsBannerOpen] = useState(false);
 
   useEffect(() => {
     setIsStandalone(detectStandalone());
-    setPlatform(detectPlatform());
+    setPlatform(detectPlatform(deferredPrompt !== null));
 
     const onInstalled = () => {
-      // Real signal that the app is on the home screen; stop prompting entirely.
       setIsStandalone(true);
       setDeferredPrompt(null);
-      writeStored(DISMISSED_KEY, new Date().toISOString());
+      setIsBannerOpen(false);
+      setIsInstructionsOpen(false);
+      // Reset suppression if installed then uninstalled
+      clearStored(DISMISSED_KEY);
     };
 
-    // Capture and defer: preventing the default event is what stops Chrome
-    // from showing its own mini-infobar so we can use our own UI.
     const onBeforeInstallPrompt = (event: Event) => {
+      // Prevent browser default mini-infobar so our styled prompt appears instead
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
+      setPlatform('chromium');
     };
 
     const onDisplayModeChange = () => setIsStandalone(detectStandalone());
@@ -136,29 +127,39 @@ export function useInstallPrompt(autoPrompt = true): InstallState {
       window.removeEventListener('appinstalled', onInstalled);
       standaloneQuery?.removeEventListener('change', onDisplayModeChange);
     };
-  }, []);
+  }, [deferredPrompt]);
 
-  // First-visit auto prompt, iOS only. Android never auto-prompted here: the
-  // deferred `beforeinstallprompt` is surfaced as a button in Settings instead.
+  // First-visit delayed auto prompt
   useEffect(() => {
     if (!autoPrompt) return;
     if (isStandalone) return;
-    if (platform !== 'ios') return;
     if (readStored(DISMISSED_KEY)) return;
-    if (readStored(OPEN_KEY) === '1') {
-      // Return visit inside the same session after it was already dismissed.
-      writeStored(OPEN_KEY, '0');
-      return;
+
+    // iOS Safari guidance modal
+    if (platform === 'ios') {
+      const timer = window.setTimeout(() => setIsInstructionsOpen(true), 3500);
+      return () => window.clearTimeout(timer);
     }
-    const timer = window.setTimeout(() => setIsInstructionsOpen(true), 2500);
-    return () => window.clearTimeout(timer);
-  }, [autoPrompt, isStandalone, platform]);
+
+    // Android / Desktop Chrome: show custom install banner once beforeinstallprompt is ready
+    if (platform === 'chromium' && deferredPrompt) {
+      const timer = window.setTimeout(() => setIsBannerOpen(true), 3500);
+      return () => window.clearTimeout(timer);
+    }
+  }, [autoPrompt, isStandalone, platform, deferredPrompt]);
 
   const promptInstall = useCallback(async (): Promise<'accepted' | 'dismissed' | 'unavailable'> => {
     if (!deferredPrompt) return 'unavailable';
     try {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsBannerOpen(false);
+      } else {
+        // User dismissed the browser dialog; suppress repeat nag
+        writeStored(DISMISSED_KEY, new Date().toISOString());
+        setIsBannerOpen(false);
+      }
       setDeferredPrompt(null);
       return outcome;
     } catch (err) {
@@ -175,8 +176,13 @@ export function useInstallPrompt(autoPrompt = true): InstallState {
     writeStored(OPEN_KEY, '0');
   }, []);
 
-  // iOS always has a manual path; Android only when the browser offered one.
-  const canInstall = platform === 'ios' || (platform === 'android' && deferredPrompt !== null);
+  const closeBanner = useCallback(() => {
+    setIsBannerOpen(false);
+    writeStored(DISMISSED_KEY, new Date().toISOString());
+  }, []);
+
+  const canInstall =
+    platform === 'ios' || (platform === 'chromium' && deferredPrompt !== null);
 
   return {
     isStandalone,
@@ -187,5 +193,7 @@ export function useInstallPrompt(autoPrompt = true): InstallState {
     openInstructions,
     isInstructionsOpen,
     closeInstructions,
+    isBannerOpen,
+    closeBanner,
   };
 }
