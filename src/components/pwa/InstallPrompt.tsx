@@ -223,6 +223,14 @@ export const InstallButton: React.FC<{
     );
   }
 
+  if (install.platform === 'unsupported_desktop') {
+    return (
+      <span className={cn('text-xs text-muted-foreground font-mono', className)}>
+        Bookmark this page (⌘D / Ctrl+D) for fast access
+      </span>
+    );
+  }
+
   if (install.platform === 'unsupported') {
     return (
       <span className={cn('text-xs text-muted-foreground', className)}>
