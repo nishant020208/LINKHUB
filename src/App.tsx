@@ -6,6 +6,7 @@ import { env } from '@/lib/env';
 import { AppLayoutRouter } from '@/components/layout/AppLayoutRouter';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { LiveAnnouncerProvider } from '@/components/ui/live-announcer';
+import { useAuthStore } from '@/store/useAuthStore';
 
 /**
  * Route-level code splitting: every page ships as its own chunk and is
@@ -61,6 +62,10 @@ export const RouteFallback: React.FC = () => (
 );
 
 export const App: React.FC = () => {
+  useEffect(() => {
+    useAuthStore.getState().initializeAuth();
+  }, []);
+
   // Google Search Console verification meta tag injection fallback
   useEffect(() => {
     if (env.googleSiteVerification) {
