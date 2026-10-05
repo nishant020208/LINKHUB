@@ -106,7 +106,7 @@ export const PrivacyPage: React.FC = () => {
       {/* Top Standalone Header */}
       <header className="w-full border-b border-border/40 backdrop-blur-xl bg-background/80 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to={user ? '/' : '/login'} className="flex items-center gap-2.5 group">
+          <Link to={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 group">
             <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/20">
               <span className="font-heading font-black text-base tracking-tight">U</span>
             </div>
@@ -121,7 +121,7 @@ export const PrivacyPage: React.FC = () => {
           <div className="flex items-center gap-3">
             {user ? (
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/dashboard')}
                 className="px-3 py-1.5 rounded-xl border border-border/60 bg-card/60 hover:bg-card text-xs font-mono text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
