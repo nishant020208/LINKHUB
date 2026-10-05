@@ -18,8 +18,9 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isInitialized && user) {
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+      const destination = from && from !== '/' ? from : '/dashboard';
+      navigate(destination, { replace: true });
     }
   }, [user, isInitialized, navigate, location]);
 
@@ -42,14 +43,14 @@ export const LoginPage: React.FC = () => {
 
       <header className="w-full border-b border-border/40 backdrop-blur-xl bg-background/85 sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base shadow-md shadow-primary/20">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
               U
             </div>
             <span className="font-display font-extrabold text-xl tracking-tight text-foreground">
               UnifyHub
             </span>
-          </div>
+          </Link>
 
           <Button
             variant="ghost"
