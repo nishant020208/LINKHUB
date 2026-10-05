@@ -33,7 +33,7 @@ export const AuthCallbackPage: React.FC = () => {
             if (event === 'SIGNED_IN' && newSession) {
               authListener.subscription.unsubscribe();
               await initializeAuth();
-              navigate('/', { replace: true });
+              navigate('/dashboard', { replace: true });
             }
           });
 
@@ -49,7 +49,7 @@ export const AuthCallbackPage: React.FC = () => {
 
         // Initialize user store with profile
         await initializeAuth();
-        navigate('/', { replace: true });
+        navigate('/dashboard', { replace: true });
       } catch (err: unknown) {
         console.error('Auth callback failure:', err);
         const msg = err instanceof Error ? err.message : 'Failed to complete authentication';
