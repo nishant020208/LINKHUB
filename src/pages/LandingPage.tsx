@@ -21,6 +21,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useDeviceType } from '@/hooks/useDeviceType';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { InstallInstructions } from '@/components/pwa/InstallPrompt';
+import GlyphPortal from '@/components/ui/glyph-portal';
 import { Button } from '@/components/ui/button';
 import { LiquidButton } from '@/components/ui/liquid-button';
 import { Card } from '@/components/ui/card';
@@ -315,35 +316,100 @@ export const LandingPage: React.FC = () => {
         {deviceType === 'desktop' ? (
           /* ================= DESKTOP VIEW ================= */
           <div className="space-y-16">
-            {/* Hero Section */}
-            <div className="text-center max-w-3xl mx-auto space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-mono text-primary font-semibold">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Personal Command Station</span>
-              </div>
+            {/* Hero Section — GlyphPortal */}
+            <div className="w-full rounded-3xl overflow-hidden border border-border/40 bg-card/40 backdrop-blur-md shadow-2xl relative">
+              <GlyphPortal
+                word="UnifyHub"
+                fontFamily="'Bricolage Grotesque', sans-serif"
+                fontWeight={800}
+                scrollLength={2.0}
+                interactive={true}
+                annotations={false}
+                enterLabel="Explore Command Station"
+                style={{
+                  '--gp-paper': 'var(--background)',
+                  '--gp-ink': 'var(--foreground)',
+                  '--gp-field': 'var(--card)',
+                  '--gp-foreground': 'var(--foreground)',
+                }}
+                front={
+                  <div className="absolute inset-0 flex flex-col items-center justify-between p-6 sm:p-10 pointer-events-none select-none text-center">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-mono text-primary font-semibold pointer-events-auto">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Personal Command Station</span>
+                    </div>
 
-              <h1 className="font-display font-extrabold text-4xl sm:text-6xl text-foreground tracking-tight leading-[1.12]">
-                One calm view for everything you do.
-              </h1>
+                    <div className="max-w-2xl space-y-3">
+                      <p className="font-mono text-xs sm:text-sm uppercase tracking-widest text-muted-foreground font-medium">
+                        Frosted Glass Serenity &bull; Zero Tab Hopping
+                      </p>
+                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                        One calm view for your Google, Microsoft, and developer ecosystems. Scroll or click any glyph to step inside.
+                      </p>
+                    </div>
 
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-                Consolidate your Google, Microsoft, and developer ecosystems into one intentionally designed command station. Dense information, frosted-glass serenity, zero tab hopping.
-              </p>
+                    <div className="flex items-center justify-center gap-4 pointer-events-auto pb-4">
+                      <LiquidButton
+                        onClick={() => navigate('/login')}
+                        className="px-8 py-3.5 text-sm font-semibold shadow-lg shadow-primary/25 cursor-pointer"
+                      >
+                        <span>Get Started &mdash; Sign In</span>
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </LiquidButton>
+                      <a
+                        href="#install-options"
+                        className="px-5 py-3 rounded-2xl border border-border/60 hover:border-primary/40 text-xs font-mono font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-background/50 backdrop-blur-sm"
+                      >
+                        View Download Options &darr;
+                      </a>
+                    </div>
+                  </div>
+                }
+              >
+                <div className="max-w-4xl mx-auto py-12 px-6 space-y-10 text-foreground">
+                  <div className="space-y-3">
+                    <Badge tone="accent">System Architecture</Badge>
+                    <h2 className="font-display font-extrabold text-2xl sm:text-4xl tracking-tight">
+                      A personal command station engineered for calm focus.
+                    </h2>
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                      Instead of scattering your attention across 8 web dashboards, UnifyHub synthesizes calendar appointments, deadline notices, PR reviews, and urgent messages into a single deliberate interface.
+                    </p>
+                  </div>
 
-              <div className="flex items-center justify-center gap-4 pt-2">
-                <Link to="/login">
-                  <LiquidButton className="px-8 py-3.5 text-sm font-semibold shadow-lg shadow-primary/25">
-                    <span>Get Started &mdash; Sign In</span>
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </LiquidButton>
-                </Link>
-                <a
-                  href="#install-options"
-                  className="px-5 py-3 rounded-2xl border border-border/60 hover:border-primary/40 text-xs font-mono font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  View Download Options &darr;
-                </a>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                    <div className="p-4 rounded-2xl border border-border/40 bg-background/60 backdrop-blur-sm space-y-2">
+                      <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-mono font-bold text-xs">
+                        01
+                      </div>
+                      <h3 className="font-display font-bold text-sm text-foreground">Unified Streams</h3>
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        Google Calendar, Outlook, Todoist, and GitHub blended chronologically.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl border border-border/40 bg-background/60 backdrop-blur-sm space-y-2">
+                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-mono font-bold text-xs">
+                        02
+                      </div>
+                      <h3 className="font-display font-bold text-sm text-foreground">Gesture Triage</h3>
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        Zero-drag backlog triage with smooth touch gestures and keyboard shortcuts.
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl border border-border/40 bg-background/60 backdrop-blur-sm space-y-2">
+                      <div className="w-8 h-8 rounded-xl bg-status-connected/15 text-status-connected flex items-center justify-center font-mono font-bold text-xs">
+                        03
+                      </div>
+                      <h3 className="font-display font-bold text-sm text-foreground">Private &amp; Secure</h3>
+                      <p className="text-xs text-muted-foreground leading-snug">
+                        Row-level security, client tokens never exposed, zero AI training on your data.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </GlyphPortal>
             </div>
 
             {/* Platform Download Grid */}
@@ -591,12 +657,13 @@ export const LandingPage: React.FC = () => {
               </p>
 
               <div className="pt-2">
-                <Link to="/login" className="block">
-                  <LiquidButton className="w-full py-3.5 text-sm font-semibold justify-center">
-                    <span>Sign Up / Log In</span>
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </LiquidButton>
-                </Link>
+                <LiquidButton
+                  onClick={() => navigate('/login')}
+                  className="w-full py-3.5 text-sm font-semibold justify-center cursor-pointer"
+                >
+                  <span>Sign Up / Log In</span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </LiquidButton>
               </div>
             </div>
 
