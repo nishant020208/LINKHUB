@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const MOBILE_ITEMS = [
-  { to: '/', label: 'Home', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
   { to: '/deadlines', label: 'Due', icon: CheckSquare },
   { to: '/calendar', label: 'Cal', icon: CalendarIcon },
   { to: '/files', label: 'Files', icon: FolderOpen },
@@ -23,7 +23,9 @@ export const MobileNav: React.FC = () => {
   const reduce = useReducedMotion();
 
   const isActive = (to: string) =>
-    to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+    to === '/dashboard'
+      ? location.pathname === '/dashboard' || location.pathname === '/'
+      : location.pathname.startsWith(to);
 
   return (
     <nav
