@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Download,
+  LogOut,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -34,7 +35,7 @@ export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { theme, setTheme, notificationPreferences, updateNotificationPreferences, accounts, items, lastSyncedAt } =
     useAppStore();
-  const user = useAuthStore((s) => s.user);
+  const { user, signOut } = useAuthStore();
   const consistencyStats = React.useMemo(() => calculateConsistencyMetrics(items), [items]);
   // Own instance with the first-visit auto-prompt disabled: the PwaManager owns
   // that, so opening Settings must never make the tutorial appear on its own.
@@ -155,10 +156,24 @@ export const SettingsPage: React.FC = () => {
             <span className="text-muted-foreground">Last sync</span>
             <span className="font-mono">{formatTimeAgo(lastSyncedAt)}</span>
           </div>
-          <Button variant="secondary" size="sm" onClick={() => navigate('/integrations')}>
-            <LinkIcon className="w-3.5 h-3.5" />
-            Manage integrations
-          </Button>
+          <div className="pt-2 flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => navigate('/integrations')}>
+              <LinkIcon className="w-3.5 h-3.5" />
+              Manage integrations
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                navigate('/', { replace: true });
+              }}
+              className="text-status-error hover:bg-status-error/10 hover:text-status-error gap-1.5"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign Out
+            </Button>
+          </div>
         </CardBody>
       </Card>
 
