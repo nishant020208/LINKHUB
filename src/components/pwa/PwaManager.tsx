@@ -1,6 +1,7 @@
 import React from 'react';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { InstallInstructions } from '@/components/pwa/InstallPrompt';
+import { InstallBanner } from '@/components/pwa/InstallBanner';
 import { UpdatePrompt } from '@/components/pwa/UpdatePrompt';
 
 /**
@@ -24,6 +25,11 @@ export const PwaManager: React.FC = () => {
         isOpen={install.isInstructionsOpen}
         onClose={install.closeInstructions}
         platform={install.platform}
+      />
+      <InstallBanner
+        isOpen={install.isBannerOpen}
+        onInstall={install.promptInstall}
+        onClose={install.closeBanner}
       />
     </>
   );
