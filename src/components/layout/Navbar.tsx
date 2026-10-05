@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
   RefreshCw,
@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLiveAnnouncer } from '@/components/ui/live-announcer';
 
 export const Navbar: React.FC = () => {
+  const navigate = useNavigate();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const {
     accounts,
@@ -45,6 +46,7 @@ export const Navbar: React.FC = () => {
   const handleSignOut = async () => {
     queryClient.clear();
     await signOut();
+    navigate('/', { replace: true });
   };
 
   const unhealthyAccountsCount = accounts.filter(
@@ -56,7 +58,7 @@ export const Navbar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-3">
         {/* Left: Brand Identity */}
         <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-2.5 group select-none">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group select-none">
             <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base tracking-tighter shadow-md shadow-primary/25 group-hover:scale-105">
               U
             </div>
