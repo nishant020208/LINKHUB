@@ -262,7 +262,7 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between relative overflow-hidden selection:bg-primary/20 selection:text-primary">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-between relative overflow-x-clip selection:bg-primary/20 selection:text-primary">
       {/* Ambient background glow */}
       {!reduce && (
         <div className="hero-orbs" aria-hidden>
@@ -317,15 +317,57 @@ export const LandingPage: React.FC = () => {
           /* ================= DESKTOP VIEW ================= */
           <div className="space-y-16">
             {/* Hero Section — GlyphPortal */}
-            <div className="w-full rounded-3xl overflow-hidden border border-border/40 bg-card/40 backdrop-blur-md shadow-2xl relative">
+            <div
+              data-demo-scroll
+              data-slipstream-demo
+              tabIndex={0}
+              role="region"
+              aria-label="UnifyHub. Scroll to step inside."
+              className="w-full rounded-3xl border border-border/40 bg-card/40 backdrop-blur-md shadow-2xl relative focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none scroll-smooth"
+              style={{
+                height: 'min(720px, 85svh)',
+                overflowY: 'auto',
+                containerType: 'inline-size',
+                background: 'var(--background)',
+              }}
+            >
+              <style>{`
+                [data-slipstream-demo] { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+                [data-slipstream-demo] [data-gp-caption]{inset:calc(var(--gp-word-bottom,50%) + 82px) 24px auto;justify-content:center;}
+                [data-slipstream-demo] [data-gp-hint]{display:none;}
+                [data-slipstream-demo] [data-gp-enter]{min-height:46px;padding:0 24px;gap:18px;background:var(--primary);border:1px solid var(--border);border-radius:14px;color:var(--primary-foreground);font-size:13px;font-weight:600;box-shadow:var(--shadow-glow);transition:background .18s,transform .18s;}
+                [data-slipstream-demo] [data-gp-enter]:hover{background:var(--primary-hover);transform:scale(1.02);}
+                [data-slipstream-demo] [data-gp-enter]:focus-visible{outline:2px solid var(--primary);outline-offset:4px;}
+                [data-slipstream-demo] [data-gp-touch-picker]{top:auto;bottom:18px;left:50%;}
+                [data-slipstream-demo] [data-gp-select]{border-color:var(--border);border-radius:8px;font-size:12px;color:var(--muted-foreground);background:var(--card);}
+                [data-sublime-header]{position:absolute;inset:clamp(20px,4cqw,40px) clamp(20px,4.5cqw,48px) auto;display:flex;align-items:center;justify-content:space-between;gap:20px;}
+                [data-sublime-logo]{font-size:18px;font-weight:800;letter-spacing:-.04em;color:var(--foreground);}
+                [data-sublime-category]{font-size:12px;font-family:var(--font-mono);color:var(--muted-foreground);}
+                [data-sublime-eyebrow]{position:absolute;inset:auto 24px calc(100% - var(--gp-word-top,35%) + 24px);margin:0;text-align:center;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:var(--font-mono);color:var(--primary);}
+                [data-sublime-support]{position:absolute;inset:calc(var(--gp-word-bottom,50%) + 28px) 24px auto;margin:0;text-align:center;font-size:15px;font-weight:400;line-height:1.5;color:var(--muted-foreground);}
+                [data-sublime-scroll]{position:absolute;inset:auto 24px 6%;text-align:center;color:var(--muted-foreground);font-size:11px;font-family:var(--font-mono);letter-spacing:.05em;}
+                @media(any-pointer:coarse){[data-sublime-scroll]{bottom:12%;}}
+                @container(max-width:450px){[data-sublime-category]{max-width:14ch;text-align:right;}[data-sublime-eyebrow]{font-size:11px;}[data-sublime-support]{font-size:13px;}[data-slipstream-demo] [data-gp-caption]{top:calc(var(--gp-word-bottom,50%) + 72px);}}
+                @container(max-height:479px){[data-sublime-header]{top:16px;}[data-sublime-support]{top:calc(var(--gp-word-bottom,50%) + 14px);}[data-slipstream-demo] [data-gp-caption]{top:calc(var(--gp-word-bottom,50%) + 56px);}[data-sublime-scroll]{display:none;}}
+                [data-slipstream-demo] [data-gp-content]{padding:5.5rem clamp(1.25rem,5cqw,5rem) 6.5rem;font-family:inherit;}
+                [data-slipstream-demo] section,[data-slipstream-demo] [data-gp-caption]{font-family:inherit;}
+                [data-slipstream-copy]{display:flex;width:min(100%,80rem);margin:auto;flex-direction:column;align-items:flex-start;gap:clamp(2rem,5svh,3.5rem);}
+                [data-slipstream-copy] h2{max-width:48rem;margin:0;color:var(--foreground);font-size:clamp(1.75rem,1.1rem + 2.1cqw,2.25rem);font-weight:800;line-height:1.2;letter-spacing:-0.03em;text-wrap:balance;}
+                [data-slipstream-features]{display:grid;width:100%;grid-template-columns:1fr;gap:1.75rem;}
+                [data-slipstream-feature]{border-top:1px solid var(--border);padding-top:1.1rem;}
+                [data-slipstream-feature] h3{margin:0;color:var(--foreground);font-size:1.125rem;font-weight:700;line-height:1.2;}
+                [data-slipstream-feature] p{margin:.55rem 0 0;color:var(--muted-foreground);font-size:.9375rem;line-height:1.55;}
+                [data-slipstream-no]{display:inline-block;margin-right:.7rem;color:var(--primary);font:700 .75rem ui-monospace,monospace;letter-spacing:.08em;transform:translateY(-.1em);}
+                @container(min-width:768px){[data-slipstream-features]{grid-template-columns:repeat(3,minmax(0,1fr));gap:3.5rem;}}
+              `}</style>
               <GlyphPortal
                 word="UnifyHub"
-                fontFamily="'Bricolage Grotesque', sans-serif"
+                fontFamily="var(--font-display), 'Bricolage Grotesque', Arial, sans-serif"
                 fontWeight={800}
-                scrollLength={2.0}
+                scrollLength={2.4}
                 interactive={true}
                 annotations={false}
-                enterLabel="Explore Command Station"
+                enterLabel="Step Inside Command Station"
                 style={{
                   '--gp-paper': 'var(--background)',
                   '--gp-ink': 'var(--foreground)',
@@ -333,80 +375,58 @@ export const LandingPage: React.FC = () => {
                   '--gp-foreground': 'var(--foreground)',
                 }}
                 front={
-                  <div className="absolute inset-0 flex flex-col items-center justify-between p-6 sm:p-10 pointer-events-none select-none text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-mono text-primary font-semibold pointer-events-auto">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Personal Command Station</span>
+                  <>
+                    <div data-sublime-header>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-xs shadow-sm">
+                          U
+                        </div>
+                        <span data-sublime-logo>UnifyHub</span>
+                      </div>
+                      <span data-sublime-category>Personal Command Station</span>
                     </div>
-
-                    <div className="max-w-2xl space-y-3">
-                      <p className="font-mono text-xs sm:text-sm uppercase tracking-widest text-muted-foreground font-medium">
-                        Frosted Glass Serenity &bull; Zero Tab Hopping
-                      </p>
-                      <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                        One calm view for your Google, Microsoft, and developer ecosystems. Scroll or click any glyph to step inside.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-4 pointer-events-auto pb-4">
-                      <LiquidButton
-                        onClick={() => navigate('/login')}
-                        className="px-8 py-3.5 text-sm font-semibold shadow-lg shadow-primary/25 cursor-pointer"
-                      >
-                        <span>Get Started &mdash; Sign In</span>
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </LiquidButton>
-                      <a
-                        href="#install-options"
-                        className="px-5 py-3 rounded-2xl border border-border/60 hover:border-primary/40 text-xs font-mono font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-background/50 backdrop-blur-sm"
-                      >
-                        View Download Options &darr;
-                      </a>
-                    </div>
-                  </div>
+                    <p data-sublime-eyebrow>Frosted Glass Serenity &bull; Zero Tab Hopping</p>
+                    <p data-sublime-support>One calm view for Google, Microsoft, and dev workflows. Scroll to enter.</p>
+                    <span data-sublime-scroll>Scroll for a closer look ↓</span>
+                  </>
                 }
               >
-                <div className="max-w-4xl mx-auto py-12 px-6 space-y-10 text-foreground">
+                <div data-slipstream-copy>
                   <div className="space-y-3">
                     <Badge tone="accent">System Architecture</Badge>
-                    <h2 className="font-display font-extrabold text-2xl sm:text-4xl tracking-tight">
-                      A personal command station engineered for calm focus.
-                    </h2>
-                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+                    <h2>A personal command station engineered for calm focus.</h2>
+                    <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl">
                       Instead of scattering your attention across 8 web dashboards, UnifyHub synthesizes calendar appointments, deadline notices, PR reviews, and urgent messages into a single deliberate interface.
                     </p>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                    <div className="p-4 rounded-2xl border border-border/40 bg-background/60 backdrop-blur-sm space-y-2">
-                      <div className="w-8 h-8 rounded-xl bg-primary/15 text-primary flex items-center justify-center font-mono font-bold text-xs">
-                        01
-                      </div>
-                      <h3 className="font-display font-bold text-sm text-foreground">Unified Streams</h3>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        Google Calendar, Outlook, Todoist, and GitHub blended chronologically.
-                      </p>
+                  <div data-slipstream-features>
+                    <div data-slipstream-feature>
+                      <h3><span data-slipstream-no>01</span>Unified Streams</h3>
+                      <p>Google Calendar, Outlook, Todoist, and GitHub blended chronologically into one unified timeline.</p>
                     </div>
-
-                    <div className="p-4 rounded-2xl border border-border/40 bg-background/60 backdrop-blur-sm space-y-2">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center font-mono font-bold text-xs">
-                        02
-                      </div>
-                      <h3 className="font-display font-bold text-sm text-foreground">Gesture Triage</h3>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        Zero-drag backlog triage with smooth touch gestures and keyboard shortcuts.
-                      </p>
+                    <div data-slipstream-feature>
+                      <h3><span data-slipstream-no>02</span>Gesture Triage</h3>
+                      <p>Rapid backlog sorting with fluid swipes and keyboard navigation — mark critical or archive instantly.</p>
                     </div>
-
-                    <div className="p-4 rounded-2xl border border-border/40 bg-background/60 backdrop-blur-sm space-y-2">
-                      <div className="w-8 h-8 rounded-xl bg-status-connected/15 text-status-connected flex items-center justify-center font-mono font-bold text-xs">
-                        03
-                      </div>
-                      <h3 className="font-display font-bold text-sm text-foreground">Private &amp; Secure</h3>
-                      <p className="text-xs text-muted-foreground leading-snug">
-                        Row-level security, client tokens never exposed, zero AI training on your data.
-                      </p>
+                    <div data-slipstream-feature>
+                      <h3><span data-slipstream-no>03</span>Private &amp; Local First</h3>
+                      <p>Row-level security, tokens encrypted, zero AI scraping of your personal schedules or messages.</p>
                     </div>
+                  </div>
+                  <div className="pt-4 flex items-center gap-4">
+                    <LiquidButton
+                      onClick={() => navigate('/login')}
+                      className="px-8 py-3.5 text-sm font-semibold shadow-lg shadow-primary/25 cursor-pointer"
+                    >
+                      <span>Get Started &mdash; Sign In</span>
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </LiquidButton>
+                    <a
+                      href="#install-options"
+                      className="px-5 py-3 rounded-2xl border border-border/60 hover:border-primary/40 text-xs font-mono font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-card/60 backdrop-blur-sm"
+                    >
+                      View Download Options &darr;
+                    </a>
                   </div>
                 </div>
               </GlyphPortal>

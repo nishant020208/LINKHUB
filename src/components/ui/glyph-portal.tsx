@@ -79,7 +79,7 @@ function interior(context: CanvasRenderingContext2D, char: string, font: string)
 
 function scrollParent(element: HTMLElement): HTMLElement | null {
   for (let p = element.parentElement; p; p = p.parentElement) {
-    if (/(auto|scroll|hidden)/.test(getComputedStyle(p).overflowY) && p !== document.body && p !== document.documentElement) return p;
+    if (/(auto|scroll)/.test(getComputedStyle(p).overflowY) && p !== document.body && p !== document.documentElement) return p;
   }
   return null;
 }
@@ -121,7 +121,6 @@ export default function GlyphPortal({
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d", { willReadFrequently: true });
     let disposed = false, raf = 0, dirty = true, active = true, ready = false;
-    const mountedAt = performance.now();
     let browserFrameSeen = false, stalled = false;
     let W = 1, H = 1, travel = 1, startScale = 1, endScale = 1;
     let center = { x: 0, y: 0 }, target: Ink | null = null;
@@ -140,8 +139,8 @@ export default function GlyphPortal({
       catch { return false; }
     });
     glyph.style.fontFamily = [...available, DEFAULT_FONT].join(",");
-    // A pending requested face may also hold WebKit's render loop. Keep that mount static.
-    stalled = available.length < families.length;
+    // A pending requested face may also hold WebKit's render loop. Keep that mount static only if no fonts are available.
+    stalled = available.length === 0;
 
     const readInk = () => {
       if (!context) return false;
@@ -270,7 +269,7 @@ export default function GlyphPortal({
       raf = 0;
       if (disposed) return;
       if (time !== undefined && !browserFrameSeen) {
-        browserFrameSeen = true; stalled ||= performance.now() - mountedAt > 2500; dirty = true;
+        browserFrameSeen = true; dirty = true;
       }
       if (dirty) { dirty = false; layout(); }
       if (ready) paint(position());
