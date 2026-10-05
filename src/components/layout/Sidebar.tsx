@@ -19,7 +19,7 @@ import { ProviderLogo } from '@/components/ui/provider-logo';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/deadlines', label: 'Deadlines', icon: CheckSquare },
   { to: '/calendar', label: 'Calendar', icon: CalendarIcon },
   { to: '/digest', label: 'Weekly Digest', icon: Sparkles },
@@ -43,7 +43,9 @@ export const Sidebar: React.FC = () => {
   const [isWorkspaceModalOpen, setWorkspaceModalOpen] = useState(false);
 
   const isActive = (to: string) =>
-    to === '/' ? location.pathname === '/' : location.pathname.startsWith(to);
+    to === '/dashboard'
+      ? location.pathname === '/dashboard' || location.pathname === '/'
+      : location.pathname.startsWith(to);
 
   return (
     <aside className="hidden lg:flex flex-col w-60 shrink-0 h-[calc(100vh-4rem)] sticky top-16 border-r border-border/40 px-3 py-5 gap-6">
