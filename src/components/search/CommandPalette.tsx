@@ -119,7 +119,7 @@ export const CommandPalette: React.FC = () => {
       icon: <Layers className="w-4 h-4 text-primary" />,
       action: () => {
         setActiveWorkspace(ws.id);
-        navigate('/');
+        navigate('/dashboard');
       },
     }));
 
