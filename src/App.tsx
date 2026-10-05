@@ -36,6 +36,9 @@ const WeeklyDigestPage = lazy(() =>
   import('@/pages/WeeklyDigestPage').then((m) => ({ default: m.WeeklyDigestPage }))
 );
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const LandingPage = lazy(() =>
+  import('@/pages/LandingPage').then((m) => ({ default: m.LandingPage }))
+);
 const AuthCallbackPage = lazy(() =>
   import('@/pages/AuthCallbackPage').then((m) => ({ default: m.AuthCallbackPage }))
 );
@@ -78,15 +81,16 @@ export const App: React.FC = () => {
           <Suspense fallback={<BootFallback />}>
             <Routes>
               {/* Public Routes (Accessible without login for Google verification reviewers and visitors) */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/auth/callback" element={<AuthCallbackPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
 
               {/* Protected Application Routes — device-branched layout (mobile vs desktop) */}
               <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<AppLayoutRouter />}>
+                <Route element={<AppLayoutRouter />}>
                   <Route
-                    index
+                    path="/dashboard"
                     element={
                       <Suspense fallback={<RouteFallback />}>
                         <DashboardPage />
