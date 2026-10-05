@@ -15,6 +15,7 @@ import {
   Sun,
   Moon,
   ChevronRight,
+  LogOut,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -30,11 +31,11 @@ export const DesktopRail: React.FC = () => {
     setCommandPaletteOpen,
     setQuickAddOpen,
   } = useAppStore();
-  const { user } = useAuthStore();
+  const { user, signOut } = useAuthStore();
   const { isSyncing, triggerSync } = useSyncData();
 
   const navLinks = [
-    { to: '/', label: 'Command Station', icon: LayoutDashboard },
+    { to: '/dashboard', label: 'Command Station', icon: LayoutDashboard },
     { to: '/deadlines', label: 'Deadlines Queue', icon: CheckSquare },
     { to: '/calendar', label: 'Unified Calendar', icon: Calendar },
     { to: '/files', label: 'Documents & Files', icon: FolderOpen },
@@ -52,7 +53,7 @@ export const DesktopRail: React.FC = () => {
           <div
             role="button"
             tabIndex={0}
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/dashboard')}
             className="flex items-center gap-3 cursor-pointer group"
           >
             <div className="w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-bold font-display shadow-md shadow-primary/20 group-hover:scale-105 transition-transform">
@@ -230,14 +231,30 @@ export const DesktopRail: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="p-2 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
-            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
-          >
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="p-2 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
+              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                navigate('/', { replace: true });
+              }}
+              className="p-2 rounded-xl border border-border/50 text-muted-foreground hover:text-status-error hover:border-status-error/40 hover:bg-status-error/10 transition-colors cursor-pointer"
+              title="Sign Out of UnifyHub"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </aside>
