@@ -25,11 +25,15 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@remotion/cli": "^4.0.533",
+    "@remotion/transitions": "^4.0.533",
     "@tailwindcss/vite": "^4.0.9",
     "@types/node": "^22.13.5",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.63.0",
+    "remotion": "^4.0.533",
     "tailwindcss": "^4.0.9",
     "typescript": "^5.7.3",
     "vite": "^6.2.0"
