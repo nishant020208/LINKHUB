@@ -71,16 +71,16 @@ export const SettingsPage: React.FC = () => {
               {
                 id: 'dark' as const,
                 title: 'Dark',
-                desc: 'Deep space obsidian surfaces with electric indigo accents.',
+                desc: 'Graphite obsidian surfaces with warm amber accents and high focus.',
                 icon: Moon,
-                colorDot: '#7c6cf6',
+                colorDot: '#e8a54b',
               },
               {
                 id: 'light' as const,
                 title: 'Light',
-                desc: 'Warm alabaster paper with crisp violet ink for bright daylight.',
+                desc: 'Crisp warm paper with burnt amber accents for bright daylight clarity.',
                 icon: Sun,
-                colorDot: '#6049ea',
+                colorDot: '#b45309',
               },
               {
                 id: 'aesthetic' as const,

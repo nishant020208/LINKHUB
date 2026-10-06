@@ -57,13 +57,13 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-40 w-full h-[var(--header-height)] border-b border-border/50 bg-background/85 backdrop-blur-xl transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between gap-3">
         {/* Left: Brand Identity */}
-        <div className="flex items-center gap-4">
-          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group select-none">
-            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base tracking-tighter shadow-md shadow-primary/25 group-hover:scale-105">
+        <div className="flex items-center gap-3 shrink-0">
+          <Link to={user ? "/dashboard" : "/"} className="flex items-center gap-2 group select-none">
+            <div className="w-8 h-8 rounded-xl bg-primary text-primary-foreground flex items-center justify-center font-display font-black text-base tracking-tighter shadow-md shadow-primary/25 group-hover:scale-105 shrink-0">
               U
             </div>
-            <div className="flex flex-col">
-              <span className="font-display font-bold text-base sm:text-lg tracking-tight leading-none text-foreground">
+            <div className="flex flex-col min-w-0">
+              <span className="font-display font-bold text-base sm:text-lg tracking-tight leading-none text-foreground truncate">
                 UnifyHub
               </span>
               <span className="text-[10px] font-mono text-muted-foreground hidden sm:block">
@@ -92,7 +92,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         {/* Right: Quick actions, Sync, Theme, Profile */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {/* Mobile search trigger */}
           <Button
             variant="ghost"
@@ -113,7 +113,7 @@ export const Navbar: React.FC = () => {
             onClick={handleManualSync}
             disabled={isSyncing}
             title="Trigger incremental sync across all accounts"
-            className="gap-2 font-mono text-xs"
+            className="gap-1.5 font-mono text-xs px-2 sm:px-3"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-primary ${isSyncing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline text-[11px]">

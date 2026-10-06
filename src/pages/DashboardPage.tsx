@@ -307,7 +307,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {/* Workspace Tabs */}
-          <div className="flex items-center p-1 rounded-2xl bg-card border border-border/50">
+          <div className="flex items-center p-1 rounded-2xl bg-card border border-border/50 max-w-full overflow-x-auto no-scrollbar">
             {workspaces.map((ws) => {
               const active = activeWorkspaceId === ws.id;
               return (
@@ -316,7 +316,7 @@ export const DashboardPage: React.FC = () => {
                   type="button"
                   onClick={() => setActiveWorkspace(ws.id)}
                   className={cn(
-                    'px-2.5 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer',
+                    'px-2.5 py-1 rounded-xl text-xs font-mono transition-all cursor-pointer shrink-0 whitespace-nowrap',
                     active
                       ? 'bg-secondary text-secondary-foreground font-semibold shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'

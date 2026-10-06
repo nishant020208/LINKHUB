@@ -16,25 +16,25 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
   reduce = false,
   className = "",
 }) => {
-  // Mobile: Render zero-lag, battery-safe static backdrops.
-  // This completely eliminates WebGL/canvas draw calls on mobile devices.
+  // Mobile: Render zero-lag, clean and simple static backdrops.
+  // Perfectly legible, high-contrast, zero-flicker, and zero GPU overhead.
   if (deviceType === "mobile") {
     if (theme === "light") {
       return (
         <div
           aria-hidden="true"
-          className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden ${className}`}
+          className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${className}`}
           style={{
             background:
-              "radial-gradient(ellipse 90% 60% at 50% 0%, rgba(214, 232, 248, 0.55) 0%, rgba(243, 238, 230, 0.95) 75%)",
+              "linear-gradient(180deg, #fcfbf9 0%, #f4ede2 100%)",
           }}
         >
-          {/* Subtle warm paper horizon mist */}
+          {/* Crisp, clean, simple warm paper subtle top horizon glow — no discolored blue/brown blotches */}
           <div
-            className="absolute inset-0 opacity-40"
+            className="absolute inset-0 opacity-70"
             style={{
               background:
-                "radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.7) 0%, transparent 45%), radial-gradient(circle at 20% 40%, rgba(243, 228, 200, 0.35) 0%, transparent 50%)",
+                "radial-gradient(ellipse 100% 50% at 50% 0%, rgba(255, 255, 255, 0.9) 0%, transparent 75%)",
             }}
           />
         </div>
@@ -45,40 +45,40 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
       return (
         <div
           aria-hidden="true"
-          className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden ${className}`}
+          className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${className}`}
           style={{
             background:
-              "radial-gradient(ellipse 90% 65% at 50% 25%, rgba(157, 92, 252, 0.16) 0%, rgba(9, 10, 20, 0.98) 70%)",
+              "linear-gradient(180deg, #0e0f1e 0%, #090a14 100%)",
           }}
         >
           {/* Subtle neon ultraviolet stardust nebula */}
           <div
-            className="absolute inset-0 opacity-50"
+            className="absolute inset-0 opacity-40"
             style={{
               background:
-                "radial-gradient(circle at 75% 35%, rgba(157, 92, 252, 0.14) 0%, transparent 45%), radial-gradient(circle at 25% 65%, rgba(56, 189, 248, 0.08) 0%, transparent 45%)",
+                "radial-gradient(circle at 50% 20%, rgba(157, 92, 252, 0.15) 0%, transparent 65%)",
             }}
           />
         </div>
       );
     }
 
-    // Default: Dark Mode static singularity backdrop
+    // Default: Dark Mode clean simple backdrop
     return (
       <div
         aria-hidden="true"
-        className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden ${className}`}
+        className={`pointer-events-none fixed inset-0 z-0 overflow-hidden ${className}`}
         style={{
           background:
-            "radial-gradient(ellipse 90% 65% at 50% 30%, rgba(232, 165, 75, 0.12) 0%, rgba(12, 11, 10, 0.98) 70%)",
+            "linear-gradient(180deg, #13110f 0%, #0c0b0a 100%)",
         }}
       >
         {/* Subtle amber gravitational glow */}
         <div
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0 opacity-30"
           style={{
             background:
-              "radial-gradient(circle at 50% 35%, rgba(232, 165, 75, 0.15) 0%, rgba(61, 186, 139, 0.05) 40%, transparent 65%)",
+              "radial-gradient(circle at 50% 25%, rgba(232, 165, 75, 0.12) 0%, transparent 65%)",
           }}
         />
       </div>

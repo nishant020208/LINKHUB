@@ -64,8 +64,7 @@ export const AppShell: React.FC = () => {
       {/* 0. Mobile static atmospheric backdrop */}
       <ThemeAmbientBackground theme={theme} deviceType="mobile" reduce={Boolean(reduce)} />
 
-      {/* Ambient themed gradient field */}
-      <div className="ambient-field fixed inset-0 pointer-events-none z-0" />
+      {/* Atmospheric accent for aesthetic mode */}
       <AestheticGlow />
 
       {/* Top Banner and Navigation (z-40 to remain above scrolling content) */}

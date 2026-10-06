@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
-import { Sun, Moon, ArrowRight, Lock, CheckCircle2, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Sun, Moon, Sparkles, ArrowRight, Lock, CheckCircle2, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
 import { Button } from '@/components/ui/button';
@@ -63,9 +63,16 @@ export const LoginPage: React.FC = () => {
             size="sm"
             iconOnly
             onClick={toggleTheme}
-            aria-label="Toggle dark/light theme"
+            aria-label="Toggle display theme mode"
+            title={`Switch theme (currently ${theme})`}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4 text-primary" />}
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-300" />
+            ) : theme === 'light' ? (
+              <Sparkles className="w-4 h-4 text-primary" />
+            ) : (
+              <Moon className="w-4 h-4 text-purple-400" />
+            )}
           </Button>
         </div>
       </header>
