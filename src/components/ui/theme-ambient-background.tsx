@@ -90,24 +90,24 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none fixed inset-0 -z-10 overflow-hidden transition-opacity duration-700 ${className}`}
+      className={`pointer-events-none fixed inset-0 z-0 overflow-hidden transition-opacity duration-700 ${className}`}
     >
       {theme === "light" && (
         <div key="shader-light" className="relative h-full w-full">
           <CloudShader
-            className="h-full w-full opacity-35"
+            className="h-full w-full opacity-90"
             cloudColor="#ffffff"
-            skyTopColor="#d4e4f5"
-            skyBottomColor="#f3eee6"
+            skyTopColor="#3876ba"
+            skyBottomColor="#8cbfe8"
             speed={0.4}
-            count={4}
+            count={5}
           />
-          {/* Subtle contrast gradient overlay to ensure WCAG AA text legibility */}
+          {/* Subtle contrast gradient overlay to ensure WCAG AA text legibility over clouds */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(180deg, rgba(243, 238, 230, 0.25) 0%, rgba(243, 238, 230, 0.65) 100%)",
+                "linear-gradient(180deg, rgba(243, 238, 230, 0.15) 0%, rgba(243, 238, 230, 0.45) 100%)",
             }}
           />
         </div>
@@ -115,13 +115,13 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
 
       {theme === "dark" && (
         <div key="shader-dark" className="relative h-full w-full">
-          <BlackHole className="h-full w-full opacity-30" />
+          <BlackHole className="h-full w-full opacity-85" />
           {/* Contrast vignette overlay */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 40%, transparent 40%, rgba(12, 11, 10, 0.75) 100%)",
+                "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(12, 11, 10, 0.65) 100%)",
             }}
           />
         </div>
@@ -131,14 +131,14 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
         <div key="shader-aesthetic" className="relative h-full w-full">
           <RecursiveErosionBackground
             mode="dark"
-            className="h-full w-full opacity-35"
+            className="h-full w-full opacity-80"
           />
           {/* Contrast vignette overlay */}
           <div
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 40%, transparent 45%, rgba(9, 10, 20, 0.75) 100%)",
+                "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(9, 10, 20, 0.65) 100%)",
             }}
           />
         </div>

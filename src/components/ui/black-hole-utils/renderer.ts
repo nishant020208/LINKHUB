@@ -62,63 +62,82 @@ float fbm(vec2 p) {
 void main() {
   vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / min(u_resolution.x, u_resolution.y);
   float t = u_time * u_speed;
-
-  // Gravitational deflection / lensing
   float r = length(uv);
-  float rs = 0.28; // Schwarzschild event horizon radius
-  
-  if (r < rs) {
-    // Inside event horizon: pure singularity shadow
-    gl_FragColor = vec4(0.02, 0.02, 0.025, 1.0);
-    return;
+
+  // Black hole event horizon shadow radius
+  float rs = 0.20;
+
+  // Background stars with relativistic gravitational lensing deflection
+  float defl = (rs * rs * 0.85) / max(0.015, r - rs * 0.72);
+  vec2 lensed_uv = uv * (1.0 - defl / max(0.12, r));
+  float stars = pow(hash(floor(lensed_uv * 150.0)), 30.0) * 0.85;
+  vec3 col = vec3(0.006, 0.006, 0.009) + vec3(stars);
+
+  // 1. EQUATORIAL DISK (horizontal glowing band)
+  float eq_x = abs(uv.x);
+  float eq_y = abs(uv.y);
+  if (eq_x < 1.1 && eq_y < 0.16) {
+    float distFromCenter = length(vec2(uv.x * 0.62, uv.y * 3.6));
+    if (distFromCenter > rs * 0.75 && distFromCenter < 0.72) {
+      float disk_profile = exp(-pow(uv.y * 14.0, 2.0));
+      float rad_profile = smoothstep(rs * 0.75, rs * 1.35, distFromCenter) * smoothstep(0.72, rs * 1.6, distFromCenter);
+      float angle = atan(uv.y, uv.x) + t * 1.4 * pow(rs / max(0.08, distFromCenter), 1.2);
+      float swirl = fbm(vec2(distFromCenter * 7.5, angle * 3.0) + vec2(t * 0.1, -t * 0.18));
+      
+      // Relativistic Doppler beaming: approaching side (left, uv.x < 0) is brighter
+      float doppler = 1.0 - 0.48 * (uv.x / max(0.1, distFromCenter));
+      float disk_intensity = disk_profile * rad_profile * (0.7 + 0.6 * swirl) * doppler * 3.0;
+
+      vec3 disk_col = mix(vec3(1.0, 0.95, 0.85), u_disk_color * 1.35, smoothstep(rs * 0.9, 0.55, distFromCenter));
+      col += disk_col * disk_intensity;
+    }
   }
 
-  // Relativistic gravitational deflection formula
-  float defl = (rs * rs * 0.75) / (r - rs * 0.82);
-  vec2 lensed_uv = uv * (1.0 - defl / r);
+  // 2. UPPER GRAVITATIONAL LENSED ARCH (halo bending over the black hole)
+  if (uv.y > -0.06) {
+    float arch_r = length(vec2(uv.x * 0.92, (uv.y - 0.015) * 1.18));
+    float arch_dist = abs(arch_r - rs * 1.54);
+    if (arch_dist < 0.13) {
+      float arch_profile = exp(-arch_dist * 26.0) * smoothstep(-0.06, 0.12, uv.y);
+      float angle = atan(uv.y, uv.x) - t * 1.2;
+      float swirl = fbm(vec2(arch_r * 9.5, angle * 3.8));
+      float doppler = 1.0 - 0.42 * (uv.x / max(0.1, arch_r));
+      float arch_intensity = arch_profile * (0.8 + 0.5 * swirl) * doppler * 2.8;
 
-  // Background cosmos / distant warped stars
-  float stars = pow(hash(floor(lensed_uv * 120.0)), 28.0) * 0.8;
-  vec3 col = vec3(0.03, 0.03, 0.04) + vec3(stars);
+      vec3 arch_col = mix(vec3(1.0, 0.96, 0.88), u_glow_color * 1.25, smoothstep(0.0, 0.1, arch_dist));
+      col += arch_col * arch_intensity;
+    }
+  }
 
-  // Photon ring: intense relativistic ring right above event horizon
-  float photonDist = abs(r - rs * 1.14);
-  float photonRing = exp(-photonDist * 45.0) * 1.8;
-  col += u_glow_color * photonRing;
+  // 3. LOWER GRAVITATIONAL LENSED ARCH (halo bending under the black hole)
+  if (uv.y < 0.06) {
+    float arch_r = length(vec2(uv.x * 1.06, (uv.y + 0.015) * 1.26));
+    float arch_dist = abs(arch_r - rs * 1.30);
+    if (arch_dist < 0.10) {
+      float arch_profile = exp(-arch_dist * 32.0) * smoothstep(0.06, -0.10, uv.y);
+      float angle = atan(uv.y, uv.x) - t * 1.2;
+      float swirl = fbm(vec2(arch_r * 10.5, angle * 3.8));
+      float doppler = 1.0 - 0.38 * (uv.x / max(0.1, arch_r));
+      float arch_intensity = arch_profile * (0.7 + 0.5 * swirl) * doppler * 2.2;
 
-  // Accretion disk: tilted elliptical coords
-  vec2 disk_uv = uv;
-  disk_uv.y *= 2.6; // tilt inclination angle
-  float disk_r = length(disk_uv);
-  float disk_theta = atan(disk_uv.y, disk_uv.x);
+      vec3 arch_col = mix(vec3(1.0, 0.92, 0.8), u_glow_color * 1.1, smoothstep(0.0, 0.08, arch_dist));
+      col += arch_col * arch_intensity;
+    }
+  }
 
-  if (disk_r > rs * 0.95 && disk_r < 1.35) {
-    // Keplerian differential rotation (inner rotates faster)
-    float omega = t * 1.8 * pow(rs / disk_r, 1.4);
-    float angle = disk_theta + omega;
+  // 4. PHOTON RING (intense razor-sharp ring right outside the shadow)
+  float ringDist = abs(r - rs * 1.07);
+  float photonRing = exp(-ringDist * 75.0) * 3.4;
+  col += vec3(1.0, 0.97, 0.88) * photonRing;
 
-    // Spiral swirl noise & turbulent filaments
-    vec2 spiral_pos = vec2(cos(angle), sin(angle)) * disk_r;
-    float spiral = fbm(spiral_pos * 4.5 + vec2(t * 0.2, -t * 0.15));
-
-    // Radial intensity envelope: peak near ISCO (Innermost Stable Circular Orbit)
-    float env = smoothstep(rs * 0.95, rs * 1.45, disk_r) * smoothstep(1.35, rs * 1.45, disk_r);
-    
-    // Relativistic Doppler beaming: approaching side (left, uv.x < 0) is boosted & blue-shifted
-    float doppler = 1.0 - 0.55 * (uv.x / max(0.1, r));
-    float intensity = env * (0.6 + 0.8 * spiral) * doppler * 2.2;
-
-    vec3 disk_col = mix(u_disk_color, u_glow_color * 1.4, smoothstep(rs * 1.1, rs * 1.5, disk_r));
-    col += disk_col * intensity;
+  // 5. EVENT HORIZON SHADOW (pure singularity occlusion)
+  if (r < rs) {
+    col = vec3(0.003, 0.003, 0.005);
   }
 
   // Outer ambient gravitational glow
-  float outerGlow = exp(-r * 2.4) * 0.35;
-  col += u_disk_color * outerGlow;
-
-  // Subtle vignette
-  float vig = smoothstep(1.6, 0.4, length(uv));
-  col *= vig;
+  float haze = exp(-r * 3.2) * 0.28;
+  col += u_disk_color * haze;
 
   gl_FragColor = vec4(col, 1.0);
 }

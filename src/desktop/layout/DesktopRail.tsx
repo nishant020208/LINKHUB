@@ -236,10 +236,22 @@ export const DesktopRail: React.FC = () => {
               type="button"
               onClick={toggleTheme}
               className="p-2 rounded-xl border border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors cursor-pointer"
-              title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
+              title={
+                theme === 'dark'
+                  ? 'Active: Dark mode (Click for Light)'
+                  : theme === 'light'
+                  ? 'Active: Light mode (Click for Aesthetic)'
+                  : 'Active: Aesthetic mode (Click for Dark)'
+              }
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+              {theme === 'dark' ? (
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
+              ) : theme === 'light' ? (
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+              ) : (
+                <Moon className="w-3.5 h-3.5 text-purple-400" />
+              )}
             </button>
 
             <button

@@ -9,6 +9,7 @@ import { PwaManager } from '@/components/pwa/PwaManager';
 import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { RouteErrorBoundary } from '@/components/RouteErrorBoundary';
 import { AestheticGlow } from '@/components/common/AestheticGlow';
+import { ThemeAmbientBackground } from '@/components/ui/theme-ambient-background';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
 
@@ -59,7 +60,10 @@ export const AppShell: React.FC = () => {
   }, [setCommandPaletteOpen]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground antialiased relative overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-background/50 text-foreground antialiased relative overflow-x-hidden">
+      {/* 0. Mobile static atmospheric backdrop */}
+      <ThemeAmbientBackground theme={theme} deviceType="mobile" reduce={Boolean(reduce)} />
+
       {/* Ambient themed gradient field */}
       <div className="ambient-field fixed inset-0 pointer-events-none z-0" />
       <AestheticGlow />

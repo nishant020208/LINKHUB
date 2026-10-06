@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { DesktopRail } from '@/desktop/layout/DesktopRail';
 import { DesktopHeader } from '@/desktop/layout/DesktopHeader';
 import { DataRailBackground } from '@/desktop/components/DataRailBackground';
+import { ThemeAmbientBackground } from '@/components/ui/theme-ambient-background';
 import { DesktopDashboard } from '@/desktop/views/DesktopDashboard';
 import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { PwaManager } from '@/components/pwa/PwaManager';
@@ -47,10 +48,13 @@ export const DesktopShell: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setCommandPaletteOpen]);
 
-  const isRootDashboard = location.pathname === '/';
+  const isRootDashboard = location.pathname === '/' || location.pathname === '/dashboard';
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground antialiased relative overflow-x-hidden select-none">
+    <div className="min-h-screen flex bg-background/30 text-foreground antialiased relative overflow-x-hidden select-none">
+      {/* 0. Dynamic 3-Theme Shader Ambient Background (Interstellar black hole, vibrant cloud sky, ultraviolet erosion sphere) */}
+      <ThemeAmbientBackground theme={theme} deviceType="desktop" reduce={Boolean(reduce)} />
+
       {/* 1. Subtle Animated Data Rail Circuit Background */}
       <DataRailBackground />
 
