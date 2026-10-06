@@ -3,7 +3,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { DesktopRail } from '@/desktop/layout/DesktopRail';
 import { DesktopHeader } from '@/desktop/layout/DesktopHeader';
-import { DataRailBackground } from '@/desktop/components/DataRailBackground';
 import { ThemeAmbientBackground } from '@/components/ui/theme-ambient-background';
 import { DesktopDashboard } from '@/desktop/views/DesktopDashboard';
 import { OfflineBanner } from '@/components/pwa/OfflineBanner';
@@ -55,10 +54,7 @@ export const DesktopShell: React.FC = () => {
       {/* 0. Dynamic 3-Theme Shader Ambient Background (Interstellar black hole, vibrant cloud sky, ultraviolet erosion sphere) */}
       <ThemeAmbientBackground theme={theme} deviceType="desktop" reduce={Boolean(reduce)} />
 
-      {/* 1. Subtle Animated Data Rail Circuit Background */}
-      <DataRailBackground />
-
-      {/* 2. Persistent Left Command Rail */}
+      {/* 1. Persistent Left Command Rail */}
       <DesktopRail />
 
       {/* 3. Main Command Canvas */}

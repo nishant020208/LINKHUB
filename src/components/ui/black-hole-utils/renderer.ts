@@ -67,11 +67,8 @@ void main() {
   // Black hole event horizon shadow radius
   float rs = 0.20;
 
-  // Background stars with relativistic gravitational lensing deflection
-  float defl = (rs * rs * 0.85) / max(0.015, r - rs * 0.72);
-  vec2 lensed_uv = uv * (1.0 - defl / max(0.12, r));
-  float stars = pow(hash(floor(lensed_uv * 150.0)), 30.0) * 0.85;
-  vec3 col = vec3(0.006, 0.006, 0.009) + vec3(stars);
+  // Pure deep cosmic void background (no white star speckles)
+  vec3 col = vec3(0.004, 0.004, 0.007);
 
   // 1. EQUATORIAL DISK (horizontal glowing band)
   float eq_x = abs(uv.x);
