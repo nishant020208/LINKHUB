@@ -16,9 +16,9 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
   reduce = false,
   className = "",
 }) => {
-  // Mobile or reduced motion: Render zero-lag, battery-safe static backdrops.
-  // This completely eliminates WebGL draw calls, shader compilation, and thermal throttling on mobile devices.
-  if (deviceType === "mobile" || reduce) {
+  // Mobile: Render zero-lag, battery-safe static backdrops.
+  // This completely eliminates WebGL/canvas draw calls on mobile devices.
+  if (deviceType === "mobile") {
     if (theme === "light") {
       return (
         <div
@@ -99,7 +99,7 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
             cloudColor="#ffffff"
             skyTopColor="#3876ba"
             skyBottomColor="#8cbfe8"
-            speed={0.4}
+            speed={reduce ? 0.05 : 0.4}
             count={5}
           />
           {/* Subtle contrast gradient overlay to ensure WCAG AA text legibility over clouds */}
@@ -131,14 +131,15 @@ export const ThemeAmbientBackground: React.FC<ThemeAmbientBackgroundProps> = ({
         <div key="shader-aesthetic" className="relative h-full w-full">
           <RecursiveErosionBackground
             mode="dark"
-            className="h-full w-full opacity-80"
+            reduce={reduce}
+            className="h-full w-full opacity-95"
           />
-          {/* Contrast vignette overlay */}
+          {/* Subtle edge vignette overlay */}
           <div
-            className="absolute inset-0"
+            className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                "radial-gradient(ellipse at 50% 50%, transparent 45%, rgba(9, 10, 20, 0.65) 100%)",
+                "radial-gradient(ellipse at 50% 50%, transparent 60%, rgba(9, 10, 20, 0.45) 100%)",
             }}
           />
         </div>
