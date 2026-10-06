@@ -15,6 +15,7 @@ import {
   Layers,
   Zap,
   X,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAppStore } from '@/store/useAppStore';
@@ -332,7 +333,15 @@ export const LandingPage: React.FC = () => {
               }}
             >
               <style>{`
-                [data-slipstream-demo] { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+                [data-slipstream-demo] {
+                  scrollbar-width: none;
+                  -ms-overflow-style: none;
+                }
+                [data-slipstream-demo]::-webkit-scrollbar {
+                  display: none;
+                  width: 0;
+                  height: 0;
+                }
                 [data-slipstream-demo] [data-gp-caption]{inset:calc(var(--gp-word-bottom,50%) + 82px) 24px auto;justify-content:center;}
                 [data-slipstream-demo] [data-gp-hint]{display:none;}
                 [data-slipstream-demo] [data-gp-enter]{min-height:46px;padding:0 24px;gap:18px;background:var(--primary);border:1px solid var(--border);border-radius:14px;color:var(--primary-foreground);font-size:13px;font-weight:600;box-shadow:var(--shadow-glow);transition:background .18s,transform .18s;}
@@ -345,8 +354,26 @@ export const LandingPage: React.FC = () => {
                 [data-sublime-category]{font-size:12px;font-family:var(--font-mono);color:var(--muted-foreground);}
                 [data-sublime-eyebrow]{position:absolute;inset:auto 24px calc(100% - var(--gp-word-top,35%) + 24px);margin:0;text-align:center;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-family:var(--font-mono);color:var(--primary);}
                 [data-sublime-support]{position:absolute;inset:calc(var(--gp-word-bottom,50%) + 28px) 24px auto;margin:0;text-align:center;font-size:15px;font-weight:400;line-height:1.5;color:var(--muted-foreground);}
-                [data-sublime-scroll]{position:absolute;inset:auto 24px 6%;text-align:center;color:var(--muted-foreground);font-size:11px;font-family:var(--font-mono);letter-spacing:.05em;}
-                @media(any-pointer:coarse){[data-sublime-scroll]{bottom:12%;}}
+                [data-sublime-scroll]{position:absolute;inset:auto 24px 4%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;user-select:none;transition:opacity 0.2s ease,transform 0.2s ease;}
+                [data-sublime-scroll]:hover{opacity:1;transform:translateY(2px);}
+                @media(any-pointer:coarse){[data-sublime-scroll]{bottom:8%;}}
+                @keyframes unifypill {
+                  0%, 100% { transform: translateY(0); opacity: 0.9; }
+                  50% { transform: translateY(6px); opacity: 0.3; }
+                }
+                @keyframes unifybounce {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(3px); }
+                }
+                .animate-pill-dot {
+                  animation: unifypill 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+                }
+                .animate-bounce-arrow {
+                  animation: unifybounce 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+                }
+                @media(prefers-reduced-motion: reduce){
+                  .animate-pill-dot, .animate-bounce-arrow { animation: none !important; }
+                }
                 @container(max-width:450px){[data-sublime-category]{max-width:14ch;text-align:right;}[data-sublime-eyebrow]{font-size:11px;}[data-sublime-support]{font-size:13px;}[data-slipstream-demo] [data-gp-caption]{top:calc(var(--gp-word-bottom,50%) + 72px);}}
                 @container(max-height:479px){[data-sublime-header]{top:16px;}[data-sublime-support]{top:calc(var(--gp-word-bottom,50%) + 14px);}[data-slipstream-demo] [data-gp-caption]{top:calc(var(--gp-word-bottom,50%) + 56px);}[data-sublime-scroll]{display:none;}}
                 [data-slipstream-demo] [data-gp-content]{padding:5.5rem clamp(1.25rem,5cqw,5rem) 6.5rem;font-family:inherit;}
@@ -400,7 +427,26 @@ export const LandingPage: React.FC = () => {
                     </div>
                     <p data-sublime-eyebrow>Frosted Glass Serenity &bull; Zero Tab Hopping</p>
                     <p data-sublime-support>One calm view for Google, Microsoft, and dev workflows. Scroll to enter.</p>
-                    <span data-sublime-scroll>Scroll for a closer look ↓</span>
+                    <button
+                      type="button"
+                      data-sublime-scroll
+                      onClick={(e) => {
+                        const target = (e.currentTarget as HTMLElement).closest('[data-slipstream-demo]');
+                        if (target) {
+                          target.scrollBy({ top: 350, behavior: 'smooth' });
+                        }
+                      }}
+                      className="group flex flex-col items-center gap-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl p-1"
+                      aria-label="Scroll down to explore"
+                    >
+                      <div className="w-5 h-8 rounded-full border border-border/80 group-hover:border-primary/80 bg-card/60 backdrop-blur-sm flex items-start justify-center pt-1.5 shadow-sm transition-colors duration-200">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pill-dot" />
+                      </div>
+                      <span className="font-mono text-[10px] tracking-widest uppercase text-muted-foreground group-hover:text-foreground transition-colors flex items-center gap-0.5">
+                        Scroll Down
+                        <ChevronDown className="w-3 h-3 animate-bounce-arrow text-primary" />
+                      </span>
+                    </button>
                   </>
                 }
               >
