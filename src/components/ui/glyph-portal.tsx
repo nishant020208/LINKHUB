@@ -138,9 +138,8 @@ export default function GlyphPortal({
       try { return document.fonts.check(`${weight} 100px ${family.trim()}`, text); }
       catch { return false; }
     });
-    glyph.style.fontFamily = [...available, DEFAULT_FONT].join(",");
-    // A pending requested face may also hold WebKit's render loop. Keep that mount static only if no fonts are available.
-    stalled = available.length === 0;
+    glyph.style.fontFamily = available.length > 0 ? [...available, DEFAULT_FONT].join(",") : DEFAULT_FONT;
+    stalled = false;
 
     const readInk = () => {
       if (!context) return false;
@@ -338,7 +337,7 @@ export default function GlyphPortal({
     <section ref={sectionRef} id={uid} className={className} aria-label={text}
       style={{ "--gp-length": length, "--gp-characters": Array.from(text).length, ...style } as CSSProperties}>
       <style>{`
-        ${q}{--gp-paper:#fff;--gp-ink:#0c1212;--gp-field:#0b3b2a;--gp-foreground:#fbfbfa;position:relative;isolation:isolate;background:var(--gp-paper);color:var(--gp-ink);font-family:Arial,sans-serif;}
+        ${q}{--gp-paper:var(--background, #0c0b0a);--gp-ink:var(--foreground, #f4efe6);--gp-field:var(--card, #141210);--gp-foreground:var(--foreground, #f4efe6);position:relative;isolation:isolate;background:var(--gp-paper);color:var(--gp-ink);font-family:Arial,sans-serif;}
         ${q}>[data-gp-viewport]{position:absolute;inset:0 auto auto 0;height:100vh;height:100svh;width:0;pointer-events:none;visibility:hidden;}
         ${q} [data-gp-pin]{position:relative;height:var(--gp-height,100svh);overflow:clip;isolation:isolate;container-type:size;}
         ${q} [data-gp-field]{position:absolute;inset:0;background:var(--gp-field);opacity:0;pointer-events:none;}

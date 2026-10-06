@@ -14,6 +14,8 @@ import {
   FolderOpen,
   Layers,
   Zap,
+  Sparkles,
+  LayoutList,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -22,11 +24,12 @@ import { DeadlineConflictCard } from '@/components/deadlines/DeadlineConflictCar
 import { ConsistencyStatCard } from '@/components/dashboard/ConsistencyStatCard';
 import { WeeklyDigestCard } from '@/components/dashboard/WeeklyDigestCard';
 import { PriorityNoticesList } from '@/components/dashboard/PriorityNoticesList';
+import { TriageView } from '@/components/triage/TriageView';
 import { filterItemsByWorkspace } from '@/lib/workspaceFilter';
 import { detectCalendarConflicts } from '@/lib/smart/conflicts';
 import { detectDeadlineConflicts } from '@/lib/smart/deadlineConflicts';
 import { calculateConsistencyMetrics } from '@/lib/smart/consistencyMetrics';
-import { formatDueCountdown } from '@/lib/utils';
+import { formatDueCountdown, cn } from '@/lib/utils';
 
 export const DesktopDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -40,6 +43,24 @@ export const DesktopDashboard: React.FC = () => {
     briefing,
   } = useAppStore();
   const { user } = useAuthStore();
+  const [dashboardMode, setDashboardMode] = useState<'list' | 'triage'>(() => {
+    try {
+      const saved = localStorage.getItem('unifyhub_dashboard_mode');
+      if (saved === 'list' || saved === 'triage') return saved;
+    } catch {
+      // Safe fallback
+    }
+    return 'list';
+  });
+
+  const handleSetDashboardMode = (mode: 'list' | 'triage') => {
+    setDashboardMode(mode);
+    try {
+      localStorage.setItem('unifyhub_dashboard_mode', mode);
+    } catch {
+      // Safe fallback
+    }
+  };
 
   // 1. Workspace-filtered items
   const filteredItems = useMemo(
@@ -169,7 +190,7 @@ export const DesktopDashboard: React.FC = () => {
       className="p-8 sm:p-10 max-w-7xl mx-auto space-y-6"
     >
       {/* 1. Header Hero Bar */}
-      <motion.div variants={itemVariants} className="flex items-center justify-between">
+      <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <span className="text-xs font-mono uppercase tracking-widest text-primary font-semibold">
             Command Center Station &middot; Flight Deck
@@ -178,9 +199,41 @@ export const DesktopDashboard: React.FC = () => {
             Welcome back, {user?.fullName?.split(' ')[0] || 'Pilot'}
           </h1>
         </div>
-        <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>{accounts.length} Data Streams Synchronized</span>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Mode Switcher: List vs Triage Deck */}
+          <div className="flex items-center p-1 rounded-2xl bg-card/80 border border-border/60 shadow-xs">
+            <button
+              type="button"
+              onClick={() => handleSetDashboardMode('list')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer',
+                dashboardMode === 'list'
+                  ? 'bg-secondary text-secondary-foreground font-semibold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              <span>List</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetDashboardMode('triage')}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer',
+                dashboardMode === 'triage'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Triage Deck</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 font-mono text-xs text-muted-foreground bg-card/50 px-3 py-1.5 rounded-xl border border-border/40">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>{accounts.length} Streams Active</span>
+          </div>
         </div>
       </motion.div>
 
@@ -236,8 +289,18 @@ export const DesktopDashboard: React.FC = () => {
         </motion.div>
       )}
 
-      {/* 3. The Command Core Trio: Next Up + Urgent Deadline + Unified Live Agenda */}
-      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* Render interactive Triage Station Deck when triage mode is active */}
+      {dashboardMode === 'triage' ? (
+        <motion.div variants={itemVariants} className="pt-2">
+          <TriageView
+            filteredItems={filteredItems}
+            onExitTriage={() => handleSetDashboardMode('list')}
+          />
+        </motion.div>
+      ) : (
+        <>
+          {/* 3. The Command Core Trio: Next Up + Urgent Deadline + Unified Live Agenda */}
+          <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Next Up Event */}
         <DesktopBentoCard interactive onClick={() => navigate('/calendar')} className="p-5 flex flex-col justify-between">
           <div>
@@ -525,13 +588,15 @@ export const DesktopDashboard: React.FC = () => {
         <WeeklyDigestCard />
       </motion.div>
 
-      {/* 6. Priority Stream & Triage Quick Access */}
-      <motion.div variants={itemVariants}>
-        <PriorityNoticesList
-          items={filteredItems}
-          onStartTriage={() => navigate('/deadlines')}
-        />
-      </motion.div>
+        {/* 6. Priority Stream & Triage Quick Access */}
+        <motion.div variants={itemVariants}>
+          <PriorityNoticesList
+            items={filteredItems}
+            onStartTriage={() => handleSetDashboardMode('triage')}
+          />
+        </motion.div>
+        </>
+      )}
     </motion.div>
   );
 };
