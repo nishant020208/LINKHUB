@@ -22,6 +22,7 @@ import { useDeviceType } from '@/hooks/useDeviceType';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { InstallInstructions } from '@/components/pwa/InstallPrompt';
 import GlyphPortal from '@/components/ui/glyph-portal';
+import { ThemeAmbientBackground } from '@/components/ui/theme-ambient-background';
 import { Button } from '@/components/ui/button';
 import { LiquidButton } from '@/components/ui/liquid-button';
 import { Card } from '@/components/ui/card';
@@ -263,13 +264,12 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col justify-between relative overflow-x-clip selection:bg-primary/20 selection:text-primary">
-      {/* Ambient background glow */}
-      {!reduce && (
-        <div className="hero-orbs" aria-hidden>
-          <div className="hero-orb hero-orb-a opacity-60" />
-          <div className="hero-orb hero-orb-b opacity-40" />
-        </div>
-      )}
+      {/* Theme-matched ambient background (Clouds for White/Light, Black Hole for Dark, Recursive Erosion for Aesthetic) */}
+      <ThemeAmbientBackground
+        theme={theme}
+        deviceType={deviceType}
+        reduce={Boolean(reduce)}
+      />
 
       {/* Header */}
       <header className="w-full border-b border-border/40 backdrop-blur-xl bg-background/85 sticky top-0 z-30">
@@ -368,6 +368,19 @@ export const LandingPage: React.FC = () => {
                 interactive={true}
                 annotations={false}
                 enterLabel="Step Inside Command Station"
+                background={
+                  <div
+                    className="absolute inset-0 w-full h-full transition-colors duration-500"
+                    style={{
+                      background:
+                        theme === 'light'
+                          ? 'radial-gradient(circle at 20% 20%, rgba(180, 83, 9, 0.22), transparent 45%), radial-gradient(circle at 80% 80%, rgba(15, 122, 88, 0.14), transparent 45%), linear-gradient(135deg, #fbf8f3 0%, #ebe4d8 100%)'
+                          : theme === 'aesthetic'
+                          ? 'radial-gradient(circle at 20% 20%, rgba(157, 92, 252, 0.38), transparent 45%), radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.22), transparent 45%), linear-gradient(135deg, #121326 0%, #090a14 100%)'
+                          : 'radial-gradient(circle at 20% 20%, rgba(232, 165, 75, 0.32), transparent 45%), radial-gradient(circle at 80% 80%, rgba(61, 186, 139, 0.18), transparent 45%), linear-gradient(135deg, #1a1714 0%, #0c0b0a 100%)',
+                    }}
+                  />
+                }
                 style={{
                   '--gp-paper': 'var(--background)',
                   '--gp-ink': 'var(--foreground)',
